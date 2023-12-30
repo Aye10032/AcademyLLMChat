@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="chatglm" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="chatglm" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="KnowledgeBot" project-jdk-type="Python SDK" />
 </project>
