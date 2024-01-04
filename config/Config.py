@@ -1,3 +1,4 @@
 # PDF解析部分
 PDF_ROOT = './document'
-MMD_OUTPUT = './output'
+MD_OUTPUT = './output/markdown'
+XML_OUTPUT = './output/xml'
