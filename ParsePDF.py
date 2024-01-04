@@ -1,10 +1,15 @@
-from config.Config import PDF_ROOT, MD_OUTPUT
-from utils.NougatUtil import parse_pdf_to_md
+from config.Config import PDF_ROOT, MD_OUTPUT, PDF_PARSER
 from loguru import logger
 
 logger.add('log/pdf2md.log')
 
 if __name__ == '__main__':
-    parse_pdf_to_md(PDF_ROOT, MD_OUTPUT)
-    logger.info('PDF解析为markdown完成，开始处理markdown文件...')
+    if PDF_PARSER == 'grobid':
+        from utils.GrobidUtil import parse_pdf
 
+        pass
+    elif PDF_PARSER == 'nougat':
+        from utils.NougatUtil import parse_pdf
+
+        parse_pdf(PDF_ROOT, MD_OUTPUT)
+        logger.info('PDF解析为markdown完成，开始处理markdown文件...')

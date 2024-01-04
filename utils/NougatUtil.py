@@ -3,7 +3,7 @@ import os
 from loguru import logger
 
 
-def parse_pdf_to_md(pdf_path: str, output_path: str):
+def parse_pdf(pdf_path: str, output_path: str):
     """
     批量解析根目录下的PDF文件，并按照原目录结构保存为MD文件
     :param pdf_path: pdf文件的根目录
@@ -30,12 +30,12 @@ def parse_pdf_to_md(pdf_path: str, output_path: str):
 
         # 解析PDF文件
         logger.info(f'Processing file {_path} [{index + 1}/{count}]')
-        __parse_pdf(_path, md_base)
+        __parse_pdf_to_md(_path, md_base)
 
     logger.info(f'save {count} files to {output_path}')
 
 
-def __parse_pdf(pdf_path: str, md_path: str):
+def __parse_pdf_to_md(pdf_path: str, md_path: str):
     """
     解析PDF文件，返回解析结果
     :param pdf_path: pdf文件路径
