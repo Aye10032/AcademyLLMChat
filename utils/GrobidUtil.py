@@ -1,17 +1,59 @@
+import os
 import re
 
 from grobid_client.grobid_client import GrobidClient
-from bs4 import BeautifulSoup, NavigableString
+from bs4 import BeautifulSoup
 
-from utils.FileUtil import format_filename
+from config.Config import PDF_ROOT, MD_OUTPUT, XML_OUTPUT
+from utils.FileUtil import format_filename, save_to_md
+from loguru import logger
+
+from utils.TimeUtil import timer
 
 
-def parse_pdf(pdf_path: str, xml_path: str):
+@timer
+def parse_pdf(pdf_path: str, md_path: str):
+    """
+    批量解析根目录下的PDF文件，并按照原目录结构保存为MD文件
+    :param pdf_path: pdf文件的根目录
+    :param md_path: 输出MD文件的根目录
+    :return:
+    """
+    # 读取根目录下的所有PDF文件
+    pdf_paths = []
+    for root, dirs, files in os.walk(pdf_path):
+        if len(files) > 0:
+            pdf_paths.append(os.path.abspath(root))
+
+    # 解析PDF文件
+    for path in pdf_paths:
+        relative_path = os.path.relpath(path, pdf_path)
+        xml_path = os.path.join(XML_OUTPUT, relative_path)
+        logger.info(f'Parsing {path} to {xml_path}')
+        __parse_pdf_to_xml(path, xml_path)
+    pdf_paths.clear()
+
+    # 解析XML文件
+    xml_paths = []
+    for root, dirs, files in os.walk(XML_OUTPUT):
+        for file in files:
+            if file.endswith('.xml'):
+                xml_paths.append(os.path.abspath(os.path.join(root, file)))
+
+    for xml in xml_paths:
+        relative_path = os.path.relpath(xml, XML_OUTPUT)
+        md_file_path = os.path.join(MD_OUTPUT, relative_path).replace('.xml', '.md')
+        logger.info(f'Parsing {xml} to {md_file_path}')
+        result = __parse_xml(xml)
+        save_to_md(result, md_file_path)
+
+
+def __parse_pdf_to_xml(pdf_path: str, xml_path: str):
     client = GrobidClient(config_path="../config/grobid.json")
     client.process("processFulltextDocument", pdf_path, output=xml_path, n=10)
 
 
-def parse_xml(xml_path: str):
+def __parse_xml(xml_path: str):
     with open(xml_path, 'r', encoding='utf-8') as f:
         xml_data = f.read()
         soup = BeautifulSoup(xml_data, 'xml')
@@ -46,19 +88,22 @@ def parse_xml(xml_path: str):
             abstract += p.text.strip() + ' '
 
         # keywords
-        keywords = split_words(soup.find('profileDesc').select('keywords')[0].get_text())
+        key_div = soup.find('profileDesc').select('keywords')
+        keywords = split_words(key_div[0].get_text()) if len(key_div) != 0 else []
 
         # sections
         sections = []
         for section in soup.find('text').find_all('div', {'xmlns': 'http://www.tei-c.org/ns/1.0'}):
-            title = section.find('head').text.strip()
+            if section.find('head') is None:
+                continue
+            section_title = section.find('head').text.strip()
             title_level = section.find('head').attrs.get('n')
 
             text = []
             for p in section.find_all('p'):
                 text.append(replace_multiple_spaces(p.text.strip()))
 
-            sections.append({'title': title, 'title_level': title_level, 'text': text})
+            sections.append({'title': section_title, 'title_level': title_level, 'text': text})
 
     return {'title': title, 'authors': authors, 'year': year, 'abstract': abstract, 'keywords': keywords,
             'sections': sections}
@@ -79,5 +124,5 @@ def replace_multiple_spaces(text):
     return clean_text
 
 
-# parse_pdf('../../../DATA/documents/11/', '../output')
-data = parse_xml('../output/10.1016@j.febslet.2011.05.015.grobid.tei.xml')
+# data = __parse_xml('./output/xml/-10/andersen1998.grobid.tei.xml')
+parse_pdf('../../../DATA/documents', MD_OUTPUT)

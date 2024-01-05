@@ -1,5 +1,8 @@
+import os
 import re
 import string
+
+from loguru import logger
 
 
 def format_filename(filename):
@@ -28,19 +31,50 @@ def save_to_md(_dict: dict, output_path: str):
     :return:
     """
     title = _dict['title']
-    authors = _dict['authors']
-    publication_date = _dict['pub_date']
-    doi = _dict['doi']
     abstract = _dict['abstract']
     sections = _dict['sections']
+
+    if not os.path.exists(os.path.dirname(output_path)):
+        os.makedirs(os.path.dirname(output_path))
 
     with open(output_path, 'a', encoding='utf-8') as f:
         f.write(f'# {title}\n\n')
 
         f.write(f'## Abstract\n\n{abstract}\n\n')
 
+        father_title = ''
+        father_level = ''
+        check_sub = False
+        has_sub = False
         for section in sections:
-            section_title = section['heading']
-            section_text = section['text'].replace('\n', '\n\n')
-            f.write(f'## {section_title}\n\n')
-            f.write(f'{section_text}\n\n')
+            section_title = section['title']
+            title_level = section['title_level']
+            text = section['text']
+
+            if section_title.lower() in ['introduction', 'results', 'discussion']:
+                f.write(f'## {section_title}\n\n')
+
+                if text:
+                    for paragraph in text:
+                        f.write(paragraph + '\n\n')
+                    check_sub = False
+                else:
+                    if title_level and title_level.endswith('.'):
+                        father_title = section_title
+                        father_level = title_level
+                        check_sub = True
+                        has_sub = False
+                    else:
+                        check_sub = False
+                        logger.warning(f'Section {section_title} has no title level')
+                continue
+
+            if check_sub:
+                if title_level and title_level.startswith(father_level):
+                    f.write(f'### {section_title}\n\n')
+                    for paragraph in text:
+                        f.write(paragraph + '\n\n')
+                    has_sub = True
+
+                if not has_sub:
+                    logger.warning(f'Section {father_title} has no sub section')
