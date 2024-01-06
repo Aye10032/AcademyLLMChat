@@ -4,3 +4,7 @@ torchvision~=0.16.2
 nougat-ocr
 grobid-client-python~=0.0.7
 lxml
+
+beautifulsoup4~=4.12.2
+requests~=2.28.1
+pandas~=2.1.4
