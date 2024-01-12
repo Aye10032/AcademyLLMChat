@@ -1,10 +1,13 @@
 loguru~=0.7.2
-torch~=2.1.2
-torchvision~=0.16.2
+# torch~=2.1.2
+# torchvision~=0.16.2
 grobid-client-python~=0.0.7
 lxml
 
 beautifulsoup4~=4.12.2
-requests~=2.28.1
+requests[socks]
 pandas~=2.1.4
 
+langchain~=0.1.0
+unstructured~=0.12.0
+markdown
