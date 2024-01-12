@@ -5,11 +5,11 @@ logger.add('log/pdf2md.log')
 
 if __name__ == '__main__':
     if PDF_PARSER == 'grobid':
-        from utils.GrobidUtil import parse_pdf
+        from preprocess.GrobidUtil import parse_pdf
 
         pass
     elif PDF_PARSER == 'nougat':
-        from utils.NougatUtil import parse_pdf
+        from preprocess.NougatUtil import parse_pdf
 
         parse_pdf(PDF_ROOT, MD_OUTPUT)
         logger.info('PDF解析为markdown完成，开始处理markdown文件...')
