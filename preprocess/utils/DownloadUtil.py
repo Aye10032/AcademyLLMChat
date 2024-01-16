@@ -1,8 +1,6 @@
-import time
-
 import requests
 
-from config.Config import API_KEY
+from Config import API_KEY
 from bs4 import BeautifulSoup
 from loguru import logger
 

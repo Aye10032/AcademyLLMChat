@@ -18,4 +18,4 @@ vector_db = Milvus(
 
 question = 'what is NPQ?'
 
-docs = vector_db.similarity_search(question, k=2)
+docs = vector_db(question, k=2)

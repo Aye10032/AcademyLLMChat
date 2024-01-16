@@ -3,10 +3,10 @@ import random
 import time
 import pandas as pd
 
-from utils.DownloadUtil import parse_paper_info
+from preprocess.utils.DownloadUtil import parse_paper_info
 from loguru import logger
 
-from utils.TimeUtil import timer
+from preprocess.utils.TimeUtil import timer
 
 
 @timer
@@ -72,13 +72,14 @@ def get_doi(md_path: str):
 if __name__ == '__main__':
     # logger.add('log/load_csv.log')
 
-    i = 2023
+    i = 2015
 
-    logger.info(f'Loading paper in {i}...')
-    load_csv(i, f'./output/md/{i}/')
-    get_doi('output/md/')
+    # logger.info(f'Loading paper in {i}...')
+    # load_csv(i, f'./output/md/{i}/')
+    # get_doi('output/md/')
 
     d_f = pd.read_csv('nandesyn_pub.csv', encoding='utf-8', dtype={'PMID': 'str', 'DOI': 'str'})
-    d_f.sort_values(by=['Year', 'PMID'], inplace=True)
+    d_f.sort_values(by=['Year', 'Title'], inplace=True)
 
-    df_merge = d_f[d_f['Year'] == i]
+    df_merge = d_f[d_f['Year'] == i].copy().drop('Journal', axis=1)
+    df_merge['DOI'] = df_merge['DOI'].str.replace('/', '@')

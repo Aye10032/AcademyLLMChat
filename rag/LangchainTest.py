@@ -10,9 +10,11 @@ md_splitter = MarkdownHeaderTextSplitter(
 with open(md_path, 'r') as f:
     md_text = f.read()
 md_docs = md_splitter.split_text(md_text)
+for i, doc in enumerate(md_docs):
+    doc.metadata['doi'] = '10.1016/j.febslet.2011.05.015'
 
 model_name = "BAAI/bge-base-en-v1.5"
-model_kwargs = {'device': 'gpu'}
+model_kwargs = {'device': 'cuda'}
 encode_kwargs = {'normalize_embeddings': True}
 embedding = HuggingFaceBgeEmbeddings(
     model_name=model_name,

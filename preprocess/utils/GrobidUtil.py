@@ -4,11 +4,11 @@ import re
 from grobid_client.grobid_client import GrobidClient
 from bs4 import BeautifulSoup
 
-from config.Config import PDF_ROOT, MD_OUTPUT, XML_OUTPUT
-from preprocess.FileUtil import format_filename, save_to_md
+from Config import MD_OUTPUT, XML_OUTPUT
+from preprocess.utils.FileUtil import format_filename, save_to_md
 from loguru import logger
 
-from preprocess.TimeUtil import timer
+from preprocess.utils.TimeUtil import timer
 
 
 @timer
@@ -49,7 +49,7 @@ def parse_pdf(pdf_path: str, md_path: str):
 
 
 def __parse_pdf_to_xml(pdf_path: str, xml_path: str):
-    client = GrobidClient(config_path="../config/grobid.json")
+    client = GrobidClient(config_path="../../config/grobid.json")
     client.process("processFulltextDocument", pdf_path, output=xml_path, n=10)
 
 
@@ -125,4 +125,4 @@ def replace_multiple_spaces(text):
 
 
 # data = __parse_xml('./output/xml/-10/andersen1998.grobid.tei.xml')
-parse_pdf('../../../DATA/documents', MD_OUTPUT)
+parse_pdf('../../../../DATA/documents', MD_OUTPUT)
