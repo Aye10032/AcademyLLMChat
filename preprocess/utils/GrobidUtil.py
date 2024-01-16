@@ -8,7 +8,7 @@ from Config import MD_OUTPUT, XML_OUTPUT
 from preprocess.utils.FileUtil import format_filename, save_to_md
 from loguru import logger
 
-from preprocess.utils.TimeUtil import timer
+from utils.TimeUtil import timer
 
 
 @timer
