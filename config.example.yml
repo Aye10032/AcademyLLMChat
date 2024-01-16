@@ -1,0 +1,16 @@
+# PDF解析器
+pdf_parser: 'grobid'  # grobid or nougat
+
+# 数据目录
+pdf_root: 'data/document'
+md_output: 'data/output/markdown'
+xml_output: 'data/output/xml'
+
+# NCBI API key
+api_key: ''
+
+# milvus
+milvus:
+  milvus_host: '127.0.0.1'
+  milvus_port: 19530
+  collection_name: 'document'
