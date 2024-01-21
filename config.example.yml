@@ -6,8 +6,16 @@ pdf_root: 'data/document'
 md_output: 'data/output/markdown'
 xml_output: 'data/output/xml'
 
-# NCBI API key
-api_key: ''
+# 配置代理
+proxy:
+  type: 'http' # http或socks5
+  host: '127.0.0.1'
+  port: 1080
+
+# NCBI相关
+pubmed:
+  use_proxy: True
+  api_key: ''
 
 # milvus
 milvus:

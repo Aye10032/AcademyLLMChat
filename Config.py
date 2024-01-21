@@ -12,6 +12,16 @@ def get_work_path():
     return os.path.dirname(os.path.abspath(__file__))
 
 
+class PubmedConfig:
+    def __init__(self, use_proxy: bool, api_key: str):
+        self.USE_PROXY = use_proxy
+        self.API_KEY = api_key
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, any]):
+        return cls(**data)
+
+
 class MilvusConfig:
     def __init__(self, milvus_host: str, milvus_port: int, collection_name: str):
         self.MILVUS_HOST = milvus_host
@@ -25,11 +35,12 @@ class MilvusConfig:
 
 class Config:
     def __init__(self):
-        if not os.path.exists('config.yml'):
+        yml_path = os.path.join(get_work_path(), 'config.yml')
+        if not os.path.exists(yml_path):
             logger.info('config dose not exits')
-            shutil.copy('config.example.yml', 'config.yml')
+            shutil.copy(os.path.join(get_work_path(), 'config.example.yml'), yml_path)
 
-        with open(file='config.yml', mode='r', encoding='utf-8') as file:
+        with open(file=yml_path, mode='r', encoding='utf-8') as file:
             self.yml = yaml.load(file, Loader=yaml.FullLoader)
 
             self.PDF_PARSER = self.yml['pdf_parser']
@@ -37,6 +48,13 @@ class Config:
             self.PDF_ROOT = os.path.join(get_work_path(), self.yml['pdf_root'])
             self.MD_OUTPUT = os.path.join(get_work_path(), self.yml['md_output'])
             self.XML_OUTPUT = os.path.join(get_work_path(), self.yml['xml_output'])
+
+            _proxy_type = self.yml['proxy']['type']
+            _proxy_host = self.yml['proxy']['host']
+            _proxy_port = self.yml['proxy']['port']
+            self.PROXY = f'{_proxy_type}://{_proxy_host}:{_proxy_port}'
+
+            self.pubmed_config: PubmedConfig = PubmedConfig.from_dict(self.yml['pubmed'])
 
             self.milvus_config: MilvusConfig = MilvusConfig.from_dict(self.yml['milvus'])
 
