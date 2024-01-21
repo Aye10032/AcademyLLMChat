@@ -30,6 +30,13 @@ def get_paper_info(pmid: str):
             .find('JournalIssue')
             .find('PubDate').find('Year').text)
     abstract = soup.find('AbstractText').text if soup.find('AbstractText') else None
+
+    keyword_list = soup.find('KeywordList').find_all('Keyword')
+    if keyword_list:
+        keywords = [keyword.text for keyword in keyword_list]
+    else:
+        keywords = []
+
     doi_block = soup.find('ArticleIdList').find('ArticleId', {'IdType': 'doi'})
     if doi_block:
         doi = doi_block.text
@@ -41,6 +48,7 @@ def get_paper_info(pmid: str):
         'title': title,
         'year': year,
         'abstract': abstract,
+        'keywords': keywords,
         'doi': doi
     }
 
