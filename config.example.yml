@@ -28,3 +28,7 @@ milvus:
   milvus_host: '127.0.0.1'
   milvus_port: 19530
   collection_name: 'document'
+
+openai:
+  use_proxy: True
+  api_key: ''

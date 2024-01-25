@@ -44,6 +44,16 @@ class MilvusConfig:
         return cls(**data)
 
 
+class OpenaiConfig:
+    def __init__(self, use_proxy: bool, api_key: str):
+        self.USE_PROXY = use_proxy
+        self.API_KEY = api_key
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, any]):
+        return cls(**data)
+
+
 class Config:
     def __init__(self):
         yml_path = os.path.join(get_work_path(), 'config.yml')
@@ -66,10 +76,9 @@ class Config:
             self.PROXY = f'{_proxy_type}://{_proxy_host}:{_proxy_port}'
 
             self.pubmed_config: PubmedConfig = PubmedConfig.from_dict(self.yml['pubmed'])
-
             self.grobid_config: GrobidConfig = GrobidConfig.from_dict(self.yml['grobid'])
-
             self.milvus_config: MilvusConfig = MilvusConfig.from_dict(self.yml['milvus'])
+            self.openai_config: OpenaiConfig = OpenaiConfig.from_dict(self.yml['openai'])
 
 
 config = Config()
