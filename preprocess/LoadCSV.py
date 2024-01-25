@@ -3,10 +3,11 @@ import random
 import time
 import pandas as pd
 
-from preprocess.utils.DownloadUtil import parse_paper_info
 from loguru import logger
 
-from preprocess.utils.TimeUtil import timer
+from Config import config
+from utils.PubmedUtil import get_paper_info
+from utils.TimeUtil import timer
 
 
 @timer
@@ -26,7 +27,7 @@ def load_csv(year: int, output_path: str):
 
     out_put_df = df.copy()
 
-    df_10 = df[df['Year'] == year]
+    df_10 = df[df['Year'] <= year]
 
     if not os.path.exists(output_path):
         os.makedirs(output_path)
@@ -40,7 +41,8 @@ def load_csv(year: int, output_path: str):
             logger.info(f'skip {row.PMID}')
             continue
 
-        article = parse_paper_info(row.PMID, True)
+        article = get_paper_info(row.PMID)
+        title = article['title']
         abstract = article['abstract']
 
         if abstract is None:
@@ -53,11 +55,11 @@ def load_csv(year: int, output_path: str):
             file_name = article['doi'].replace('/', '@') + '.md'
             out_put_df.loc[row.Index, 'DOI'] = article['doi']
         with open(f'{output_path}{file_name}', 'w', encoding='utf-8') as f:
-            f.write(f'# {row.Title}\n\n')
+            f.write(f'# {title}\n\n')
             f.write(f'## Abstract\n\n{abstract}\n\n')
 
         out_put_df.to_csv('nandesyn_pub.csv', index=False, encoding='utf-8')
-        time.sleep(random.uniform(2.0, 3.0))
+        time.sleep(random.uniform(2.0, 5.0))
 
 
 def get_doi(md_path: str):
@@ -70,16 +72,16 @@ def get_doi(md_path: str):
 
 
 if __name__ == '__main__':
-    # logger.add('log/load_csv.log')
+    logger.add('log/load_csv.log')
 
-    i = 2015
+    i = 2010
 
-    # logger.info(f'Loading paper in {i}...')
-    # load_csv(i, f'./output/md/{i}/')
+    logger.info(f'Loading paper in {i}...')
+    load_csv(i, f'{config.MD_OUTPUT}/{i}/')
     # get_doi('output/md/')
 
     d_f = pd.read_csv('nandesyn_pub.csv', encoding='utf-8', dtype={'PMID': 'str', 'DOI': 'str'})
     d_f.sort_values(by=['Year', 'Title'], inplace=True)
 
-    df_merge = d_f[d_f['Year'] == i].copy().drop('Journal', axis=1)
+    df_merge = d_f[d_f['Year'] <= i].copy().drop('Journal', axis=1)
     df_merge['DOI'] = df_merge['DOI'].str.replace('/', '@')
