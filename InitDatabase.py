@@ -10,6 +10,26 @@ from utils.TimeUtil import timer
 logger.add('log/runtime.log')
 
 
+def assemble_md():
+    for root, dirs, files in os.walk(config.XML_OUTPUT):
+        for file in files:
+            file_path = os.path.join(root, file)
+            file_year = os.path.basename(root)
+            doi = file.replace('.grobid.tei.xml', '')
+            logger.info(f'loading <{doi}> ({file_year})...')
+
+            from utils.GrobidUtil import parse_xml, save_to_md
+
+            data = parse_xml(f'{file_path}')
+
+            md_path = os.path.join(config.MD_OUTPUT, f'{file_year}/{doi}.md')
+            if os.path.exists(md_path):
+                save_to_md(data, md_path, True)
+            else:
+                save_to_md(data, md_path, False)
+                logger.warning(f'markdown not find!')
+
+
 @timer
 def load_md(base_path):
     md_splitter = MarkdownHeaderTextSplitter(
@@ -33,7 +53,7 @@ def load_md(base_path):
 
     logger.info('start building vector database...')
 
-    model_name = "BAAI/bge-base-en-v1.5"
+    model_name = "BAAI/bge-large-en-v1.5"
     model_kwargs = {'device': 'cuda'}
     encode_kwargs = {'normalize_embeddings': True}
     embedding = HuggingFaceBgeEmbeddings(
@@ -56,4 +76,15 @@ def load_md(base_path):
 
 
 if __name__ == '__main__':
+    if not os.path.exists(config.MD_OUTPUT):
+        os.makedirs(config.MD_OUTPUT)
+    if not os.path.exists(config.XML_OUTPUT):
+        os.makedirs(config.XML_OUTPUT)
+
+    if config.PDF_PARSER == 'grobid':
+        from utils.GrobidUtil import parse_pdf
+
+        parse_pdf(config.PDF_ROOT)
+        assemble_md()
+
     load_md(config.MD_OUTPUT)
