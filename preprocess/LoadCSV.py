@@ -27,7 +27,7 @@ def load_csv(year: int, output_path: str):
 
     out_put_df = df.copy()
 
-    df_10 = df[df['Year'] <= year]
+    df_10 = df[df['Year'] == year]
 
     if not os.path.exists(output_path):
         os.makedirs(output_path)
@@ -74,14 +74,14 @@ def get_doi(md_path: str):
 if __name__ == '__main__':
     logger.add('log/load_csv.log')
 
-    i = 2010
+    for i in range(2010, 2024):
 
-    logger.info(f'Loading paper in {i}...')
-    load_csv(i, f'{config.MD_OUTPUT}/{i}/')
-    # get_doi('output/md/')
+        logger.info(f'Loading paper in {i}...')
+        load_csv(i, f'{config.MD_OUTPUT}/{i}/')
+        # get_doi('output/md/')
 
-    d_f = pd.read_csv('nandesyn_pub.csv', encoding='utf-8', dtype={'PMID': 'str', 'DOI': 'str'})
-    d_f.sort_values(by=['Year', 'Title'], inplace=True)
-
-    df_merge = d_f[d_f['Year'] <= i].copy().drop('Journal', axis=1)
-    df_merge['DOI'] = df_merge['DOI'].str.replace('/', '@')
+        # d_f = pd.read_csv('nandesyn_pub.csv', encoding='utf-8', dtype={'PMID': 'str', 'DOI': 'str'})
+        # d_f.sort_values(by=['Year', 'Title'], inplace=True)
+        #
+        # df_merge = d_f[d_f['Year'] == i].copy().drop('Journal', axis=1)
+        # df_merge['DOI'] = df_merge['DOI'].str.replace('/', '@')
