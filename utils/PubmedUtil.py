@@ -25,15 +25,15 @@ def get_paper_info(pmid: str):
 
     soup = BeautifulSoup(response.text, 'xml')
 
-    title = soup.find('Article').find('Journal').find('Title').text
+    title = soup.find('Article').find('ArticleTitle').text if soup.find('Article') else None
     year = (soup.find('Article')
             .find('JournalIssue')
             .find('PubDate').find('Year').text)
     abstract = soup.find('AbstractText').text if soup.find('AbstractText') else None
 
-    keyword_list = soup.find('KeywordList').find_all('Keyword')
+    keyword_list = soup.find('KeywordList')
     if keyword_list:
-        keywords = [keyword.text for keyword in keyword_list]
+        keywords = [keyword.text for keyword in keyword_list.find_all('Keyword')]
     else:
         keywords = []
 
