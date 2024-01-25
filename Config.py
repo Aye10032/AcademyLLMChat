@@ -22,6 +22,17 @@ class PubmedConfig:
         return cls(**data)
 
 
+class GrobidConfig:
+    def __init__(self, config_path: str, service: str, multi_process: int):
+        self.CONFIG_PATH = os.path.join(get_work_path(), config_path)
+        self.SERVICE = service
+        self.MULTI_PROCESS = multi_process
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, any]):
+        return cls(**data)
+
+
 class MilvusConfig:
     def __init__(self, milvus_host: str, milvus_port: int, collection_name: str):
         self.MILVUS_HOST = milvus_host
@@ -55,6 +66,8 @@ class Config:
             self.PROXY = f'{_proxy_type}://{_proxy_host}:{_proxy_port}'
 
             self.pubmed_config: PubmedConfig = PubmedConfig.from_dict(self.yml['pubmed'])
+
+            self.grobid_config: GrobidConfig = GrobidConfig.from_dict(self.yml['grobid'])
 
             self.milvus_config: MilvusConfig = MilvusConfig.from_dict(self.yml['milvus'])
 

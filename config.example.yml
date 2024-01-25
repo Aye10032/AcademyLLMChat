@@ -17,6 +17,12 @@ pubmed:
   use_proxy: True
   api_key: ''
 
+# grobid相关配置
+grobid:
+  config_path: 'grobid/grobid.json'
+  service: 'processFulltextDocument'
+  multi_process: 10
+
 # milvus
 milvus:
   milvus_host: '127.0.0.1'
