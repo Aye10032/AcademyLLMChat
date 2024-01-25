@@ -139,19 +139,19 @@ def save_to_md(_dict: dict, output_path: str, append: bool):
             if section_title.lower() in ['introduction', 'results', 'discussion']:
                 f.write(f'## {section_title}\n\n')
 
+                if title_level and title_level.endswith('.'):
+                    father_title = section_title
+                    father_level = title_level
+                    check_sub = True
+                    has_sub = False
+                else:
+                    check_sub = False
+                    logger.warning(f'Section {section_title} has no title level')
+
                 if text:
                     for paragraph in text:
                         f.write(paragraph + '\n\n')
-                    check_sub = False
-                else:
-                    if title_level and title_level.endswith('.'):
-                        father_title = section_title
-                        father_level = title_level
-                        check_sub = True
-                        has_sub = False
-                    else:
-                        check_sub = False
-                        logger.warning(f'Section {section_title} has no title level')
+
                 continue
 
             if check_sub:
@@ -163,8 +163,10 @@ def save_to_md(_dict: dict, output_path: str, append: bool):
 
                 if not has_sub:
                     logger.warning(f'Section {father_title} has no sub section')
+                    check_sub = False
 
 
 if __name__ == '__main__':
-    # parse_pdf('../../../../DATA/documents', config.MD_OUTPUT)
-    data = parse_xml(config.XML_OUTPUT + '/2010/10.1002@bit.22809.grobid.tei.xml')
+    # parse_pdf('../../../../DATA/document', config.MD_OUTPUT)
+    data = parse_xml(config.XML_OUTPUT + '/2010/10.1016@j.biortech.2010.03.103.grobid.tei.xml')
+    save_to_md(data, config.MD_OUTPUT + '/2010/10.1016@j.biortech.2010.03.103.md', True)
