@@ -6,6 +6,15 @@ from loguru import logger
 
 
 def get_paper_info(pmid: str):
+    """
+    :param pmid: pubmed id
+    :return:
+        'title': title,
+        'year': year,
+        'abstract': abstract,
+        'keywords': keywords,
+        'doi': doi
+    """
     logger.info(f'request PMID:{pmid}')
     url = (f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id={pmid}'
            f'&rettype=abstract&retmode=xml&api_key={config.pubmed_config.API_KEY}')
