@@ -8,11 +8,11 @@ import streamlit as st
 import httpx
 
 from Config import config
-from rag.Template import ASK
+from llm.Template import ASK
 
 
 @st.cache_resource
-def load_retrieval():
+def load_vectorstore():
     milvus_cfg = config.milvus_config
 
     model_name = "BAAI/bge-large-en-v1.5"
@@ -29,9 +29,8 @@ def load_retrieval():
         collection_name=milvus_cfg.COLLECTION_NAME,
         connection_args={"host": milvus_cfg.MILVUS_HOST, "port": milvus_cfg.MILVUS_PORT},
     )
-    retriever = VectorStoreRetriever(vectorstore=vector_db)
 
-    return retriever
+    return vector_db
 
 
 @st.cache_resource
@@ -52,7 +51,8 @@ def load_llm():
 @st.cache_resource
 def get_qa_chain():
     llm = load_llm()
-    retriever = load_retrieval()
+    vector_db = load_vectorstore()
+    retriever = VectorStoreRetriever(vectorstore=vector_db)
     qa_chain_prompt = PromptTemplate.from_template(ASK)
     qa_chain = RetrievalQA.from_chain_type(
         llm,
