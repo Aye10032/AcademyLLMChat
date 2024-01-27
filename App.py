@@ -2,7 +2,7 @@ import streamlit as st
 
 from rag.RagCore import ask_from_rag
 
-st.set_page_config(page_title="微藻文献大模型知识库", page_icon="📖")
+st.set_page_config(page_title="微藻文献大模型知识库", page_icon="📖", layout='wide')
 st.title('微藻文献大模型知识库')
 
 with st.sidebar:
@@ -27,6 +27,6 @@ if prompt := st.chat_input(''):
                 _title = ref.metadata['Title']
                 st.markdown(f'#### {_title}')
                 st.markdown(ref.page_content)
-                st.markdown('---')
+                st.divider()
 
     st.session_state.messages.append({"role": "assistant", "content": response['result']})
