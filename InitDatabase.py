@@ -3,7 +3,6 @@ import os
 from langchain.text_splitter import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceBgeEmbeddings
 from langchain_community.vectorstores.milvus import Milvus
-from langchain_core.documents import Document
 from loguru import logger
 from Config import config
 from utils.TimeUtil import timer
