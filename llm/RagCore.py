@@ -2,12 +2,10 @@ from langchain.chains import RetrievalQA
 from langchain_community.embeddings import HuggingFaceBgeEmbeddings
 from langchain_community.vectorstores import Milvus, milvus
 from langchain_core.prompts import PromptTemplate
-from langchain_core.vectorstores import VectorStoreRetriever
-from langchain_openai import ChatOpenAI
 import streamlit as st
-import httpx
 
 from Config import config
+from llm.ModelCore import load_gpt_16k
 from llm.Template import ASK
 
 
@@ -15,7 +13,7 @@ from llm.Template import ASK
 def load_vectorstore():
     milvus_cfg = config.milvus_config
 
-    model_name = "BAAI/bge-large-en-v1.5"
+    model_name = 'BAAI/bge-large-en-v1.5'
     model_kwargs = {'device': 'cuda'}
     encode_kwargs = {'normalize_embeddings': True}
     embedding = HuggingFaceBgeEmbeddings(
@@ -27,32 +25,21 @@ def load_vectorstore():
     vector_db: milvus = Milvus(
         embedding,
         collection_name=milvus_cfg.COLLECTION_NAME,
-        connection_args={"host": milvus_cfg.MILVUS_HOST, "port": milvus_cfg.MILVUS_PORT},
+        connection_args={'host': milvus_cfg.MILVUS_HOST, 'port': milvus_cfg.MILVUS_PORT},
+        search_params={'ef': 15}
     )
 
     return vector_db
 
 
 @st.cache_resource
-def load_llm():
-    if config.openai_config.USE_PROXY:
-        http_client = httpx.Client(proxies=config.PROXY)
-        llm = ChatOpenAI(model_name="gpt-3.5-turbo-16k",
-                         http_client=http_client,
-                         temperature=0,
-                         openai_api_key=config.openai_config.API_KEY)
-    else:
-        llm = ChatOpenAI(model_name="gpt-3.5-turbo-16k",
-                         temperature=0,
-                         openai_api_key=config.openai_config.API_KEY)
-    return llm
-
-
-@st.cache_resource
 def get_qa_chain():
-    llm = load_llm()
-    vector_db = load_vectorstore()
-    retriever = VectorStoreRetriever(vectorstore=vector_db)
+    llm = load_gpt_16k()
+    db = load_vectorstore()
+    retriever = db.as_retriever(
+        search_type='mmr',
+        search_kwargs={'k': 5, 'fetch_k': 15}
+    )
     qa_chain_prompt = PromptTemplate.from_template(ASK)
     qa_chain = RetrievalQA.from_chain_type(
         llm,
