@@ -5,6 +5,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.vectorstores import VectorStoreRetriever
 from langchain_openai import ChatOpenAI
 import streamlit as st
+import httpx
 
 from Config import config
 from rag.Template import ASK
@@ -36,8 +37,6 @@ def load_retrieval():
 @st.cache_resource
 def load_llm():
     if config.openai_config.USE_PROXY:
-        import httpx
-
         http_client = httpx.Client(proxies=config.PROXY)
         llm = ChatOpenAI(model_name="gpt-3.5-turbo-16k",
                          http_client=http_client,
@@ -47,7 +46,6 @@ def load_llm():
         llm = ChatOpenAI(model_name="gpt-3.5-turbo-16k",
                          temperature=0,
                          openai_api_key=config.openai_config.API_KEY)
-
     return llm
 
 
