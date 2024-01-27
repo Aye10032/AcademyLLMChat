@@ -57,7 +57,3 @@ def ask_from_rag(question: str):
     result = qa_chain.invoke({'query': question})
 
     return result
-
-
-if __name__ == '__main__':
-    data = ask_from_rag('what is npq?')
