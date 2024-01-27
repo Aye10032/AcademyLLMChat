@@ -4,12 +4,14 @@ from langchain_community.vectorstores import Milvus, milvus
 from langchain_core.prompts import PromptTemplate
 from langchain_core.vectorstores import VectorStoreRetriever
 from langchain_openai import ChatOpenAI
+import streamlit as st
 
 from Config import config
 from rag.Template import ASK
 
 
-def ask_from_rag(question: str):
+@st.cache_resource
+def load_retrieval():
     milvus_cfg = config.milvus_config
 
     model_name = "BAAI/bge-large-en-v1.5"
@@ -28,6 +30,11 @@ def ask_from_rag(question: str):
     )
     retriever = VectorStoreRetriever(vectorstore=vector_db)
 
+    return retriever
+
+
+@st.cache_resource
+def load_llm():
     if config.openai_config.USE_PROXY:
         import httpx
 
@@ -41,6 +48,13 @@ def ask_from_rag(question: str):
                          temperature=0,
                          openai_api_key=config.openai_config.API_KEY)
 
+    return llm
+
+
+@st.cache_resource
+def get_qa_chain():
+    llm = load_llm()
+    retriever = load_retrieval()
     qa_chain_prompt = PromptTemplate.from_template(ASK)
     qa_chain = RetrievalQA.from_chain_type(
         llm,
@@ -49,6 +63,12 @@ def ask_from_rag(question: str):
         chain_type_kwargs={'prompt': qa_chain_prompt}
     )
 
+    return qa_chain
+
+
+@st.cache_data
+def ask_from_rag(question: str):
+    qa_chain = get_qa_chain()
     result = qa_chain.invoke({'query': question})
 
     return result
