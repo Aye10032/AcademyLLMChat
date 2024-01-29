@@ -1,15 +1,32 @@
-import logging
+from typing import List
 
-from langchain.chains import RetrievalQA
+from langchain.chains import RetrievalQA, LLMChain
+from langchain.output_parsers import PydanticOutputParser
 from langchain.retrievers import MultiQueryRetriever
 from langchain_community.embeddings import HuggingFaceBgeEmbeddings
 from langchain_community.vectorstores import Milvus, milvus
+from langchain_core.globals import set_debug
 from langchain_core.prompts import PromptTemplate
+from pydantic import BaseModel, Field
+
 import streamlit as st
 
 from Config import config
 from llm.ModelCore import load_gpt_16k, load_gpt
-from llm.Template import ASK
+from llm.Template import ASK, RETRIEVER
+
+
+class QuestionList(BaseModel):
+    answer: List[str] = Field(description='List of generated questions.')
+
+
+class LineListOutputParser(PydanticOutputParser):
+    def __init__(self) -> None:
+        super().__init__(pydantic_object=QuestionList)
+
+    def parse(self, text: str) -> QuestionList:
+        lines = text.strip().split('\n')
+        return QuestionList(answer=lines)
 
 
 @st.cache_resource
@@ -37,18 +54,34 @@ def load_vectorstore():
 
 @st.cache_resource
 def get_qa_chain():
+    set_debug(True)
+
     llm = load_gpt_16k()
-    llm_retriever = load_gpt()
+    retriever_llm = load_gpt()
     db = load_vectorstore()
 
-    retriever = MultiQueryRetriever.from_llm(
-        retriever=db.as_retriever(
-            search_type='mmr',
-            search_kwargs={'k': 5, 'fetch_k': 15}
-        ),
-        llm=llm_retriever,
-        include_original=True
+    base_retriever = db.as_retriever(
+        search_type='mmr',
+        search_kwargs={'k': 5, 'fetch_k': 10}
     )
+
+    query_prompt = PromptTemplate(
+        input_variables=["question"],
+        template=RETRIEVER,
+    )
+
+    llm_chain = LLMChain(
+        llm=retriever_llm,
+        prompt=query_prompt,
+        output_parser=LineListOutputParser()
+    )
+
+    retriever = MultiQueryRetriever(
+        retriever=base_retriever,
+        llm_chain=llm_chain,
+        parser_key='answer'
+    )
+
     qa_chain_prompt = PromptTemplate.from_template(ASK)
     qa_chain = RetrievalQA.from_chain_type(
         llm,

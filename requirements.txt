@@ -6,7 +6,7 @@ lxml
 
 httpx~=0.26.0
 beautifulsoup4~=4.12.2
-requests[socks]
+requests[socks]~=2.31.0
 pandas~=2.1.4
 
 langchain==0.1.1
@@ -18,3 +18,5 @@ langchain-openai
 openai
 
 streamlit~=1.30.0
+pydantic~=2.5.3
+pyyaml~=6.0.1
