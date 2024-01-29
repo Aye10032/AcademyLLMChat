@@ -45,5 +45,4 @@ with col2:
         same_question = get_similar_question(prompt).answer
         with st.expander('猜你想问'):
             for question in same_question:
-                st.markdown('---')
                 st.markdown(question)
