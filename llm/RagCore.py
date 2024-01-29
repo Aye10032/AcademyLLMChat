@@ -12,8 +12,9 @@ from pydantic import BaseModel, Field
 import streamlit as st
 
 from Config import config
-from llm.ModelCore import load_gpt_16k, load_gpt
-from llm.Template import ASK, RETRIEVER
+from llm.AgentCore import get_translate_sentence
+from llm.ModelCore import load_gpt, load_gpt_16k
+from llm.Template import RETRIEVER, ASK, TRANSLATE_TO_EN, TRANSLATE_TO_ZH
 
 
 class QuestionList(BaseModel):
@@ -53,10 +54,7 @@ def load_vectorstore():
 
 
 @st.cache_resource
-def get_qa_chain():
-    set_debug(True)
-
-    llm = load_gpt_16k()
+def load_retriever():
     retriever_llm = load_gpt()
     db = load_vectorstore()
 
@@ -70,10 +68,12 @@ def get_qa_chain():
         template=RETRIEVER,
     )
 
+    parser = LineListOutputParser()
+
     llm_chain = LLMChain(
         llm=retriever_llm,
         prompt=query_prompt,
-        output_parser=LineListOutputParser()
+        output_parser=parser
     )
 
     retriever = MultiQueryRetriever(
@@ -82,20 +82,31 @@ def get_qa_chain():
         parser_key='answer'
     )
 
-    qa_chain_prompt = PromptTemplate.from_template(ASK)
+    return retriever
+
+
+@st.cache_data
+def get_answer(question: str):
+    prompt = PromptTemplate.from_template(ASK)
+    llm = load_gpt_16k()
+    retriever = load_retriever()
+
     qa_chain = RetrievalQA.from_chain_type(
         llm,
         retriever=retriever,
         return_source_documents=True,
-        chain_type_kwargs={'prompt': qa_chain_prompt}
+        chain_type_kwargs={'prompt': prompt}
     )
 
-    return qa_chain
+    result = qa_chain.invoke({'query': question})
+
+    return result
 
 
 @st.cache_data
 def ask_from_rag(question: str):
-    qa_chain = get_qa_chain()
-    result = qa_chain.invoke({'query': question})
+    set_debug(True)
+    question_en = get_translate_sentence(question, TRANSLATE_TO_EN).trans
+    result = get_answer(question_en)
 
     return result
