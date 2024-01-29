@@ -1,11 +1,14 @@
+import logging
+
 from langchain.chains import RetrievalQA
+from langchain.retrievers import MultiQueryRetriever
 from langchain_community.embeddings import HuggingFaceBgeEmbeddings
 from langchain_community.vectorstores import Milvus, milvus
 from langchain_core.prompts import PromptTemplate
 import streamlit as st
 
 from Config import config
-from llm.ModelCore import load_gpt_16k
+from llm.ModelCore import load_gpt_16k, load_gpt
 from llm.Template import ASK
 
 
@@ -35,10 +38,16 @@ def load_vectorstore():
 @st.cache_resource
 def get_qa_chain():
     llm = load_gpt_16k()
+    llm_retriever = load_gpt()
     db = load_vectorstore()
-    retriever = db.as_retriever(
-        search_type='mmr',
-        search_kwargs={'k': 5, 'fetch_k': 15}
+
+    retriever = MultiQueryRetriever.from_llm(
+        retriever=db.as_retriever(
+            search_type='mmr',
+            search_kwargs={'k': 5, 'fetch_k': 15}
+        ),
+        llm=llm_retriever,
+        include_original=True
     )
     qa_chain_prompt = PromptTemplate.from_template(ASK)
     qa_chain = RetrievalQA.from_chain_type(
