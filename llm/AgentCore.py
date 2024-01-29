@@ -12,7 +12,7 @@ class Response(BaseModel):
 
 
 @st.cache_data
-def get_translate_sentence(question: str, template: str):
+def translate_sentence(question: str, template: str):
     llm = load_gpt()
     parser = PydanticOutputParser(pydantic_object=Response)
     prompt = PromptTemplate(

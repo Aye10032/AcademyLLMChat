@@ -1,6 +1,6 @@
 import streamlit as st
 
-from llm.AgentCore import get_translate_sentence
+from llm.AgentCore import translate_sentence
 from llm.RagCore import ask_from_rag
 from llm.Template import TRANSLATE_TO_ZH
 

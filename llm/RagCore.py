@@ -5,16 +5,15 @@ from langchain.output_parsers import PydanticOutputParser
 from langchain.retrievers import MultiQueryRetriever
 from langchain_community.embeddings import HuggingFaceBgeEmbeddings
 from langchain_community.vectorstores import Milvus, milvus
-from langchain_core.globals import set_debug
 from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel, Field
 
 import streamlit as st
 
 from Config import config
-from llm.AgentCore import get_translate_sentence
+from llm.AgentCore import translate_sentence
 from llm.ModelCore import load_gpt, load_gpt_16k
-from llm.Template import RETRIEVER, ASK, TRANSLATE_TO_EN, TRANSLATE_TO_ZH
+from llm.Template import RETRIEVER, ASK, TRANSLATE_TO_EN
 
 
 class QuestionList(BaseModel):
@@ -105,8 +104,7 @@ def get_answer(question: str):
 
 @st.cache_data
 def ask_from_rag(question: str):
-    set_debug(True)
-    question_en = get_translate_sentence(question, TRANSLATE_TO_EN).trans
+    question_en = translate_sentence(question, TRANSLATE_TO_EN).trans
     result = get_answer(question_en)
 
     return result
