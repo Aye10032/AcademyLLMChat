@@ -1,4 +1,5 @@
 import streamlit as st
+from st_pages import show_pages_from_config
 
 from llm.RagCore import ask_from_rag
 
@@ -6,6 +7,7 @@ st.set_page_config(page_title='微藻文献大模型知识库', page_icon='📖'
 st.title('微藻文献大模型知识库')
 
 with st.sidebar:
+    show_pages_from_config()
     st.header('欢迎使用微藻文献知识库！')
 
 prompt = st.chat_input('请输入问题')

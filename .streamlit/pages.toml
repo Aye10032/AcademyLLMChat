@@ -1,0 +1,9 @@
+[[pages]]
+path = "App.py"
+name = "Home"
+icon = "🏠"
+
+[[pages]]
+path = "webui/FileUpload.py"
+name = "知识库管理"
+icon = ":books:"
