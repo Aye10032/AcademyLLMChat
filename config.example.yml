@@ -1,6 +1,3 @@
-# PDF解析器
-pdf_parser: 'grobid'  # grobid or nougat
-
 # 数据目录
 pdf_root: 'data/document'
 md_output: 'data/output/markdown'

@@ -6,6 +6,7 @@ from langchain_community.vectorstores.milvus import Milvus
 from loguru import logger
 from Config import config
 from utils.TimeUtil import timer
+from utils.GrobidUtil import parse_pdf
 
 logger.add('log/runtime.log')
 
@@ -90,10 +91,7 @@ if __name__ == '__main__':
     if not os.path.exists(config.XML_OUTPUT):
         os.makedirs(config.XML_OUTPUT)
 
-    if config.PDF_PARSER == 'grobid':
-        from utils.GrobidUtil import parse_pdf
-
-        parse_pdf(config.PDF_ROOT)
-        assemble_md()
+    parse_pdf(config.PDF_ROOT)
+    assemble_md()
 
     load_md(config.MD_OUTPUT)

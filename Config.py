@@ -64,8 +64,6 @@ class Config:
         with open(file=yml_path, mode='r', encoding='utf-8') as file:
             self.yml = yaml.load(file, Loader=yaml.FullLoader)
 
-            self.PDF_PARSER = self.yml['pdf_parser']
-
             self.PDF_ROOT = os.path.join(get_work_path(), self.yml['pdf_root'])
             self.MD_OUTPUT = os.path.join(get_work_path(), self.yml['md_output'])
             self.XML_OUTPUT = os.path.join(get_work_path(), self.yml['xml_output'])
