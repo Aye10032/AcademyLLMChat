@@ -37,11 +37,11 @@ class MilvusConfig:
     def __init__(self, milvus_host: str, milvus_port: int, config_path: str, en_model: str, zh_model: str):
         self.MILVUS_HOST = milvus_host
         self.MILVUS_PORT = milvus_port
-        self.CONFIG_PATH = config_path
+        self.CONFIG_PATH = os.path.join(get_work_path(), config_path)
         self.EN_MODEL = en_model
         self.ZH_MODEL = zh_model
 
-        if not os.path.exists(config_path):
+        if not os.path.exists(self.CONFIG_PATH):
             logger.info('config dose not exits')
             default = {
                 "collections": [
@@ -51,10 +51,10 @@ class MilvusConfig:
                     }
                 ]
             }
-            with open(file=config_path, mode='w', encoding='utf-8') as file:
+            with open(file=self.CONFIG_PATH, mode='w', encoding='utf-8') as file:
                 json.dump(default, file)
 
-        with open(file=config_path, mode='r', encoding='utf-8') as file:
+        with open(file=self.CONFIG_PATH, mode='r', encoding='utf-8') as file:
             self.COLLECTIONS = json.load(file)['collections']
             self.DEFAULT_COLLECTION = 0
 
