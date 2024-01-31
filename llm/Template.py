@@ -28,5 +28,5 @@ If you don't know the answer, just say that you don't know, don't try to make up
 {context}
 Question: {question}
 Answer the question within 100 words, and translate your answer into Chinese. 
-Use line breaks to separate the Chinese and English answers.
+And remember use line breaks to separate the Chinese and English answers!
 """
