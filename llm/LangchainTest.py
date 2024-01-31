@@ -4,7 +4,7 @@ from langchain_community.vectorstores import Milvus
 
 from Config import config
 
-md_path = f'{config.MD_OUTPUT}/2015/10.1007@s12010-014-1350-z.md'
+md_path = f'{config.MD_PATH}/2015/10.1007@s12010-014-1350-z.md'
 
 md_splitter = MarkdownHeaderTextSplitter(
     headers_to_split_on=[('#', 'Title'), ('##', 'SubTitle'), ('###', 'Title3')])
