@@ -1,7 +1,8 @@
 # 数据目录
-pdf_root: 'data/document'
-md_output: 'data/output/markdown'
-xml_output: 'data/output/xml'
+data_root: 'data'
+pdf_path: 'document'
+md_path: 'output/markdown'
+xml_path: 'output/xml'
 
 # 配置代理
 proxy:
@@ -24,7 +25,9 @@ grobid:
 milvus:
   milvus_host: '127.0.0.1'
   milvus_port: 19530
-  collection_name: 'document'
+  config_path: 'milvus/milvus_config.json'
+  en_model: 'BAAI/bge-large-en-v1.5'
+  zh_model: 'BAAI/bge-large-zh-v1.5'
 
 openai:
   use_proxy: True

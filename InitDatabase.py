@@ -6,29 +6,8 @@ from langchain_community.vectorstores.milvus import Milvus
 from loguru import logger
 from Config import config
 from utils.TimeUtil import timer
-from utils.GrobidUtil import parse_pdf
 
 logger.add('log/runtime.log')
-
-
-def assemble_md():
-    for root, dirs, files in os.walk(config.XML_OUTPUT):
-        for file in files:
-            file_path = os.path.join(root, file)
-            file_year = os.path.basename(root)
-            doi = file.replace('.grobid.tei.xml', '')
-            logger.info(f'loading <{doi}> ({file_year})...')
-
-            from utils.GrobidUtil import parse_xml, save_to_md
-
-            data = parse_xml(f'{file_path}')
-
-            md_path = os.path.join(config.MD_OUTPUT, f'{file_year}/{doi}.md')
-            if os.path.exists(md_path):
-                save_to_md(data, md_path, True)
-            else:
-                save_to_md(data, md_path, False)
-                logger.warning(f'markdown not find!')
 
 
 @timer
@@ -43,23 +22,22 @@ def load_md(base_path):
     )
 
     logger.info('start building vector database...')
+    milvus_cfg = config.milvus_config
 
-    model_name = "BAAI/bge-large-en-v1.5"
-    model_kwargs = {'device': 'cuda'}
-    encode_kwargs = {'normalize_embeddings': True}
     embedding = HuggingFaceBgeEmbeddings(
-        model_name=model_name,
-        model_kwargs=model_kwargs,
-        encode_kwargs=encode_kwargs
+        model_name=milvus_cfg.get_model(),
+        model_kwargs={'device': 'cuda'},
+        encode_kwargs={'normalize_embeddings': True}
     )
 
     vector_db = Milvus(
         embedding,
-        collection_name=config.milvus_config.COLLECTION_NAME,
+        collection_name=milvus_cfg.get_collection()['collection_name'],
         connection_args={
-            'host': config.milvus_config.MILVUS_HOST,
-            'port': config.milvus_config.MILVUS_PORT
+            'host': milvus_cfg.MILVUS_HOST,
+            'port': milvus_cfg.MILVUS_PORT
         },
+        drop_old=True
     )
 
     logger.info('done')
@@ -69,7 +47,7 @@ def load_md(base_path):
     for root, dirs, files in os.walk(base_path):
         for file in files:
             file_path = os.path.join(root, file)
-            file_year = os.path.basename(root)
+            file_year = int(os.path.basename(root))
             doi = file.replace('@', '/').replace('.md', '')
             logger.info(f'loading <{file}> ({file_year}) {file_path}...')
 
@@ -86,12 +64,4 @@ def load_md(base_path):
 
 
 if __name__ == '__main__':
-    if not os.path.exists(config.MD_OUTPUT):
-        os.makedirs(config.MD_OUTPUT)
-    if not os.path.exists(config.XML_OUTPUT):
-        os.makedirs(config.XML_OUTPUT)
-
-    parse_pdf(config.PDF_ROOT)
-    assemble_md()
-
     load_md(config.MD_OUTPUT)

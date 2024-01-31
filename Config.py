@@ -1,7 +1,7 @@
 # PDF解析部分
+import json
 import os
 import shutil
-import sys
 from typing import Dict
 
 import yaml
@@ -34,14 +34,44 @@ class GrobidConfig:
 
 
 class MilvusConfig:
-    def __init__(self, milvus_host: str, milvus_port: int, collection_name: str):
+    def __init__(self, milvus_host: str, milvus_port: int, config_path: str, en_model: str, zh_model: str):
         self.MILVUS_HOST = milvus_host
         self.MILVUS_PORT = milvus_port
-        self.COLLECTION_NAME = collection_name
+        self.CONFIG_PATH = config_path
+        self.EN_MODEL = en_model
+        self.ZH_MODEL = zh_model
+
+        if not os.path.exists(config_path):
+            logger.info('config dose not exits')
+            default = {
+                "collections": [
+                    {
+                        "collection_name": "default",
+                        "language": "en"
+                    }
+                ]
+            }
+            with open(file=config_path, mode='w', encoding='utf-8') as file:
+                json.dump(default, file)
+
+        with open(file=config_path, mode='r', encoding='utf-8') as file:
+            self.COLLECTIONS = json.load(file)['collections']
+            self.DEFAULT_COLLECTION = 0
 
     @classmethod
     def from_dict(cls, data: Dict[str, any]):
         return cls(**data)
+
+    def get_collection(self):
+        return self.COLLECTIONS[self.DEFAULT_COLLECTION]
+
+    def get_model(self):
+        if self.COLLECTIONS[self.DEFAULT_COLLECTION]['language'] == 'en':
+            return self.EN_MODEL
+        elif self.COLLECTIONS[self.DEFAULT_COLLECTION]['language'] == 'zh':
+            return self.ZH_MODEL
+
+        return self.EN_MODEL
 
 
 class OpenaiConfig:
@@ -64,10 +94,6 @@ class Config:
         with open(file=yml_path, mode='r', encoding='utf-8') as file:
             self.yml = yaml.load(file, Loader=yaml.FullLoader)
 
-            self.PDF_ROOT = os.path.join(get_work_path(), self.yml['pdf_root'])
-            self.MD_OUTPUT = os.path.join(get_work_path(), self.yml['md_output'])
-            self.XML_OUTPUT = os.path.join(get_work_path(), self.yml['xml_output'])
-
             _proxy_type = self.yml['proxy']['type']
             _proxy_host = self.yml['proxy']['host']
             _proxy_port = self.yml['proxy']['port']
@@ -77,6 +103,32 @@ class Config:
             self.grobid_config: GrobidConfig = GrobidConfig.from_dict(self.yml['grobid'])
             self.milvus_config: MilvusConfig = MilvusConfig.from_dict(self.yml['milvus'])
             self.openai_config: OpenaiConfig = OpenaiConfig.from_dict(self.yml['openai'])
+
+            collection_name: str = self.milvus_config.get_collection()['collection_name']
+            self.PDF_PATH = os.path.join(get_work_path(), self.yml['data_root'], collection_name, self.yml['pdf_path'])
+            self.MD_PATH = os.path.join(get_work_path(), self.yml['data_root'], collection_name, self.yml['md_path'])
+            self.XML_PATH = os.path.join(get_work_path(), self.yml['data_root'], collection_name, self.yml['xml_path'])
+
+            if not os.path.exists(self.PDF_PATH):
+                os.makedirs(self.PDF_PATH)
+            if not os.path.exists(self.MD_PATH):
+                os.makedirs(self.MD_PATH)
+            if not os.path.exists(self.XML_PATH):
+                os.makedirs(self.XML_PATH)
+
+    def set_collection(self, collection: int):
+        self.milvus_config.DEFAULT_COLLECTION = collection
+        collection_name: str = self.milvus_config.get_collection()['collection_name']
+        self.PDF_PATH = os.path.join(get_work_path(), self.yml['data_root'], collection_name, self.yml['pdf_path'])
+        self.MD_PATH = os.path.join(get_work_path(), self.yml['data_root'], collection_name, self.yml['md_path'])
+        self.XML_PATH = os.path.join(get_work_path(), self.yml['data_root'], collection_name, self.yml['xml_path'])
+
+        if not os.path.exists(self.PDF_PATH):
+            os.makedirs(self.PDF_PATH)
+        if not os.path.exists(self.MD_PATH):
+            os.makedirs(self.MD_PATH)
+        if not os.path.exists(self.XML_PATH):
+            os.makedirs(self.XML_PATH)
 
 
 config = Config()
