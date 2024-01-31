@@ -21,4 +21,5 @@ openai
 
 streamlit~=1.30.0
 st-pages
+st_milvus_connection
 pyyaml
