@@ -51,7 +51,7 @@ def solve_section(soup: BeautifulSoup, sections: List, title_level: int):
 
 
 def download_paper_data(pmc_id: str):
-    logger.info(f'request PMC ID:{pmc_id}')
+    # logger.info(f'request PMC ID:{pmc_id}')
 
     url = (f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id={pmc_id}'
            f'&retmode=xml&api_key={config.pubmed_config.API_KEY}')
@@ -75,7 +75,7 @@ def download_paper_data(pmc_id: str):
         if soup.find('article-id', {'pub-id-type': 'doi'}) \
         else None
 
-    title = soup.find('article-title').text \
+    title = soup.find('article-title').text.replace('\n', ' ') \
         if soup.find('article-title') \
         else None
 
