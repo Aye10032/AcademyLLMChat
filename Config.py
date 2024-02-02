@@ -118,6 +118,9 @@ class Config:
                 os.makedirs(self.XML_PATH)
 
     def set_collection(self, collection: int):
+        if collection >= len(self.milvus_config.COLLECTIONS):
+            logger.error('collection index out of range')
+            return
         self.milvus_config.DEFAULT_COLLECTION = collection
         collection_name: str = self.milvus_config.get_collection()['collection_name']
         self.PDF_PATH = os.path.join(get_work_path(), self.yml['data_root'], collection_name, self.yml['pdf_path'])
@@ -130,6 +133,8 @@ class Config:
             os.makedirs(self.MD_PATH)
         if not os.path.exists(self.XML_PATH):
             os.makedirs(self.XML_PATH)
+
+        logger.info(f'set default collection to {collection_name}')
 
 
 config = Config()
