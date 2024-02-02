@@ -33,9 +33,35 @@ with st.sidebar:
 
     st.divider()
 
-    option = st.selectbox('选择知识库', range(len(collections)), format_func=lambda x: collections[x])
+    st.markdown('#### 选择知识库')
+    option = st.selectbox('选择知识库',
+                          range(len(collections)),
+                          format_func=lambda x: collections[x],
+                          label_visibility='collapsed')
 
-    chat_type = st.toggle('对话模式')
+    if not option == milvus_cfg.DEFAULT_COLLECTION:
+        config.set_collection(option)
+        st.cache_resource.clear()
+
+    st.caption(f'当前数据库为：{title}')
+
+    st.markdown('#### 选择对话模式')
+    chat_type = st.toggle('对话模式', label_visibility='collapsed')
+
+    if chat_type:
+        st.caption('当前为对话模式')
+    else:
+        st.caption('当前为知识库查询模式')
+
+    st.divider()
+    st.subheader('使用说明')
+    st.markdown("""
+    **:blue[知识库查询模式]**:  
+    为单次对话请求，回答完全来自RAG返回的参考文献
+    
+    **:blue[对话模式]**  
+    会以当前对话框中内容为基础开始GPT问答
+    """)
 
 prompt = st.chat_input('请输入问题')
 
@@ -57,16 +83,17 @@ with col_doc:
     if 'documents' not in st.session_state:
         st.session_state.documents = []
 
-    st.subheader('参考文献')
-    with st.container(height=550, border=True):
-        for ref in st.session_state.documents:
-            st.divider()
-            _title = ref.metadata['Title']
-            _year = ref.metadata['year']
-            _doi = ref.metadata['doi']
-            st.markdown(f'#### {_title}')
-            st.caption(f'{_doi} ({_year})')
-            st.markdown(ref.page_content)
+    if len(st.session_state.documents) > 0:
+        st.subheader('参考文献')
+        with st.container(height=550, border=True):
+            for ref in st.session_state.documents:
+                st.divider()
+                _title = ref.metadata['Title']
+                _year = ref.metadata['year']
+                _doi = ref.metadata['doi']
+                st.markdown(f'#### {_title}')
+                st.caption(f'{_doi} ({_year})')
+                st.markdown(ref.page_content)
 
 if prompt:
     st.session_state.messages = [{'role': 'user', 'content': prompt}]
@@ -77,7 +104,3 @@ if prompt:
     st.session_state.messages.append({'role': 'assistant', 'content': response['result']})
 
     st.rerun()
-
-if not option == milvus_cfg.DEFAULT_COLLECTION:
-    config.set_collection(option)
-    st.cache_resource.clear()
