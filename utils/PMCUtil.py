@@ -1,10 +1,13 @@
 import json
+import random
+import time
 from typing import List
 
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
 from loguru import logger
+from requests import sessions
 
 from Config import config
 from utils.TimeUtil import timer
@@ -60,49 +63,54 @@ def download_paper_data(pmc_id: str):
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
 
-    if config.pubmed_config.USE_PROXY:
-        proxies = {
-            'http': config.PROXY,
-            'https': config.PROXY
-        }
-        response = requests.request("GET", url, headers=headers, proxies=proxies, timeout=10)
-    else:
-        response = requests.request("GET", url, headers=headers, timeout=10)
+    sections = []
+    with sessions.Session() as session:
+        if config.pubmed_config.USE_PROXY:
+            proxies = {
+                'http': config.PROXY,
+                'https': config.PROXY
+            }
+            response = session.request("GET", url, headers=headers, proxies=proxies, timeout=10)
+        else:
+            response = session.request("GET", url, headers=headers, timeout=10)
 
-    soup = BeautifulSoup(response.text, 'xml')
+        soup = BeautifulSoup(response.text, 'xml')
 
-    doi = soup.find('article-id', {'pub-id-type': 'doi'}).text \
-        if soup.find('article-id', {'pub-id-type': 'doi'}) \
-        else None
+        doi = soup.find('article-id', {'pub-id-type': 'doi'}).text \
+            if soup.find('article-id', {'pub-id-type': 'doi'}) \
+            else None
 
-    title = soup.find('article-title').text.replace('\n', ' ') \
-        if soup.find('article-title') \
-        else None
+        title = soup.find('article-title').text.replace('\n', ' ') \
+            if soup.find('article-title') \
+            else None
 
-    year = soup.find('pub-date').find('year').text \
-        if soup.find('pub-date') \
-        else None
+        year = soup.find('pub-date').find('year').text \
+            if soup.find('pub-date') \
+            else None
 
-    sections = [{'text': title, 'level': 1}]
+        sections.append({'text': title, 'level': 1})
 
-    abs_block = soup.find('abstract')
+        abs_block = soup.find('abstract')
 
-    if abs_block:
-        sections.append({'text': 'Abstract', 'level': 2})
-        sections = solve_section(abs_block, sections, 2)
-    else:
-        logger.warning(f'PMC{pmc_id} has no Abstract')
+        norm = True
+        if abs_block:
+            sections.append({'text': 'Abstract', 'level': 2})
+            sections = solve_section(abs_block, sections, 2)
+        else:
+            logger.warning(f'PMC{pmc_id} has no Abstract')
+            norm = False
 
-    main_sections = soup.select_one('body')
+        main_sections = soup.select_one('body')
 
-    if main_sections:
-        sections = solve_section(main_sections, sections, 1)
+        if main_sections:
+            sections = solve_section(main_sections, sections, 1)
 
     return {
         'title': title,
         'year': year,
         'doi': doi,
-        'sections': sections
+        'sections': sections,
+        'norm': norm
     }
 
 
