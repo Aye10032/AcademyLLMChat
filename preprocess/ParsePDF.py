@@ -2,7 +2,7 @@ import os
 
 from Config import config
 from loguru import logger
-from utils.GrobidUtil import parse_pdf
+from utils.GrobidUtil import parse_pdf, save_to_md, parse_xml
 
 logger.add('log/pdf2md.log')
 
@@ -14,8 +14,6 @@ def assemble_md():
             file_year = os.path.basename(root)
             doi = file.replace('.grobid.tei.xml', '')
             logger.info(f'loading <{doi}> ({file_year})...')
-
-            from utils.GrobidUtil import parse_xml, save_to_md
 
             data = parse_xml(f'{file_path}')
 
