@@ -1,4 +1,5 @@
-loguru~=0.7.2
+loguru
+tqdm
 grobid-client-python~=0.0.7
 lxml
 # torch~=2.1.2
@@ -13,13 +14,13 @@ unstructured
 markdown
 pymilvus
 sentence_transformers
-pydantic
+pydantic~=2.6.0
 
-httpx
+httpx~=0.26.0
 langchain-openai
 openai
 
 streamlit~=1.30.0
 st-pages
 st_milvus_connection
-pyyaml
+pyyaml~=6.0.1
