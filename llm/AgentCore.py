@@ -11,7 +11,7 @@ class Response(BaseModel):
     trans: str = Field(description='the translated sentence')
 
 
-@st.cache_data
+@st.cache_data(show_spinner='Translate sentence...')
 def translate_sentence(question: str, template: str):
     llm = load_gpt()
     parser = PydanticOutputParser(pydantic_object=Response)

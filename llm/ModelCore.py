@@ -5,7 +5,7 @@ from langchain_openai import ChatOpenAI
 from Config import config
 
 
-@st.cache_resource
+@st.cache_resource(show_spinner='Loading GPT3.5 16k...')
 def load_gpt_16k():
     if config.openai_config.USE_PROXY:
         http_client = httpx.Client(proxies=config.PROXY)
@@ -20,7 +20,7 @@ def load_gpt_16k():
     return llm
 
 
-@st.cache_resource
+@st.cache_resource(show_spinner='Loading GPT3.5...')
 def load_gpt():
     if config.openai_config.USE_PROXY:
         http_client = httpx.Client(proxies=config.PROXY)

@@ -29,30 +29,33 @@ class LineListOutputParser(PydanticOutputParser):
         return QuestionList(answer=lines)
 
 
-@st.cache_resource
+@st.cache_resource(show_spinner='Loading Vector Database...')
 def load_vectorstore():
     milvus_cfg = config.milvus_config
 
-    model_name = 'BAAI/bge-large-en-v1.5'
-    model_kwargs = {'device': 'cuda'}
-    encode_kwargs = {'normalize_embeddings': True}
+    model = milvus_cfg.get_model()
+    collection = milvus_cfg.get_collection()['collection_name']
+
     embedding = HuggingFaceBgeEmbeddings(
-        model_name=model_name,
-        model_kwargs=model_kwargs,
-        encode_kwargs=encode_kwargs
+        model_name=model,
+        model_kwargs={'device': 'cuda'},
+        encode_kwargs={'normalize_embeddings': True}
     )
 
     vector_db: milvus = Milvus(
         embedding,
-        collection_name=milvus_cfg.COLLECTION_NAME,
-        connection_args={'host': milvus_cfg.MILVUS_HOST, 'port': milvus_cfg.MILVUS_PORT},
+        collection_name=collection,
+        connection_args={
+            'host': milvus_cfg.MILVUS_HOST,
+            'port': milvus_cfg.MILVUS_PORT
+        },
         search_params={'ef': 15}
     )
 
     return vector_db
 
 
-@st.cache_resource
+@st.cache_resource(show_spinner='Building retriever...')
 def load_retriever():
     retriever_llm = load_gpt()
     db = load_vectorstore()
@@ -84,7 +87,7 @@ def load_retriever():
     return retriever
 
 
-@st.cache_data
+@st.cache_data(show_spinner='Asking from LLM chain...')
 def get_answer(question: str):
     prompt = PromptTemplate.from_template(ASK)
     llm = load_gpt_16k()
@@ -97,14 +100,7 @@ def get_answer(question: str):
         chain_type_kwargs={'prompt': prompt}
     )
 
-    result = qa_chain.invoke({'query': question})
-
-    return result
-
-
-@st.cache_data
-def ask_from_rag(question: str):
     question_en = translate_sentence(question, TRANSLATE_TO_EN).trans
-    result = get_answer(question_en)
+    result = qa_chain.invoke({'query': question_en})
 
     return result
