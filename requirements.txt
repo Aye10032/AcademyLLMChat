@@ -20,7 +20,6 @@ httpx~=0.26.0
 langchain-openai
 openai
 
-streamlit~=1.30.0
-st-pages
+streamlit~=1.31.0
 st_milvus_connection
 pyyaml~=6.0.1

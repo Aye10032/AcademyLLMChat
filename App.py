@@ -1,26 +1,41 @@
 import streamlit as st
 from loguru import logger
-from st_pages import show_pages_from_config
 
 from Config import config
 from llm.RagCore import get_answer
 
+logger.add('log/run_time.log')
+
 milvus_cfg = config.milvus_config
+col = milvus_cfg.COLLECTIONS
+collections = []
+for collection in col:
+    collections.append(collection['collection_name'])
 
 title = milvus_cfg.get_collection()['description']
-st.set_page_config(page_title='微藻文献大模型知识库', page_icon='📖', layout='wide')
+st.set_page_config(
+    page_title='学术大模型知识库',
+    page_icon='📖',
+    layout='wide',
+    menu_items={
+        # 'Get Help': 'https://www.extremelycoolapp.com/help',
+        'Report a bug': 'https://github.com/Aye10032/AcademyKnowledgeBot/issues',
+        'About': 'https://github.com/Aye10032/AcademyKnowledgeBot'
+    }
+)
 st.title(title)
 
 with st.sidebar:
-    show_pages_from_config()
     st.header('欢迎使用学术LLM知识库')
-    col = milvus_cfg.COLLECTIONS
-    collections = []
-    for collection in col:
-        collections.append(collection['collection_name'])
+
+    st.page_link('App.py', label='Home', icon='💬')
+    st.page_link('pages/FileUpload.py', label='上传文件', icon='📂')
+
+    st.divider()
 
     option = st.selectbox('选择知识库', range(len(collections)), format_func=lambda x: collections[x])
 
+    chat_type = st.toggle('对话模式')
 
 prompt = st.chat_input('请输入问题')
 
@@ -63,7 +78,6 @@ if prompt:
 
     st.rerun()
 
-logger.info(f'choose collection {collections[option]}')
 if not option == milvus_cfg.DEFAULT_COLLECTION:
     config.set_collection(option)
     st.cache_resource.clear()

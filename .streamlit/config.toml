@@ -1,2 +1,5 @@
 [server]
-port = 1919
+port = 8081
+
+[client]
+showSidebarNavigation = false
