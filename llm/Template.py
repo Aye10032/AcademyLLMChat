@@ -27,6 +27,6 @@ ASK = """Use the following pieces of context to answer the question at the end.
 If you don't know the answer, just say that you don't know, don't try to make up an answer.
 {context}
 Question: {question}
-Answer the question within 100 words, and translate your answer into Chinese. 
-And remember use line breaks to separate the Chinese and English answers!
+Answer the question within 100 words, and then translate your answer into Chinese. 
+You should use line breaks to separate the Chinese and English answers!
 """
