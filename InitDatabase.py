@@ -1,3 +1,4 @@
+import argparse
 import os
 
 from langchain.text_splitter import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
@@ -9,7 +10,7 @@ from tqdm import tqdm
 from Config import config
 from utils.TimeUtil import timer
 
-logger.add('log/runtime.log')
+logger.add('log/init_database.log')
 
 
 @timer
@@ -75,5 +76,19 @@ def load_md(base_path):
 
 
 if __name__ == '__main__':
-    config.set_collection(1)
-    load_md(config.MD_PATH)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--collection', '-C', type=int, help='初始化特定collection，从0开始')
+    args = parser.parse_args()
+    if args.collection:
+        if args.collection >= len(config.milvus_config.COLLECTIONS):
+            logger.error(f'collection index {args.collection} out of range')
+            exit(1)
+        else:
+            logger.info(f'Only init collection {args.collection}')
+            config.set_collection(args.collection)
+            load_md(config.MD_PATH)
+    else:
+        for i in range(len(config.milvus_config.COLLECTIONS)):
+            logger.info(f'Start init collection {i}')
+            # config.set_collection(i)
+            # load_md(config.MD_PATH)
