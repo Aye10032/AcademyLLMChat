@@ -47,7 +47,8 @@ class MilvusConfig:
                 "collections": [
                     {
                         "collection_name": "default",
-                        "language": "en"
+                        "language": "en",
+                        "description": "示例知识库"
                     }
                 ]
             }

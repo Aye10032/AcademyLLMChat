@@ -2,11 +2,13 @@
   "collections": [
     {
       "collection_name": "Nannochloropsis",
-      "language": "en"
+      "language": "en",
+      "description": ""
     },
     {
       "collection_name": "Raman",
-      "language": "en"
+      "language": "en",
+      "description": ""
     }
   ]
 }
