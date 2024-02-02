@@ -19,13 +19,14 @@ def download_from_pmc(csv_file: str):
     length = df_output.shape[0]
     for index, row in tqdm(df_output.iterrows(), total=length):
         if not pd.isna(row.year):
-            # logger.info(f'skip {row.doi}') if not pd.isna(row.doi) else logger.info(f'skip {row.pmc_id}')
             continue
 
         pmcid = row.pmc_id
         data = download_paper_data(pmcid)
         year = data['year']
         filename = data['doi'].replace('/', '@') if data['doi'] else f'PMC{pmcid}'
+        if not data['norm']:
+            filename += '_(no abstract)'
         output_path = os.path.join(config.MD_PATH, year, f'{filename}.md')
 
         if not os.path.exists(os.path.join(config.MD_PATH, year)):
@@ -37,7 +38,6 @@ def download_from_pmc(csv_file: str):
         df_output.at[index, 'doi'] = data['doi']
         df_output.at[index, 'year'] = year
         df_output.to_csv(csv_file, index=False, encoding='utf-8')
-        # logger.info(f'finish download {filename} ({year}) ')
         time.sleep(random.uniform(2.0, 5.0))
 
 
