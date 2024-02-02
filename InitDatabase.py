@@ -66,7 +66,6 @@ def load_md(base_path):
                 doc.metadata['year'] = file_year
             md_docs = r_splitter.split_documents(head_split_docs)
 
-            # logger.info(f'loading <{file}> ({file_year})...')
             try:
                 vector_db.add_documents(md_docs)
             except Exception as e:
@@ -90,5 +89,5 @@ if __name__ == '__main__':
     else:
         for i in range(len(config.milvus_config.COLLECTIONS)):
             logger.info(f'Start init collection {i}')
-            # config.set_collection(i)
-            # load_md(config.MD_PATH)
+            config.set_collection(i)
+            load_md(config.MD_PATH)
