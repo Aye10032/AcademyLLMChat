@@ -13,6 +13,7 @@ markdown
 pymilvus
 sentence_transformers
 pydantic
+# torch
 
 httpx
 langchain-openai
