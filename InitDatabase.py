@@ -38,13 +38,22 @@ def load_md(base_path):
         encode_kwargs={'normalize_embeddings': True}
     )
 
+    if milvus_cfg.USING_REMOTE:
+        connection_args = {
+            'uri': milvus_cfg.REMOTE_DATABASE['url'],
+            'user': milvus_cfg.REMOTE_DATABASE['username'],
+            'password': milvus_cfg.REMOTE_DATABASE['password']
+        }
+    else:
+        connection_args = {
+            'host': milvus_cfg.MILVUS_HOST,
+            'port': milvus_cfg.MILVUS_PORT
+        }
+
     vector_db = Milvus(
         embedding,
         collection_name=collection,
-        connection_args={
-            'host': milvus_cfg.MILVUS_HOST,
-            'port': milvus_cfg.MILVUS_PORT
-        },
+        connection_args=connection_args,
         drop_old=True
     )
 
@@ -78,8 +87,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--collection', '-C', type=int, help='初始化特定collection，从0开始')
     args = parser.parse_args()
-    if args.collection:
-        if args.collection >= len(config.milvus_config.COLLECTIONS):
+    if args.collection is not None:
+        if args.collection >= len(config.milvus_config.COLLECTIONS) or args.collection < 0:
             logger.error(f'collection index {args.collection} out of range')
             exit(1)
         else:

@@ -33,13 +33,27 @@ class GrobidConfig:
         return cls(**data)
 
 
+class Collection:
+    def __init__(self, name: str, language: str, description: str):
+        self.NAME = name
+        self.LANGUAGE = language
+        self.DESCRIPTION = description
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, any]):
+        return cls(**data)
+
+
 class MilvusConfig:
-    def __init__(self, milvus_host: str, milvus_port: int, config_path: str, en_model: str, zh_model: str):
+    def __init__(self, milvus_host: str, milvus_port: int, config_path: str, en_model: str, zh_model: str,
+                 using_remote: bool, remote_database: Dict):
         self.MILVUS_HOST = milvus_host
         self.MILVUS_PORT = milvus_port
         self.CONFIG_PATH = os.path.join(get_work_path(), config_path)
         self.EN_MODEL = en_model
         self.ZH_MODEL = zh_model
+        self.USING_REMOTE = using_remote
+        self.REMOTE_DATABASE = remote_database
 
         if not os.path.exists(self.CONFIG_PATH):
             logger.info('config dose not exits')
@@ -64,7 +78,8 @@ class MilvusConfig:
         return cls(**data)
 
     def get_collection(self):
-        return self.COLLECTIONS[self.DEFAULT_COLLECTION]
+        collection: Collection = Collection.from_dict(self.COLLECTIONS[self.DEFAULT_COLLECTION])
+        return collection
 
     def get_model(self):
         if self.COLLECTIONS[self.DEFAULT_COLLECTION]['language'] == 'en':
@@ -122,7 +137,7 @@ class Config:
             logger.error('collection index out of range')
             return
         self.milvus_config.DEFAULT_COLLECTION = collection
-        collection_name: str = self.milvus_config.get_collection()['collection_name']
+        collection_name: str = self.milvus_config.get_collection().NAME
         self.PDF_PATH = os.path.join(get_work_path(), self.yml['data_root'], collection_name, self.yml['pdf_path'])
         self.MD_PATH = os.path.join(get_work_path(), self.yml['data_root'], collection_name, self.yml['md_path'])
         self.XML_PATH = os.path.join(get_work_path(), self.yml['data_root'], collection_name, self.yml['xml_path'])
