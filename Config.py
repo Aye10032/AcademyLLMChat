@@ -34,8 +34,8 @@ class GrobidConfig:
 
 
 class Collection:
-    def __init__(self, name: str, language: str, description: str):
-        self.NAME = name
+    def __init__(self, collection_name: str, language: str, description: str):
+        self.NAME = collection_name
         self.LANGUAGE = language
         self.DESCRIPTION = description
 
@@ -120,7 +120,7 @@ class Config:
             self.milvus_config: MilvusConfig = MilvusConfig.from_dict(self.yml['milvus'])
             self.openai_config: OpenaiConfig = OpenaiConfig.from_dict(self.yml['openai'])
 
-            collection_name: str = self.milvus_config.get_collection()['collection_name']
+            collection_name: str = self.milvus_config.get_collection().NAME
             self.PDF_PATH = os.path.join(get_work_path(), self.yml['data_root'], collection_name, self.yml['pdf_path'])
             self.MD_PATH = os.path.join(get_work_path(), self.yml['data_root'], collection_name, self.yml['md_path'])
             self.XML_PATH = os.path.join(get_work_path(), self.yml['data_root'], collection_name, self.yml['xml_path'])

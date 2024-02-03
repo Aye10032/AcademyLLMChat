@@ -28,7 +28,7 @@ def load_md(base_path):
     milvus_cfg = config.milvus_config
 
     model = milvus_cfg.get_model()
-    collection = milvus_cfg.get_collection()['collection_name']
+    collection = milvus_cfg.get_collection().NAME
 
     logger.info(f'load collection [{collection}], using model {model}')
 
