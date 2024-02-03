@@ -34,7 +34,7 @@ def load_vectorstore():
     milvus_cfg = config.milvus_config
 
     model = milvus_cfg.get_model()
-    collection = milvus_cfg.get_collection()['collection_name']
+    collection = milvus_cfg.get_collection().NAME
 
     embedding = HuggingFaceBgeEmbeddings(
         model_name=model,
@@ -42,13 +42,23 @@ def load_vectorstore():
         encode_kwargs={'normalize_embeddings': True}
     )
 
+    if milvus_cfg.USING_REMOTE:
+        connection_args = {
+            'uri': milvus_cfg.REMOTE_DATABASE['url'],
+            'user': milvus_cfg.REMOTE_DATABASE['username'],
+            'password': milvus_cfg.REMOTE_DATABASE['password'],
+            "secure": True
+        }
+    else:
+        connection_args = {
+            'host': milvus_cfg.MILVUS_HOST,
+            'port': milvus_cfg.MILVUS_PORT
+        }
+
     vector_db: milvus = Milvus(
         embedding,
         collection_name=collection,
-        connection_args={
-            'host': milvus_cfg.MILVUS_HOST,
-            'port': milvus_cfg.MILVUS_PORT
-        },
+        connection_args=connection_args,
         search_params={'ef': 15}
     )
 

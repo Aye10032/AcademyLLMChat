@@ -12,7 +12,7 @@ collections = []
 for collection in col:
     collections.append(collection['collection_name'])
 
-title = milvus_cfg.get_collection()['description']
+title = milvus_cfg.get_collection().DESCRIPTION
 st.set_page_config(
     page_title='学术大模型知识库',
     page_icon='📖',
