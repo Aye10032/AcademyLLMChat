@@ -42,7 +42,8 @@ def load_md(base_path):
         connection_args = {
             'uri': milvus_cfg.REMOTE_DATABASE['url'],
             'user': milvus_cfg.REMOTE_DATABASE['username'],
-            'password': milvus_cfg.REMOTE_DATABASE['password']
+            'password': milvus_cfg.REMOTE_DATABASE['password'],
+            "secure": True
         }
     else:
         connection_args = {
