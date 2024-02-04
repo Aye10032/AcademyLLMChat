@@ -56,8 +56,7 @@ def load_md(base_path):
         embedding,
         collection_name=collection,
         connection_args=connection_args,
-        drop_old=True,
-        auto_id=True
+        drop_old=True
     )
 
     logger.info('done')
