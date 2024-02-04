@@ -1,7 +1,9 @@
 import streamlit as st
+from langchain_community.chat_message_histories import ChatMessageHistory
 from loguru import logger
 
 from Config import config
+from llm.ChatCore import chat_with_history
 from llm.RagCore import get_answer
 
 logger.add('log/run_time.log')
@@ -79,6 +81,23 @@ with col_chat:
         if prompt:
             st.chat_message('user').markdown(prompt)
 
+            if chat_type:
+                logger.info(f'chat: {prompt}')
+                st.session_state.messages.append({'role': 'user', 'content': prompt})
+
+                chat_history = ChatMessageHistory()
+                for message in st.session_state.messages:
+                    if message['role'] == 'assistant':
+                        chat_history.add_ai_message(message['content'])
+                    else:
+                        chat_history.add_user_message(message['content'])
+
+                response = chat_with_history(chat_history, prompt)
+
+                st.chat_message('assistant').markdown(response.content)
+                st.session_state.messages.append({'role': 'assistant', 'content': response.content})
+                logger.info(f'answer: {response.content}')
+
 with col_doc:
     if 'documents' not in st.session_state:
         st.session_state.documents = []
@@ -107,6 +126,3 @@ if prompt:
         logger.info(f'answer: {response["result"]}')
 
         st.rerun()
-    else:
-        logger.info(f'chat: {prompt}')
-        st.session_state.messages.append({'role': 'user', 'content': prompt})
