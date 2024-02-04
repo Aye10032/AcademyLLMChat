@@ -96,11 +96,17 @@ with col_doc:
                 st.markdown(ref.page_content)
 
 if prompt:
-    st.session_state.messages = [{'role': 'user', 'content': prompt}]
+    if not chat_type:
+        logger.info(f'question: {prompt}')
+        st.session_state.messages = [{'role': 'user', 'content': prompt}]
 
-    response = get_answer(prompt)
+        response = get_answer(prompt)
 
-    st.session_state.documents = response['source_documents']
-    st.session_state.messages.append({'role': 'assistant', 'content': response['result']})
+        st.session_state.documents = response['source_documents']
+        st.session_state.messages.append({'role': 'assistant', 'content': response['result']})
+        logger.info(f'answer: {response["result"]}')
 
-    st.rerun()
+        st.rerun()
+    else:
+        logger.info(f'chat: {prompt}')
+        st.session_state.messages.append({'role': 'user', 'content': prompt})
