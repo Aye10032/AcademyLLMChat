@@ -7,8 +7,9 @@ from st_milvus_connection import MilvusConnection
 from Config import config
 
 milvus_cfg = config.milvus_config
-os.environ["milvus_uri"] = f'http://{milvus_cfg.MILVUS_HOST}:{milvus_cfg.MILVUS_PORT}'
-os.environ["milvus_token"] = ''
+collections = []
+for collection in milvus_cfg.COLLECTIONS:
+    collections.append(collection.NAME)
 
 st.set_page_config(page_title="微藻文献大模型知识库", page_icon="📖", layout='centered')
 st.title('添加文献')
@@ -32,25 +33,46 @@ with st.sidebar:
         4. 等待处理完成     
         """
     )
+    st.subheader('Markdown')
+    st.markdown(
+        """   
+        1. 将PDF文件重命名为`doi编号.md`的格式，并将doi编号中的`/`替换为`@`          
+        2. 选择文献所属年份     
+        3. 上传markdown文件      
+        4. 等待处理完成     
+        """
+    )
 
-uploaded_files = st.file_uploader('选择PDF或markdown文件', type=['md', 'pdf'], accept_multiple_files=True)
-for uploaded_file in uploaded_files:
-    bytes_data = uploaded_file.read()
-    st.write("filename:", uploaded_file.name)
-    # stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
-    # string_data = stringio.read()
-    # st.markdown(string_data)
+tab1, tab2, tab3 = st.tabs(['Markdown', 'PDF', 'Pubmed Center'])
 
-conn = st.connection("milvus", type=MilvusConnection)
-df = (pd.DataFrame(conn.get_collection('Nannochloropsis').query(
-    expr='year == 2012',
-    output_fields=['Title', 'year', 'doi']
-)).copy()
-      .drop('pk', axis=1)
-      .drop_duplicates(ignore_index=True))
+with tab1:
+    with st.form('md_form'):
+        st.subheader('选择知识库')
 
-st.dataframe(
-    df,
-    hide_index=True,
-    column_order=['Title', 'year', 'doi']
-)
+        option = st.selectbox('选择知识库',
+                              range(len(collections)),
+                              format_func=lambda x: collections[x],
+                              label_visibility='collapsed')
+
+        if not option == milvus_cfg.DEFAULT_COLLECTION:
+            config.set_collection(option)
+            st.cache_resource.clear()
+
+        uploaded_files = st.file_uploader('选择Markdown文件', type=['md'], accept_multiple_files=True)
+        for uploaded_file in uploaded_files:
+            bytes_data = uploaded_file.read()
+            st.write("filename:", uploaded_file.name)
+            # stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
+            # string_data = stringio.read()
+            # st.markdown(string_data)
+
+        st.form_submit_button('Submit my picks')
+
+with tab2:
+    uploaded_files = st.file_uploader('选择PDF文件', type=['pdf'], accept_multiple_files=True)
+    for uploaded_file in uploaded_files:
+        bytes_data = uploaded_file.read()
+        st.write("filename:", uploaded_file.name)
+        # stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
+        # string_data = stringio.read()
+        # st.markdown(string_data)

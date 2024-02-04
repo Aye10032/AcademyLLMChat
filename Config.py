@@ -50,6 +50,7 @@ class MilvusConfig:
         self.MILVUS_HOST = milvus_host
         self.MILVUS_PORT = milvus_port
         self.CONFIG_PATH = os.path.join(get_work_path(), config_path)
+        self.COLLECTIONS: list[Collection] = []
         self.EN_MODEL = en_model
         self.ZH_MODEL = zh_model
         self.USING_REMOTE = using_remote
@@ -70,7 +71,9 @@ class MilvusConfig:
                 json.dump(default, file)
 
         with open(file=self.CONFIG_PATH, mode='r', encoding='utf-8') as file:
-            self.COLLECTIONS = json.load(file)['collections']
+            json_data = json.load(file)['collections']
+            for col in json_data:
+                self.COLLECTIONS.append(Collection.from_dict(col))
             self.DEFAULT_COLLECTION = 0
 
     @classmethod
@@ -78,13 +81,13 @@ class MilvusConfig:
         return cls(**data)
 
     def get_collection(self):
-        collection: Collection = Collection.from_dict(self.COLLECTIONS[self.DEFAULT_COLLECTION])
+        collection: Collection = self.COLLECTIONS[self.DEFAULT_COLLECTION]
         return collection
 
     def get_model(self):
-        if self.COLLECTIONS[self.DEFAULT_COLLECTION]['language'] == 'en':
+        if self.get_collection().LANGUAGE == 'en':
             return self.EN_MODEL
-        elif self.COLLECTIONS[self.DEFAULT_COLLECTION]['language'] == 'zh':
+        elif self.get_collection().LANGUAGE == 'zh':
             return self.ZH_MODEL
 
         return self.EN_MODEL

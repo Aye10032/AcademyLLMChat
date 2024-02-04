@@ -1,4 +1,14 @@
+import os
+
+import pandas as pd
 import streamlit as st
+from st_milvus_connection import MilvusConnection
+
+from Config import config
+
+milvus_cfg = config.milvus_config
+os.environ['milvus_uri'] = f'http://{milvus_cfg.MILVUS_HOST}:{milvus_cfg.MILVUS_PORT}'
+os.environ['milvus_token'] = ''
 
 with st.sidebar:
     st.header('欢迎使用学术LLM知识库')
@@ -21,3 +31,17 @@ with st.sidebar:
     )
 
 st.title('知识库管理')
+
+conn = st.connection("milvus", type=MilvusConnection)
+df = (pd.DataFrame(conn.get_collection('Nannochloropsis').query(
+    expr='year == 2012',
+    output_fields=['Title', 'year', 'doi']
+)).copy()
+      .drop('pk', axis=1)
+      .drop_duplicates(ignore_index=True))
+
+st.dataframe(
+    df,
+    hide_index=True,
+    column_order=['Title', 'year', 'doi']
+)

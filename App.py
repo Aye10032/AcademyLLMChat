@@ -12,7 +12,7 @@ milvus_cfg = config.milvus_config
 col = milvus_cfg.COLLECTIONS
 collections = []
 for collection in col:
-    collections.append(collection['collection_name'])
+    collections.append(collection.NAME)
 
 title = milvus_cfg.get_collection().DESCRIPTION
 st.set_page_config(

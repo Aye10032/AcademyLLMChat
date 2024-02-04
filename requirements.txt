@@ -1,7 +1,7 @@
 loguru
 tqdm
 
-grobid-client-python~=0.0.8
+grobid-client-python==0.0.8
 lxml
 beautifulsoup4~=4.12.2
 requests[socks]~=2.31.0
@@ -10,10 +10,10 @@ pandas~=2.2.0
 langchain==0.1.5
 unstructured
 markdown
-pymilvus~=2.3.6
+pymilvus==2.3.6
 sentence_transformers
 pydantic
-# torch
+# torch==2.1.2+cu121
 
 httpx
 langchain-openai
