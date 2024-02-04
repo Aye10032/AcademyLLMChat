@@ -45,7 +45,8 @@ with st.sidebar:
         config.set_collection(option)
         st.cache_resource.clear()
 
-    st.caption(f'当前数据库为：{title}')
+    if option:
+        st.caption(f'当前数据库为：{title}')
 
     st.markdown('#### 选择对话模式')
     chat_type = st.toggle('对话模式', label_visibility='collapsed')
