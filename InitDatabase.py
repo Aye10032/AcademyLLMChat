@@ -4,7 +4,6 @@ import os
 from langchain.text_splitter import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceBgeEmbeddings
 from langchain_community.vectorstores.milvus import Milvus
-from langchain_community.vectorstores.zilliz import Zilliz
 from loguru import logger
 from tqdm import tqdm
 
@@ -47,24 +46,19 @@ def load_md(base_path):
             'secure': True,
         }
 
-        vector_db = Zilliz(
-            embedding,
-            collection_name=collection,
-            connection_args=connection_args,
-            drop_old=True,
-        )
     else:
         connection_args = {
             'host': milvus_cfg.MILVUS_HOST,
             'port': milvus_cfg.MILVUS_PORT,
         }
 
-        vector_db = Milvus(
-            embedding,
-            collection_name=collection,
-            connection_args=connection_args,
-            drop_old=True
-        )
+    vector_db = Milvus(
+        embedding,
+        collection_name=collection,
+        connection_args=connection_args,
+        drop_old=True,
+        auto_id=True
+    )
 
     logger.info('done')
 
