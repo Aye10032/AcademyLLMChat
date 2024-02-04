@@ -4,6 +4,7 @@ import os
 from langchain.text_splitter import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceBgeEmbeddings
 from langchain_community.vectorstores.milvus import Milvus
+from langchain_community.vectorstores.zilliz import Zilliz
 from loguru import logger
 from tqdm import tqdm
 
@@ -44,21 +45,26 @@ def load_md(base_path):
             'user': milvus_cfg.REMOTE_DATABASE['username'],
             'password': milvus_cfg.REMOTE_DATABASE['password'],
             'secure': True,
-            'auto_id': True
         }
+
+        vector_db = Zilliz(
+            embedding,
+            collection_name=collection,
+            connection_args=connection_args,
+            drop_old=True,
+        )
     else:
         connection_args = {
             'host': milvus_cfg.MILVUS_HOST,
             'port': milvus_cfg.MILVUS_PORT,
-            'auto_id': True
         }
 
-    vector_db = Milvus(
-        embedding,
-        collection_name=collection,
-        connection_args=connection_args,
-        drop_old=True
-    )
+        vector_db = Milvus(
+            embedding,
+            collection_name=collection,
+            connection_args=connection_args,
+            drop_old=True
+        )
 
     logger.info('done')
 
@@ -73,7 +79,7 @@ def load_md(base_path):
             with open(file_path, 'r', encoding='utf-8') as f:
                 md_text = f.read()
             head_split_docs = md_splitter.split_text(md_text)
-            for i, doc in enumerate(head_split_docs):
+            for doc in head_split_docs:
                 doc.metadata['doi'] = doi
                 doc.metadata['year'] = file_year
             md_docs = r_splitter.split_documents(head_split_docs)

@@ -5,6 +5,7 @@ from langchain.output_parsers import PydanticOutputParser
 from langchain.retrievers import MultiQueryRetriever
 from langchain_community.embeddings import HuggingFaceBgeEmbeddings
 from langchain_community.vectorstores import Milvus, milvus
+from langchain_community.vectorstores.zilliz import Zilliz
 from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel, Field
 
@@ -47,20 +48,27 @@ def load_vectorstore():
             'uri': milvus_cfg.REMOTE_DATABASE['url'],
             'user': milvus_cfg.REMOTE_DATABASE['username'],
             'password': milvus_cfg.REMOTE_DATABASE['password'],
-            "secure": True
+            'secure': True,
         }
+
+        vector_db: Zilliz = Zilliz(
+            embedding,
+            collection_name=collection,
+            connection_args=connection_args,
+            search_params={'ef': 15}
+        )
     else:
         connection_args = {
             'host': milvus_cfg.MILVUS_HOST,
             'port': milvus_cfg.MILVUS_PORT
         }
 
-    vector_db: milvus = Milvus(
-        embedding,
-        collection_name=collection,
-        connection_args=connection_args,
-        search_params={'ef': 15}
-    )
+        vector_db: milvus = Milvus(
+            embedding,
+            collection_name=collection,
+            connection_args=connection_args,
+            search_params={'ef': 15}
+        )
 
     return vector_db
 
