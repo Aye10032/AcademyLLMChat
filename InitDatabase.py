@@ -78,11 +78,11 @@ def load_md(base_path):
                 doc.metadata['year'] = file_year
             md_docs = r_splitter.split_documents(head_split_docs)
 
-            try:
-                vector_db.add_documents(md_docs)
-            except Exception as e:
-                logger.error(f'loading <{file}> ({file_year}) fail')
-                logger.error(e)
+            # try:
+            vector_db.add_documents(md_docs)
+            # except Exception as e:
+            #     logger.error(f'loading <{file}> ({file_year}) fail')
+            #     logger.error(e)
     logger.info(f'done')
 
 

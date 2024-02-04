@@ -10,7 +10,7 @@ pandas~=2.2.0
 langchain==0.1.5
 unstructured
 markdown
-pymilvus
+pymilvus~=2.3.6
 sentence_transformers
 pydantic
 # torch
