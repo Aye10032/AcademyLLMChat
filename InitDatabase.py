@@ -43,12 +43,14 @@ def load_md(base_path):
             'uri': milvus_cfg.REMOTE_DATABASE['url'],
             'user': milvus_cfg.REMOTE_DATABASE['username'],
             'password': milvus_cfg.REMOTE_DATABASE['password'],
-            "secure": True
+            'secure': True,
+            'auto_id': True
         }
     else:
         connection_args = {
             'host': milvus_cfg.MILVUS_HOST,
-            'port': milvus_cfg.MILVUS_PORT
+            'port': milvus_cfg.MILVUS_PORT,
+            'auto_id': True
         }
 
     vector_db = Milvus(
