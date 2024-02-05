@@ -5,8 +5,11 @@ from datetime import datetime
 import streamlit as st
 from tqdm import tqdm
 
+import Config
 from Config import config
+from utils.GrobidUtil import parse_xml
 from utils.MarkdownPraser import split_markdown
+from utils.PubmedUtil import get_paper_info
 
 milvus_cfg = config.milvus_config
 collections = []
@@ -105,5 +108,22 @@ with tab2:
         if uploaded_file is not None:
             # Read the PDF file
             # Extract the content
-            content = ""
-            st.write(uploaded_file.name)
+            data = get_paper_info(uploaded_file.name.replace('.pdf', '').replace('PM', ''))
+            pdf_path = os.path.join(Config.get_work_path(),
+                                    config.DATA_ROOT,
+                                    milvus_cfg.COLLECTIONS[option].NAME,
+
+                                    data['year'],
+                                    uploaded_file.name)
+            os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+            with open(pdf_path, 'wb') as f:
+                f.write(uploaded_file.getbuffer())
+
+            xml_path = os.path.join(Config.get_work_path(),
+                                    config.DATA_ROOT,
+                                    milvus_cfg.COLLECTIONS[option].NAME,
+                                    data['year'],
+                                    uploaded_file.name)
+
+            result = parse_xml(config.get_xml_path() + '/2010/10.1016@j.biortech.2010.03.103.grobid.tei.xml')
+            st.write(result)

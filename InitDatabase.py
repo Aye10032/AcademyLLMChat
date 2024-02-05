@@ -105,9 +105,9 @@ if __name__ == '__main__':
         else:
             logger.info(f'Only init collection {args.collection}')
             config.set_collection(args.collection)
-            load_md(config.MD_PATH)
+            load_md(config.get_md_path())
     else:
         for i in range(len(config.milvus_config.COLLECTIONS)):
             logger.info(f'Start init collection {i}')
             config.set_collection(i)
-            load_md(config.MD_PATH)
+            load_md(config.get_md_path())

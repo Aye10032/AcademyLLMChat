@@ -24,7 +24,7 @@ def parse_pdf(pdf_path: str):
     # 解析PDF文件
     for path in pdf_paths:
         relative_path = os.path.relpath(path, pdf_path)
-        xml_path = os.path.join(config.XML_PATH, relative_path)
+        xml_path = os.path.join(config.get_xml_path(), relative_path)
         logger.info(f'Parsing {path} to {xml_path}')
         parse_pdf_to_xml(path, xml_path)
     pdf_paths.clear()
@@ -114,5 +114,5 @@ def parse_xml(xml_path: str):
 
 if __name__ == '__main__':
     # parse_pdf('../../../../DATA/document', config.MD_OUTPUT)
-    data = parse_xml(config.XML_PATH + '/2010/10.1016@j.biortech.2010.03.103.grobid.tei.xml')
-    save_to_md(data, config.MD_PATH + '/2010/10.1016@j.biortech.2010.03.103.md')
+    data = parse_xml(config.get_xml_path() + '/2010/10.1016@j.biortech.2010.03.103.grobid.tei.xml')
+    save_to_md(data, config.get_md_path() + '/2010/10.1016@j.biortech.2010.03.103.md')

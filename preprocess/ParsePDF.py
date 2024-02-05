@@ -8,7 +8,7 @@ logger.add('log/pdf2md.log')
 
 
 def assemble_md():
-    for root, dirs, files in os.walk(config.XML_PATH):
+    for root, dirs, files in os.walk(config.get_xml_path()):
         for file in files:
             file_path = os.path.join(root, file)
             file_year = os.path.basename(root)
@@ -17,7 +17,7 @@ def assemble_md():
 
             data = parse_xml(f'{file_path}')
 
-            md_path = os.path.join(config.MD_PATH, f'{file_year}/{doi}.md')
+            md_path = os.path.join(config.get_md_path(), file_year, f'{doi}.md')
             if os.path.exists(md_path):
                 save_to_md(data, md_path, True)
             else:
@@ -26,6 +26,6 @@ def assemble_md():
 
 
 if __name__ == '__main__':
-    parse_pdf(config.PDF_PATH, config.MD_PATH)
+    parse_pdf(config.get_pdf_path(), config.get_md_path())
     logger.info('PDF解析为markdown完成，开始处理markdown文件...')
     assemble_md()

@@ -63,7 +63,7 @@ if __name__ == '__main__':
     for i in range(2010, 2024):
 
         logger.info(f'Loading paper in {i}...')
-        load_csv(i, f'{config.MD_PATH}/{i}/')
+        load_csv(i, f'{config.get_md_path()}/{i}/')
         # get_doi('output/md/')
 
         # d_f = pd.read_csv('nandesyn_pub.csv', encoding='utf-8', dtype={'PMID': 'str', 'DOI': 'str'})

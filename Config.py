@@ -105,6 +105,11 @@ class Config:
         with open(file=yml_path, mode='r', encoding='utf-8') as file:
             self.yml = yaml.load(file, Loader=yaml.FullLoader)
 
+            self.DATA_ROOT = self.yml['data_root']
+            self.PDF_PATH = self.yml['pdf_path']
+            self.MD_PATH = self.yml['md_path']
+            self.XML_PATH = self.yml['xml_path']
+
             _proxy_type = self.yml['proxy']['type']
             _proxy_host = self.yml['proxy']['host']
             _proxy_port = self.yml['proxy']['port']
@@ -115,36 +120,26 @@ class Config:
             self.milvus_config: MilvusConfig = MilvusConfig.from_dict(self.yml['milvus'])
             self.openai_config: OpenaiConfig = OpenaiConfig.from_dict(self.yml['openai'])
 
-            collection_name: str = self.milvus_config.get_collection().NAME
-            self.PDF_PATH = os.path.join(get_work_path(), self.yml['data_root'], collection_name, self.yml['pdf_path'])
-            self.MD_PATH = os.path.join(get_work_path(), self.yml['data_root'], collection_name, self.yml['md_path'])
-            self.XML_PATH = os.path.join(get_work_path(), self.yml['data_root'], collection_name, self.yml['xml_path'])
-
-            if not os.path.exists(self.PDF_PATH):
-                os.makedirs(self.PDF_PATH)
-            if not os.path.exists(self.MD_PATH):
-                os.makedirs(self.MD_PATH)
-            if not os.path.exists(self.XML_PATH):
-                os.makedirs(self.XML_PATH)
-
     def set_collection(self, collection: int):
         if collection >= len(self.milvus_config.COLLECTIONS):
             logger.error('collection index out of range')
             return
         self.milvus_config.DEFAULT_COLLECTION = collection
         collection_name: str = self.milvus_config.get_collection().NAME
-        self.PDF_PATH = os.path.join(get_work_path(), self.yml['data_root'], collection_name, self.yml['pdf_path'])
-        self.MD_PATH = os.path.join(get_work_path(), self.yml['data_root'], collection_name, self.yml['md_path'])
-        self.XML_PATH = os.path.join(get_work_path(), self.yml['data_root'], collection_name, self.yml['xml_path'])
-
-        if not os.path.exists(self.PDF_PATH):
-            os.makedirs(self.PDF_PATH)
-        if not os.path.exists(self.MD_PATH):
-            os.makedirs(self.MD_PATH)
-        if not os.path.exists(self.XML_PATH):
-            os.makedirs(self.XML_PATH)
 
         logger.info(f'set default collection to {collection_name}')
+
+    def get_pdf_path(self):
+        collection_name: str = self.milvus_config.get_collection().NAME
+        return os.path.join(get_work_path(), self.DATA_ROOT, collection_name, self.PDF_PATH)
+
+    def get_md_path(self):
+        collection_name: str = self.milvus_config.get_collection().NAME
+        return os.path.join(get_work_path(), self.DATA_ROOT, collection_name, self.MD_PATH)
+
+    def get_xml_path(self):
+        collection_name: str = self.milvus_config.get_collection().NAME
+        return os.path.join(get_work_path(), self.DATA_ROOT, collection_name, self.XML_PATH)
 
 
 config = Config()

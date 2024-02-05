@@ -28,10 +28,10 @@ def download_from_pmc(csv_file: str):
         filename = data['doi'].replace('/', '@') if data['doi'] else f'PMC{pmcid}'
         if not data['norm']:
             filename += '_(no abstract)'
-        output_path = os.path.join(config.MD_PATH, year, f'{filename}.md')
+        output_path = os.path.join(config.get_md_path(), year, f'{filename}.md')
 
-        if not os.path.exists(os.path.join(config.MD_PATH, year)):
-            os.makedirs(os.path.join(config.MD_PATH, year))
+        if not os.path.exists(os.path.join(config.get_md_path(), year)):
+            os.makedirs(os.path.join(config.get_md_path(), year))
 
         save_to_md(data['sections'], output_path)
 
