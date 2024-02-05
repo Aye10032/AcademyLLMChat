@@ -1,3 +1,5 @@
+from typing import LiteralString
+
 from grobid_client.grobid_client import GrobidClient
 from bs4 import BeautifulSoup
 
@@ -9,7 +11,7 @@ from utils.TimeUtil import timer
 
 
 @timer
-def parse_pdf(pdf_path: str):
+def parse_pdf(pdf_path: LiteralString | str):
     """
     批量解析根目录下的PDF文件，并按照原目录结构保存为XML文件
     :param pdf_path: pdf文件的根目录
@@ -22,27 +24,30 @@ def parse_pdf(pdf_path: str):
             pdf_paths.append(os.path.abspath(root))
 
     # 解析PDF文件
+    grobid_cfg = config.grobid_config
+    client = GrobidClient(config_path=grobid_cfg.CONFIG_PATH)
+
     for path in pdf_paths:
         relative_path = os.path.relpath(path, pdf_path)
         xml_path = os.path.join(config.get_xml_path(), relative_path)
         logger.info(f'Parsing {path} to {xml_path}')
-        parse_pdf_to_xml(path, xml_path)
+        client.process(grobid_cfg.SERVICE, pdf_path, output=xml_path, n=grobid_cfg.MULTI_PROCESS)
     pdf_paths.clear()
 
 
-def parse_pdf_to_xml(pdf_path: str, xml_path: str):
+def parse_pdf_to_xml(pdf_path: LiteralString | str | bytes, xml_path: LiteralString | str | bytes):
     """
     将pdf解析为xml文件
-    :param pdf_path: 单个pdf文件或pdf文件所在的目录
-    :param xml_path: xml文件输出目录
+    :param pdf_path: 单个pdf文件
+    :param xml_path: xml文件
     :return:
     """
     grobid_cfg = config.grobid_config
     client = GrobidClient(config_path=grobid_cfg.CONFIG_PATH)
-    client.process(grobid_cfg.SERVICE, pdf_path, output=xml_path, n=grobid_cfg.MULTI_PROCESS)
+    return client.process_pdf(grobid_cfg.SERVICE, pdf_path, False, True, False, False, False, False, False)
 
 
-def parse_xml(xml_path: str):
+def parse_xml(xml_path: LiteralString | str | bytes):
     """
     解析XML文件
     :param xml_path: xml文件的路径
@@ -93,26 +98,20 @@ def parse_xml(xml_path: str):
 
         # sections
         sections = []
-        for section in soup.find('body').find_all('div', {'xmlns': 'http://www.tei-c.org/ns/1.0'}):
+        for section in soup.find('body').find_all('div'):
             if section.find('head') is None:
                 continue
             section_title = section.find('head').text.strip()
             title_level = section.find('head').attrs.get('n')
             level = title_level.count('.') + 1 if title_level else 2
 
-            text = []
-            for p in section.find_all('p'):
-                text.append(replace_multiple_spaces(p.text.strip()))
-
             sections.append({'text': section_title, 'level': level})
-            if text:
-                sections.append({'text': text, 'level': 0})
+
+            for p in section.find_all('p'):
+                text = replace_multiple_spaces(p.text.strip())
+                if text:
+                    sections.append({'text': text, 'level': 0})
 
     return {'title': title, 'authors': authors, 'year': year, 'abstract': abstract, 'keywords': keywords,
             'sections': sections}
 
-
-if __name__ == '__main__':
-    # parse_pdf('../../../../DATA/document', config.MD_OUTPUT)
-    data = parse_xml(config.get_xml_path() + '/2010/10.1016@j.biortech.2010.03.103.grobid.tei.xml')
-    save_to_md(data, config.get_md_path() + '/2010/10.1016@j.biortech.2010.03.103.md')

@@ -7,7 +7,8 @@ from tqdm import tqdm
 
 import Config
 from Config import config
-from utils.GrobidUtil import parse_xml
+from utils.FileUtil import save_to_md
+from utils.GrobidUtil import parse_xml, parse_pdf_to_xml
 from utils.MarkdownPraser import split_markdown
 from utils.PubmedUtil import get_paper_info
 
@@ -16,7 +17,7 @@ collections = []
 for collection in milvus_cfg.COLLECTIONS:
     collections.append(collection.NAME)
 
-st.set_page_config(page_title="微藻文献大模型知识库", page_icon="📖", layout='centered')
+st.set_page_config(page_title="学术大模型知识库", page_icon="📖", layout='wide')
 st.title('添加文献')
 
 with st.sidebar:
@@ -28,30 +29,23 @@ with st.sidebar:
 
     st.divider()
 
-    st.title('使用说明')
-    st.subheader('PDF')
-    st.markdown(
-        """由于学术论文的PDF中排版和图表的干扰，预处理较为复杂，建议尽量先在本地处理为markdown文件后再上传    
-        1. 将PDF文件重命名为`PMxxxx.pdf`的格式          
-        2. 确保grobid已经在运行     
-        3. 上传PDF文件      
-        4. 等待处理完成     
-        """
-    )
-    st.subheader('Markdown')
-    st.markdown(
-        """   
-        1. 将PDF文件重命名为`doi编号.md`的格式，并将doi编号中的`/`替换为`@`          
-        2. 选择文献所属年份     
-        3. 上传markdown文件      
-        4. 等待处理完成     
-        """
-    )
 
-tab1, tab2, tab3 = st.tabs(['Markdown', 'PDF', 'Pubmed Center'])
+def markdown_tab():
+    col_1, col_2, col_3 = st.columns([1.2, 3, 0.5], gap='medium')
 
-with tab1:
-    with st.form('md_form'):
+    with col_1.container(border=True):
+        st.subheader('使用说明')
+        st.markdown(
+            """   
+            最为推荐的方式，不需要任何网络请求。先在本地手动将文献转为markdown文件之后再导入知识库，可以批量导入，但是每次仅能导入同一年的
+            1. 将markdown文件重命名为文献对应的doi号，并将doi号中的`/`替换为`@`，如`10.1007@s00018-023-04986-3.md`          
+            2. 选择文献所属年份     
+            3. 上传markdown文件      
+            4. 点击导入文献按钮，等待处理完成     
+            """
+        )
+
+    with col_2.form('md_form'):
         col1, col2 = st.columns([2, 1], gap='medium')
         with col1:
             st.markdown('选择知识库')
@@ -76,54 +70,99 @@ with tab1:
             type=['md'],
             accept_multiple_files=True,
             label_visibility='collapsed')
-        st.warning('请将markdown文件重命名为文献对应的doi号，并将doi号中的/替换为@，如10.1007@s00018-023-04986-3.md')
 
         submit = st.form_submit_button('导入文献', type='primary')
 
-    if submit:
-        file_count: int = len(uploaded_files)
-        progress_text = f'正在处理文献(0/{file_count})，请勿关闭或刷新此页面'
-        md_bar = st.progress(0, text=progress_text)
-        for index, uploaded_file in tqdm(enumerate(uploaded_files), total=file_count):
-            doc = split_markdown(uploaded_file, year)
-            progress_num = (index + 1) / file_count
-            time.sleep(1)
-            md_bar.progress(progress_num, text=f'正在处理文本({index + 1}/{file_count})，请勿关闭或刷新此页面')
-        md_bar.empty()
-        st.write('处理完成，共添加了', file_count, '份文献')
+        if submit:
+            file_count: int = len(uploaded_files)
+            progress_text = f'正在处理文献(0/{file_count})，请勿关闭或刷新此页面'
+            md_bar = st.progress(0, text=progress_text)
+            for index, uploaded_file in tqdm(enumerate(uploaded_files), total=file_count):
+                doc = split_markdown(uploaded_file, year)
+                progress_num = (index + 1) / file_count
+                time.sleep(1)
+                md_bar.progress(progress_num, text=f'正在处理文本({index + 1}/{file_count})，请勿关闭或刷新此页面')
+            md_bar.empty()
+            st.write('处理完成，共添加了', file_count, '份文献')
+
+
+def pdf_tab():
+    col_1, col_2, col_3 = st.columns([1.2, 3, 0.5], gap='medium')
+
+    with col_1.container(border=True):
+        st.subheader('使用说明')
+        st.warning('由于PDF解析需要请求PubMed信息，为了防止大量访问造成解析失败，仅允许上传单个文件')
+        st.markdown(
+            """  
+            1. 将PDF文件重命名为`PMxxxx.pdf`的格式          
+            2. 确保grobid已经在运行     
+            3. 上传PDF文件      
+            4. 等待处理完成     
+            """
+        )
+
+    with col_2:
+        with st.form('pdf_form'):
+            st.markdown('选择知识库')
+            option = st.selectbox('选择知识库',
+                                  range(len(collections)),
+                                  format_func=lambda x: collections[x],
+                                  label_visibility='collapsed')
+            uploaded_file = st.file_uploader('选择PDF文件', type=['pdf'])
+
+            submit = st.form_submit_button('导入文献', type='primary')
+
+        if submit:
+            if uploaded_file is not None:
+                data = get_paper_info(uploaded_file.name.replace('.pdf', '').replace('PM', ''))
+                pdf_path = os.path.join(Config.get_work_path(),
+                                        config.DATA_ROOT,
+                                        milvus_cfg.COLLECTIONS[option].NAME,
+                                        config.PDF_PATH,
+                                        data['year'],
+                                        uploaded_file.name)
+                os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+                md_dict = [{'text': data['title'], 'level': 1},
+                           {'text': 'Abstract', 'level': 2},
+                           {'text': data['abstract'], 'level': 0}]
+
+                with open(pdf_path, 'wb') as f:
+                    f.write(uploaded_file.getbuffer())
+
+                xml_path = os.path.join(Config.get_work_path(),
+                                        config.DATA_ROOT,
+                                        milvus_cfg.COLLECTIONS[option].NAME,
+                                        config.XML_PATH,
+                                        data['year'],
+                                        data['doi'].replace('/', '@') + '.xml')
+
+                os.makedirs(os.path.dirname(xml_path), exist_ok=True)
+                with st.spinner('Parsing pdf...'):
+                    _, _, xml_text = parse_pdf_to_xml(pdf_path, xml_path)
+                    with open(xml_path, 'w', encoding='utf-8') as f:
+                        f.write(xml_text)
+                    result = parse_xml(xml_path)
+
+                    md_dict.extend(result['sections'])
+
+                    md_path = os.path.join(Config.get_work_path(),
+                                           config.DATA_ROOT,
+                                           milvus_cfg.COLLECTIONS[option].NAME,
+                                           config.MD_PATH,
+                                           data['year'],
+                                           data['doi'].replace('/', '@') + '.md')
+                    save_to_md(md_dict, md_path)
+                    with open(md_path, 'r', encoding='utf-8') as f:
+                        md_text = f.read()
+
+                st.success('PDF识别完毕')
+                st.write(md_text)
+
+
+tab1, tab2, tab3 = st.tabs(['Markdown', 'PDF', 'Pubmed Center'])
+
+with tab1:
+    markdown_tab()
 
 with tab2:
-    with st.form('pdf_form'):
-        st.markdown('选择知识库')
-        option = st.selectbox('选择知识库',
-                              range(len(collections)),
-                              format_func=lambda x: collections[x],
-                              label_visibility='collapsed')
-        st.warning('由于PDF解析需要请求PubMed信息，为了防止')
-        uploaded_file = st.file_uploader('选择PDF文件', type=['pdf'])
-
-        submit = st.form_submit_button('导入文献', type='primary')
-
-    if submit:
-        if uploaded_file is not None:
-            # Read the PDF file
-            # Extract the content
-            data = get_paper_info(uploaded_file.name.replace('.pdf', '').replace('PM', ''))
-            pdf_path = os.path.join(Config.get_work_path(),
-                                    config.DATA_ROOT,
-                                    milvus_cfg.COLLECTIONS[option].NAME,
-
-                                    data['year'],
-                                    uploaded_file.name)
-            os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
-            with open(pdf_path, 'wb') as f:
-                f.write(uploaded_file.getbuffer())
-
-            xml_path = os.path.join(Config.get_work_path(),
-                                    config.DATA_ROOT,
-                                    milvus_cfg.COLLECTIONS[option].NAME,
-                                    data['year'],
-                                    uploaded_file.name)
-
-            result = parse_xml(config.get_xml_path() + '/2010/10.1016@j.biortech.2010.03.103.grobid.tei.xml')
-            st.write(result)
+    pdf_tab()

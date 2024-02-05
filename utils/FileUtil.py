@@ -38,7 +38,7 @@ def replace_multiple_spaces(text):
     return clean_text
 
 
-def save_to_md(sections: dict, output_path, append: bool = False):
+def save_to_md(sections: list, output_path, append: bool = False):
     """
     Save sections to markdown file
     :param sections: markdown结构化段落
@@ -58,12 +58,12 @@ def save_to_md(sections: dict, output_path, append: bool = False):
             text = sec['text']
             level = sec['level']
             if level == 0:
-                f.write(f'{text}\n')
+                f.write(f'{text}\n\n')
             elif level == 1:
-                f.write(f'# {text}\n')
+                f.write(f'# {text}\n\n')
             elif level == 2:
-                f.write(f'## {text}\n')
+                f.write(f'## {text}\n\n')
             elif level == 3:
-                f.write(f'### {text}\n')
+                f.write(f'### {text}\n\n')
             else:
-                f.write(f'#### {text}\n')
+                f.write(f'#### {text}\n\n')
