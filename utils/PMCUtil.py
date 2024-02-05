@@ -113,19 +113,3 @@ def download_paper_data(pmc_id: str):
         'norm': norm
     }
 
-
-def save_to_md(sections: dict, output_path):
-    with open(output_path, 'w', encoding='utf-8') as f:
-        for sec in sections:
-            text = sec['text']
-            level = sec['level']
-            if level == 0:
-                f.write(f'{text}\n')
-            elif level == 1:
-                f.write(f'# {text}\n')
-            elif level == 2:
-                f.write(f'## {text}\n')
-            elif level == 3:
-                f.write(f'### {text}\n')
-            else:
-                f.write(f'#### {text}\n')

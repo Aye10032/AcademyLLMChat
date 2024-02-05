@@ -13,14 +13,9 @@ from utils.TimeUtil import timer
 @timer
 def load_csv(year: int, output_path: str):
     """
-    加载CSV文件并按照给定年份筛选数据，将结果保存到指定路径的文件中
-
-    参数:
-    year (int): 指定的年份
-    output_path (str): 指定的保存路径
-
-    返回:
-    无
+    :param year:
+    :param output_path:
+    :return:
     """
     df = pd.read_csv('nandesyn_pub.csv', encoding='utf-8', dtype={'PMID': 'str', 'DOI': 'str'})
     df.sort_values(by=['Year', 'PMID'], inplace=True)
@@ -60,15 +55,6 @@ def load_csv(year: int, output_path: str):
 
         out_put_df.to_csv('nandesyn_pub.csv', index=False, encoding='utf-8')
         time.sleep(random.uniform(2.0, 5.0))
-
-
-def get_doi(md_path: str):
-    md_list = []
-    for root, dirs, files in os.walk(md_path):
-        for file in files:
-            if file.endswith('.md'):
-                md_list.append(file)
-    print(md_list)
 
 
 if __name__ == '__main__':

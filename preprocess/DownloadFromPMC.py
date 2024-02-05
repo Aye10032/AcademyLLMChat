@@ -7,7 +7,8 @@ from loguru import logger
 from tqdm import tqdm
 
 from Config import config
-from utils.PMCUtil import get_pmc_id, download_paper_data, save_to_md
+from utils.FileUtil import save_to_md
+from utils.PMCUtil import get_pmc_id, download_paper_data
 
 logger.add('log/pmc.log')
 
