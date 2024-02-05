@@ -2,7 +2,7 @@ import argparse
 import os
 
 from langchain.text_splitter import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
-from langchain_community.embeddings import HuggingFaceBgeEmbeddings
+from langchain_community.embeddings import HuggingFaceBgeEmbeddings, HuggingFaceEmbeddings
 from langchain_community.vectorstores.milvus import Milvus
 from loguru import logger
 from tqdm import tqdm
@@ -27,16 +27,25 @@ def load_md(base_path):
     logger.info('start building vector database...')
     milvus_cfg = config.milvus_config
 
-    model = milvus_cfg.get_model()
     collection = milvus_cfg.get_collection().NAME
 
-    logger.info(f'load collection [{collection}], using model {model}')
+    if milvus_cfg.get_collection().LANGUAGE == 'zh':
+        model = config.milvus_config.ZH_MODEL
 
-    embedding = HuggingFaceBgeEmbeddings(
-        model_name=model,
-        model_kwargs={'device': 'cuda'},
-        encode_kwargs={'normalize_embeddings': True}
-    )
+        embedding = HuggingFaceEmbeddings(
+            model_name=model,
+            model_kwargs={'device': 'cuda'},
+            encode_kwargs={'normalize_embeddings': True}
+        )
+    else:
+        model = config.milvus_config.EN_MODEL
+
+        embedding = HuggingFaceBgeEmbeddings(
+            model_name=model,
+            model_kwargs={'device': 'cuda'},
+            encode_kwargs={'normalize_embeddings': True}
+        )
+    logger.info(f'load collection [{collection}], using model {model}')
 
     if milvus_cfg.USING_REMOTE:
         connection_args = {

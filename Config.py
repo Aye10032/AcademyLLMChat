@@ -84,14 +84,6 @@ class MilvusConfig:
         collection: Collection = self.COLLECTIONS[self.DEFAULT_COLLECTION]
         return collection
 
-    def get_model(self):
-        if self.get_collection().LANGUAGE == 'en':
-            return self.EN_MODEL
-        elif self.get_collection().LANGUAGE == 'zh':
-            return self.ZH_MODEL
-
-        return self.EN_MODEL
-
 
 class OpenaiConfig:
     def __init__(self, use_proxy: bool, api_key: str):

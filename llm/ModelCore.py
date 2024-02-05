@@ -1,8 +1,35 @@
 import httpx
 import streamlit as st
+from langchain_community.embeddings import HuggingFaceBgeEmbeddings, HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
 
 from Config import config
+
+
+@st.cache_resource(show_spinner=f'Loading {config.milvus_config.EN_MODEL}...')
+def load_embedding_en():
+    model = config.milvus_config.EN_MODEL
+
+    embedding = HuggingFaceBgeEmbeddings(
+        model_name=model,
+        model_kwargs={'device': 'cuda'},
+        encode_kwargs={'normalize_embeddings': True}
+    )
+
+    return embedding
+
+
+@st.cache_resource(show_spinner=f'Loading {config.milvus_config.ZH_MODEL}...')
+def load_embedding_zh():
+    model = config.milvus_config.ZH_MODEL
+
+    embedding = HuggingFaceEmbeddings(
+        model_name=model,
+        model_kwargs={'device': 'cuda'},
+        encode_kwargs={'normalize_embeddings': True}
+    )
+
+    return embedding
 
 
 @st.cache_resource(show_spinner='Loading GPT3.5 16k...')

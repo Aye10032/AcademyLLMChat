@@ -13,7 +13,7 @@ import streamlit as st
 
 from Config import config
 from llm.AgentCore import translate_sentence
-from llm.ModelCore import load_gpt, load_gpt_16k
+from llm.ModelCore import load_gpt, load_gpt_16k, load_embedding_en, load_embedding_zh
 from llm.Template import RETRIEVER, ASK, TRANSLATE_TO_EN
 
 
@@ -34,14 +34,10 @@ class LineListOutputParser(PydanticOutputParser):
 def load_vectorstore():
     milvus_cfg = config.milvus_config
 
-    model = milvus_cfg.get_model()
-    collection = milvus_cfg.get_collection().NAME
-
-    embedding = HuggingFaceBgeEmbeddings(
-        model_name=model,
-        model_kwargs={'device': 'cuda'},
-        encode_kwargs={'normalize_embeddings': True}
-    )
+    if milvus_cfg.get_collection().LANGUAGE == 'zh':
+        embedding = load_embedding_zh()
+    else:
+        embedding = load_embedding_en()
 
     if milvus_cfg.USING_REMOTE:
         connection_args = {
@@ -58,7 +54,7 @@ def load_vectorstore():
 
     vector_db: milvus = Milvus(
         embedding,
-        collection_name=collection,
+        collection_name=milvus_cfg.get_collection().NAME,
         connection_args=connection_args,
         search_params={'ef': 15}
     )

@@ -1,10 +1,12 @@
 import os
+import time
+from datetime import datetime
 
-import pandas as pd
 import streamlit as st
-from st_milvus_connection import MilvusConnection
+from tqdm import tqdm
 
 from Config import config
+from utils.MarkdownPraser import split_markdown
 
 milvus_cfg = config.milvus_config
 collections = []
@@ -47,32 +49,61 @@ tab1, tab2, tab3 = st.tabs(['Markdown', 'PDF', 'Pubmed Center'])
 
 with tab1:
     with st.form('md_form'):
-        st.subheader('选择知识库')
+        col1, col2 = st.columns([2, 1], gap='medium')
+        with col1:
+            st.markdown('选择知识库')
+            option = st.selectbox('选择知识库',
+                                  range(len(collections)),
+                                  format_func=lambda x: collections[x],
+                                  label_visibility='collapsed')
 
+        with col2:
+            st.markdown('选择文献所属年份')
+
+            current_year = datetime.now().year
+            year = st.selectbox('Year',
+                                [year for year in range(1900, current_year + 1)][::-1],
+                                label_visibility='collapsed')
+
+        st.markdown(' ')
+
+        st.markdown('上传markdown文件')
+        uploaded_files = st.file_uploader(
+            '上传Markdown文件',
+            type=['md'],
+            accept_multiple_files=True,
+            label_visibility='collapsed')
+        st.warning('请将markdown文件重命名为文献对应的doi号，并将doi号中的/替换为@，如10.1007@s00018-023-04986-3.md')
+
+        submit = st.form_submit_button('导入文献', type='primary')
+
+    if submit:
+        file_count: int = len(uploaded_files)
+        progress_text = f'正在处理文献(0/{file_count})，请勿关闭或刷新此页面'
+        md_bar = st.progress(0, text=progress_text)
+        for index, uploaded_file in tqdm(enumerate(uploaded_files), total=file_count):
+            doc = split_markdown(uploaded_file, year)
+            progress_num = (index + 1) / file_count
+            time.sleep(1)
+            md_bar.progress(progress_num, text=f'正在处理文本({index + 1}/{file_count})，请勿关闭或刷新此页面')
+        md_bar.empty()
+        st.write('处理完成，共添加了', file_count, '份文献')
+
+with tab2:
+    with st.form('pdf_form'):
+        st.markdown('选择知识库')
         option = st.selectbox('选择知识库',
                               range(len(collections)),
                               format_func=lambda x: collections[x],
                               label_visibility='collapsed')
+        st.warning('由于PDF解析需要请求PubMed信息，为了防止')
+        uploaded_file = st.file_uploader('选择PDF文件', type=['pdf'])
 
-        if not option == milvus_cfg.DEFAULT_COLLECTION:
-            config.set_collection(option)
-            st.cache_resource.clear()
+        submit = st.form_submit_button('导入文献', type='primary')
 
-        uploaded_files = st.file_uploader('选择Markdown文件', type=['md'], accept_multiple_files=True)
-        for uploaded_file in uploaded_files:
-            bytes_data = uploaded_file.read()
-            st.write("filename:", uploaded_file.name)
-            # stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
-            # string_data = stringio.read()
-            # st.markdown(string_data)
-
-        st.form_submit_button('Submit my picks')
-
-with tab2:
-    uploaded_files = st.file_uploader('选择PDF文件', type=['pdf'], accept_multiple_files=True)
-    for uploaded_file in uploaded_files:
-        bytes_data = uploaded_file.read()
-        st.write("filename:", uploaded_file.name)
-        # stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
-        # string_data = stringio.read()
-        # st.markdown(string_data)
+    if submit:
+        if uploaded_file is not None:
+            # Read the PDF file
+            # Extract the content
+            content = ""
+            st.write(uploaded_file.name)
