@@ -87,6 +87,12 @@ def markdown_tab():
 
 
 def pdf_tab():
+    if 'md_text' not in st.session_state:
+        st.session_state.md_text = ''
+
+    if 'disable' not in st.session_state:
+        st.session_state.disable = True
+
     col_1, col_2, col_3 = st.columns([1.2, 3, 0.5], gap='medium')
 
     with col_1.container(border=True):
@@ -101,16 +107,15 @@ def pdf_tab():
             """
         )
 
-    with col_2:
-        with st.form('pdf_form'):
-            st.markdown('选择知识库')
-            option = st.selectbox('选择知识库',
-                                  range(len(collections)),
-                                  format_func=lambda x: collections[x],
-                                  label_visibility='collapsed')
-            uploaded_file = st.file_uploader('选择PDF文件', type=['pdf'])
+    with col_2.form('pdf_form'):
+        st.markdown('选择知识库')
+        option = st.selectbox('选择知识库',
+                              range(len(collections)),
+                              format_func=lambda x: collections[x],
+                              label_visibility='collapsed')
+        uploaded_file = st.file_uploader('选择PDF文件', type=['pdf'])
 
-            submit = st.form_submit_button('导入文献', type='primary')
+        submit = st.form_submit_button('解析PDF')
 
         if submit:
             if uploaded_file is not None:
@@ -155,8 +160,21 @@ def pdf_tab():
                     with open(md_path, 'r', encoding='utf-8') as f:
                         md_text = f.read()
 
+                    st.session_state.md_text = md_text
+                    st.session_state.disable = False
+
                 st.success('PDF识别完毕')
-                st.write(md_text)
+
+    st.markdown(' ')
+    with st.container(border=True):
+        md_col1, md_col2 = st.columns([1, 1], gap='medium')
+
+        md_value = md_col1.text_area('文本内容', st.session_state.md_text, height=800, label_visibility='collapsed')
+
+        if md_value:
+            md_col2.container(height=800).write(md_value)
+
+        submit = st.button('添加文献', type='primary', disabled=st.session_state.disable)
 
 
 tab1, tab2, tab3 = st.tabs(['Markdown', 'PDF', 'Pubmed Center'])
