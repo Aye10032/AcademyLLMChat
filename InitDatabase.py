@@ -8,6 +8,7 @@ from loguru import logger
 from tqdm import tqdm
 
 from Config import config
+from utils.MarkdownPraser import split_markdown
 from utils.TimeUtil import timer
 
 logger.add('log/init_database.log')
@@ -79,11 +80,8 @@ def load_md(base_path):
 
             with open(file_path, 'r', encoding='utf-8') as f:
                 md_text = f.read()
-            head_split_docs = md_splitter.split_text(md_text)
-            for doc in head_split_docs:
-                doc.metadata['doi'] = doi
-                doc.metadata['year'] = file_year
-            md_docs = r_splitter.split_documents(head_split_docs)
+
+            md_docs = split_markdown(md_text, file_year, doi)
 
             try:
                 vector_db.add_documents(md_docs)
