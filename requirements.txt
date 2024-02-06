@@ -19,7 +19,5 @@ pydantic
 httpx
 langchain-openai
 openai
-
 streamlit~=1.31.0
-st_milvus_connection
 pyyaml
