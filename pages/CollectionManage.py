@@ -2,13 +2,51 @@ import os
 
 import pandas as pd
 import streamlit as st
-from st_milvus_connection import MilvusConnection
 
 from Config import config
+from utils.MilvusConnection import MilvusConnection
+
+st.set_page_config(
+    page_title='学术大模型知识库',
+    page_icon='📖',
+    layout='centered'
+)
 
 milvus_cfg = config.milvus_config
-os.environ['milvus_uri'] = f'http://{milvus_cfg.MILVUS_HOST}:{milvus_cfg.MILVUS_PORT}'
-os.environ['milvus_token'] = ''
+collections = []
+for collection in milvus_cfg.COLLECTIONS:
+    collections.append(collection.NAME)
+
+if milvus_cfg.USING_REMOTE:
+    uri = milvus_cfg.REMOTE_DATABASE['url']
+    user = milvus_cfg.REMOTE_DATABASE['username']
+    password = milvus_cfg.REMOTE_DATABASE['password']
+    conn = st.connection('milvus', type=MilvusConnection,
+                         uri=uri,
+                         user=user,
+                         password=password,
+                         secure=True)
+else:
+    conn = st.connection('milvus', type=MilvusConnection,
+                         uri=f'http://{milvus_cfg.MILVUS_HOST}:{milvus_cfg.MILVUS_PORT}')
+
+dtype = {
+    0: 'NONE',
+    1: 'BOOL',
+    2: 'INT8',
+    3: 'INT16',
+    4: 'INT32',
+    5: 'INT64',
+    10: 'FLOAT',
+    11: 'DOUBLE',
+    20: 'STRING',
+    21: 'VARCHAR',
+    22: 'ARRAY',
+    23: 'JSON',
+    100: 'BINARY_VECTOR',
+    101: 'FLOAT_VECTOR',
+    999: 'UNKNOWN'
+}
 
 with st.sidebar:
     st.header('欢迎使用学术LLM知识库')
@@ -19,29 +57,45 @@ with st.sidebar:
 
     st.divider()
 
-    st.title('使用说明')
-    st.subheader('PDF')
-    st.markdown(
-        """由于学术论文的PDF中排版和图表的干扰，预处理较为复杂，建议尽量先在本地处理为markdown文件后再上传    
-        1. 将PDF文件重命名为`PMxxxx.pdf`的格式          
-        2. 确保grobid已经在运行     
-        3. 上传PDF文件      
-        4. 等待处理完成     
-        """
-    )
 
-st.title('知识库管理')
+def manage_tab():
+    st.header('知识库管理')
+    option = st.selectbox('选择知识库',
+                          range(len(collections)),
+                          format_func=lambda x: collections[x])
 
-conn = st.connection("milvus", type=MilvusConnection)
-df = (pd.DataFrame(conn.get_collection('Nannochloropsis').query(
-    expr='year == 2012',
-    output_fields=['Title', 'year', 'doi']
-)).copy()
-      .drop('pk', axis=1)
-      .drop_duplicates(ignore_index=True))
+    if option is not None:
+        collection_name = milvus_cfg.COLLECTIONS[option].NAME
+        st.write(f'知识库 {collection_name} 中共有', conn.get_entity_num(collection_name), '条向量数据')
+        field_df = pd.DataFrame()
+        for index, field in enumerate(conn.get_collection(collection_name).schema.fields):
+            df = pd.DataFrame(
+                {
+                    'name': field.name,
+                    'type': dtype[field.dtype],
+                    'description': field.description,
+                    'max_length': field.max_length,
+                    'dim': field.dim,
+                    'is_primary': field.is_primary,
+                    'auto_id': field.auto_id,
+                },
+                index=[index]
+            )
 
-st.dataframe(
-    df,
-    hide_index=True,
-    column_order=['Title', 'year', 'doi']
-)
+            field_df = pd.concat([field_df, df], ignore_index=True)
+
+        st.dataframe(field_df, hide_index=True)
+
+
+def new_tab():
+    st.header('新建知识库')
+    st.warning('此页面新建的只是索引，需要在上传界面至少添加一个文件后才会在向量库中实际建立collection并进行查询')
+
+
+tab1, tab2 = st.tabs(['知识库管理', '新建知识库'])
+
+with tab1:
+    manage_tab()
+
+with tab2:
+    new_tab()
