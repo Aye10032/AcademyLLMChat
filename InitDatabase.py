@@ -18,15 +18,6 @@ logger.add('log/init_database.log')
 
 @timer
 def load_md(base_path):
-    md_splitter = MarkdownHeaderTextSplitter(
-        headers_to_split_on=[('#', 'Title'), ('##', 'Section'), ('###', 'Subtitle'), ('####', 'Subtitle')]
-    )
-    r_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=450,
-        chunk_overlap=0,
-        separators=['\n\n', '\n']
-    )
-
     logger.info('start building vector database...')
     milvus_cfg = config.milvus_config
 
@@ -67,6 +58,7 @@ def load_md(base_path):
         embedding,
         collection_name=collection,
         connection_args=connection_args,
+        index_params=milvus_cfg.get_collection().INDEX_PARAM,
         drop_old=True
     )
 
@@ -75,10 +67,10 @@ def load_md(base_path):
     logger.info('start loading file...')
 
     for root, dirs, files in os.walk(base_path):
-        for file in tqdm(files, total=len(files)):
-            file_path = os.path.join(root, file)
+        for _file in tqdm(files, total=len(files)):
+            file_path = os.path.join(root, _file)
             file_year = int(os.path.basename(root))
-            doi = file.replace('@', '/').replace('.md', '')
+            doi = _file.replace('@', '/').replace('.md', '')
 
             with open(file_path, 'r', encoding='utf-8') as f:
                 md_text = f.read()
@@ -88,7 +80,7 @@ def load_md(base_path):
             try:
                 vector_db.add_documents(md_docs)
             except Exception as e:
-                logger.error(f'loading <{file}> ({file_year}) fail')
+                logger.error(f'loading <{_file}> ({file_year}) fail')
                 logger.error(e)
 
     logger.info(f'done')
@@ -122,7 +114,7 @@ if __name__ == '__main__':
                          "index_param": {
                              "metric_type": 'L2',
                              "index_type": 'HNSW',
-                             "params": {"nlist": 16384, "m": 8, "nbits": 8},
+                             "params": {"M": 8, "efConstruction": 64},
                          }}
                         for collection in os.listdir(DATA_ROOT)
                         if os.path.isdir(os.path.join(DATA_ROOT, collection))]
