@@ -26,6 +26,9 @@ class MilvusConnection(BaseConnection[connections]):
     def list_collections(self) -> list:
         return utility.list_collections()
 
+    def has_collection(self, collection_name) -> bool:
+        return utility.has_collection(collection_name)
+
     def get_collection(self, collection_name) -> Collection:
         return Collection(collection_name)
 
