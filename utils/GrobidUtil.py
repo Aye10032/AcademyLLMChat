@@ -35,7 +35,7 @@ def parse_pdf(pdf_path: LiteralString | str):
     pdf_paths.clear()
 
 
-def parse_pdf_to_xml(pdf_path: LiteralString | str | bytes, xml_path: LiteralString | str | bytes):
+def parse_pdf_to_xml(pdf_path: LiteralString | str | bytes):
     """
     将pdf解析为xml文件
     :param pdf_path: 单个pdf文件

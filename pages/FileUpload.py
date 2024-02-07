@@ -143,7 +143,7 @@ def pdf_tab():
 
                 os.makedirs(os.path.dirname(xml_path), exist_ok=True)
                 with st.spinner('Parsing pdf...'):
-                    _, _, xml_text = parse_pdf_to_xml(pdf_path, xml_path)
+                    _, _, xml_text = parse_pdf_to_xml(pdf_path)
                     with open(xml_path, 'w', encoding='utf-8') as f:
                         f.write(xml_text)
                     result = parse_xml(xml_path)
