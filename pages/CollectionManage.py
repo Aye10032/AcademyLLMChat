@@ -1,10 +1,15 @@
-import os
+from datetime import datetime
 
 import pandas as pd
 import streamlit as st
+from langchain_community.vectorstores.milvus import Milvus
+from langchain_core.documents import Document
+from loguru import logger
 
 from Config import config
-from utils.MilvusConnection import MilvusConnection
+from llm.ModelCore import load_embedding_zh, load_embedding_en
+from vectorstore.MilvusConnection import MilvusConnection
+from vectorstore.MilvusParams import IndexType, get_index_param
 
 st.set_page_config(
     page_title='学术大模型知识库',
@@ -26,9 +31,20 @@ if milvus_cfg.USING_REMOTE:
                          user=user,
                          password=password,
                          secure=True)
+    connection_args = {
+        'uri': milvus_cfg.REMOTE_DATABASE['url'],
+        'user': milvus_cfg.REMOTE_DATABASE['username'],
+        'password': milvus_cfg.REMOTE_DATABASE['password'],
+        'secure': True,
+    }
 else:
     conn = st.connection('milvus', type=MilvusConnection,
                          uri=f'http://{milvus_cfg.MILVUS_HOST}:{milvus_cfg.MILVUS_PORT}')
+    connection_args = {
+        'host': milvus_cfg.MILVUS_HOST,
+        'port': milvus_cfg.MILVUS_PORT,
+    }
+
 
 dtype = {
     0: 'NONE',
@@ -89,7 +105,84 @@ def manage_tab():
 
 def new_tab():
     st.header('新建知识库')
-    st.warning('此页面新建的只是索引，需要在上传界面至少添加一个文件后才会在向量库中实际建立collection并进行查询')
+    with st.container(border=True):
+        col1_1, col1_2 = st.columns([3, 1], gap='medium')
+        collection_name = col1_1.text_input('知识库名称 :red[*]')
+        language = col1_2.selectbox('语言', ['en', 'zh'])
+
+        title = st.text_input('页面名称')
+        description = st.text_area('collection 描述')
+
+        with st.expander('向量库参数设置'):
+            col2_1, col2_2 = st.columns(2, gap='medium')
+            metric_type = col2_1.selectbox('Metric Type', ['L2', 'IP'])
+
+            index_types = ['IVF_FLAT',
+                           'IVF_SQ8',
+                           'IVF_PQ',
+                           'HNSW',
+                           'RHNSW_FLAT',
+                           'RHNSW_SQ',
+                           'RHNSW_PQ',
+                           'IVF_HNSW',
+                           'ANNOY',
+                           'AUTOINDEX']
+            index_type = col2_2.selectbox('Index Type',
+                                          range(len(index_types)),
+                                          format_func=lambda x: index_types[x],
+                                          index=IndexType.HNSW)
+
+            if index_type is not None:
+                # print(index_type)
+                param = st.text_area('params', value=get_index_param(index_type))
+
+        if submit := st.button('新建知识库', type='primary'):
+            # conn.create_collection(collection_name)
+            if not (collection_name and collection_name.isalpha()):
+                st.error('知识库名称必须是不为空的英文')
+                st.stop()
+
+            if conn.has_collection(collection_name):
+                st.error('知识库已存在')
+                st.stop()
+
+            if not title:
+                title = collection_name
+
+            if not description:
+                description = f'This is a collection about {collection_name}'
+
+            index_param = {
+                "metric_type": metric_type,
+                "index_type": index_types[index_type],
+                "params": eval(param),
+            }
+
+            if language == 'zh':
+                embedding = load_embedding_zh()
+            else:
+                embedding = load_embedding_en()
+
+            with st.spinner('Creating collection...'):
+                doc = Document(page_content=description,
+                               metadata={'Title': 'About this collection', 'Section': 'Abstract', 'doi': 'empty',
+                                         'year': datetime.now().year})
+                vector_db = Milvus.from_documents(
+                    [doc],
+                    embedding,
+                    collection_name=collection_name,
+                    connection_args=connection_args,
+                    drop_old=True
+                )
+
+            logger.info('success')
+            st.success('创建成功')
+            st.write({"collection_name": collection_name,
+                      "language": language,
+                      "title": title,
+                      "description": description,
+                      "index_param": index_param})
+            st.balloons()
 
 
 tab1, tab2 = st.tabs(['知识库管理', '新建知识库'])
