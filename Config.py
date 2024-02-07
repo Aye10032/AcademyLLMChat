@@ -34,10 +34,12 @@ class GrobidConfig:
 
 
 class Collection:
-    def __init__(self, collection_name: str, language: str, description: str):
+    def __init__(self, collection_name: str, language: str, title: str, description: str, index_param: str):
         self.NAME = collection_name
         self.LANGUAGE = language
+        self.TITLE = title
         self.DESCRIPTION = description
+        self.INDEX_PARAM = index_param
 
     @classmethod
     def from_dict(cls, data: Dict[str, any]):
@@ -45,11 +47,11 @@ class Collection:
 
 
 class MilvusConfig:
-    def __init__(self, milvus_host: str, milvus_port: int, config_path: str, en_model: str, zh_model: str,
+    def __init__(self, data_root: str, milvus_host: str, milvus_port: int, en_model: str, zh_model: str,
                  using_remote: bool, remote_database: Dict):
         self.MILVUS_HOST = milvus_host
         self.MILVUS_PORT = milvus_port
-        self.CONFIG_PATH = os.path.join(get_work_path(), config_path)
+        self.CONFIG_PATH = os.path.join(get_work_path(), data_root, 'collections.json')
         self.COLLECTIONS: list[Collection] = []
         self.EN_MODEL = en_model
         self.ZH_MODEL = zh_model
@@ -57,18 +59,8 @@ class MilvusConfig:
         self.REMOTE_DATABASE = remote_database
 
         if not os.path.exists(self.CONFIG_PATH):
-            logger.info('config dose not exits')
-            default = {
-                "collections": [
-                    {
-                        "collection_name": "default",
-                        "language": "en",
-                        "description": "示例知识库"
-                    }
-                ]
-            }
-            with open(file=self.CONFIG_PATH, mode='w', encoding='utf-8') as file:
-                json.dump(default, file)
+            logger.error('no collection config file find')
+            exit()
 
         with open(file=self.CONFIG_PATH, mode='r', encoding='utf-8') as file:
             json_data = json.load(file)['collections']
@@ -77,8 +69,8 @@ class MilvusConfig:
             self.DEFAULT_COLLECTION = 0
 
     @classmethod
-    def from_dict(cls, data: Dict[str, any]):
-        return cls(**data)
+    def from_dict(cls, data_root: str, data: Dict[str, any]):
+        return cls(data_root, **data)
 
     def get_collection(self):
         collection: Collection = self.COLLECTIONS[self.DEFAULT_COLLECTION]
@@ -117,7 +109,7 @@ class Config:
 
             self.pubmed_config: PubmedConfig = PubmedConfig.from_dict(self.yml['pubmed'])
             self.grobid_config: GrobidConfig = GrobidConfig.from_dict(self.yml['grobid'])
-            self.milvus_config: MilvusConfig = MilvusConfig.from_dict(self.yml['milvus'])
+            self.milvus_config: MilvusConfig = MilvusConfig.from_dict(self.DATA_ROOT, self.yml['milvus'])
             self.openai_config: OpenaiConfig = OpenaiConfig.from_dict(self.yml['openai'])
 
     def set_collection(self, collection: int):

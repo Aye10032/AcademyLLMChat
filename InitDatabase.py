@@ -1,13 +1,15 @@
 import argparse
+import json
 import os
+import shutil
 
+import yaml
 from langchain.text_splitter import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceBgeEmbeddings, HuggingFaceEmbeddings
 from langchain_community.vectorstores.milvus import Milvus
 from loguru import logger
 from tqdm import tqdm
 
-from Config import config
 from utils.MarkdownPraser import split_markdown
 from utils.TimeUtil import timer
 
@@ -95,7 +97,41 @@ def load_md(base_path):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--collection', '-C', type=int, help='初始化特定collection，从0开始')
+    parser.add_argument('--auto_create', '-A', action='store_true', help='根据目录结构自动初始化数据库')
+    parser.add_argument('--force', '-F', action='store_true', help='强制覆盖已有配置')
     args = parser.parse_args()
+
+    if args.auto_create:
+        yml_path = 'config.yml'
+        if not os.path.exists(yml_path):
+            logger.info('config dose not exits')
+            shutil.copy('config.example.yml', yml_path)
+
+        with open(file=yml_path, mode='r', encoding='utf-8') as file:
+            yml = yaml.load(file, Loader=yaml.FullLoader)
+            DATA_ROOT = yml['data_root']
+            cfg_path = os.path.join(DATA_ROOT, 'collections.json')
+
+            if not args.force and os.path.exists(cfg_path):
+                logger.info('config file exists, use existing config file')
+            else:
+                cols = [{"collection_name": collection,
+                         "language": 'en',
+                         "title": collection,
+                         "description": f'This is a collection about {collection}',
+                         "index_param": {
+                             "metric_type": 'L2',
+                             "index_type": 'HNSW',
+                             "params": {"nlist": 16384, "m": 8, "nbits": 8},
+                         }}
+                        for collection in os.listdir(DATA_ROOT)
+                        if os.path.isdir(os.path.join(DATA_ROOT, collection))]
+
+                json.dump({"collections": cols}, open(cfg_path, 'w', encoding='utf-8'))
+                logger.info(f'auto create config file {cfg_path}')
+
+    from Config import config
+
     if args.collection is not None:
         if args.collection >= len(config.milvus_config.COLLECTIONS) or args.collection < 0:
             logger.error(f'collection index {args.collection} out of range')
