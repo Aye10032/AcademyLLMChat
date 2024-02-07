@@ -14,7 +14,7 @@ collections = []
 for collection in col:
     collections.append(collection.NAME)
 
-title = milvus_cfg.get_collection().DESCRIPTION
+title = milvus_cfg.get_collection().TITLE
 st.set_page_config(
     page_title='学术大模型知识库',
     page_icon='📖',
@@ -42,12 +42,12 @@ with st.sidebar:
                           format_func=lambda x: collections[x],
                           label_visibility='collapsed')
 
+    st.caption(f'当前数据库为：{milvus_cfg.get_collection().NAME}')
+
     if not option == milvus_cfg.DEFAULT_COLLECTION:
         config.set_collection(option)
         st.cache_resource.clear()
-
-    if option:
-        st.caption(f'当前数据库为：{title}')
+        st.rerun()
 
     st.markdown('#### 选择对话模式')
     chat_type = st.toggle('对话模式', label_visibility='collapsed')
