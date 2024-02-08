@@ -29,7 +29,7 @@ def split_markdown(document: UploadedFile, year: int):
     return md_docs
 
 
-def split_markdown(md_text: str, year: int, doi: str):
+def split_markdown_text(md_text: str, year: int, doi: str):
     md_splitter = MarkdownHeaderTextSplitter(
         headers_to_split_on=[('#', 'Title'), ('##', 'Section'), ('###', 'Subtitle'), ('####', 'Subtitle')]
     )

@@ -4,13 +4,12 @@ import os
 import shutil
 
 import yaml
-from langchain.text_splitter import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 from langchain_community.embeddings import HuggingFaceBgeEmbeddings, HuggingFaceEmbeddings
 from langchain_community.vectorstores.milvus import Milvus
 from loguru import logger
 from tqdm import tqdm
 
-from utils.MarkdownPraser import split_markdown
+from utils.MarkdownPraser import split_markdown_text
 from utils.TimeUtil import timer
 
 logger.add('log/init_database.log')
@@ -75,7 +74,7 @@ def load_md(base_path):
             with open(file_path, 'r', encoding='utf-8') as f:
                 md_text = f.read()
 
-            md_docs = split_markdown(md_text, file_year, doi)
+            md_docs = split_markdown_text(md_text, file_year, doi)
 
             try:
                 vector_db.add_documents(md_docs)
