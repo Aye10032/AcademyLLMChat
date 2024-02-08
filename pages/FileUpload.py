@@ -7,6 +7,7 @@ from tqdm import tqdm
 
 import Config
 from Config import config, UserRole
+from llm.RagCore import load_vectorstore
 from uicomponent.StComponent import side_bar_links, role_check
 from utils.FileUtil import save_to_md
 from utils.GrobidUtil import parse_xml, parse_pdf_to_xml
@@ -80,12 +81,16 @@ def markdown_tab():
                 st.warning('还没有上传文件')
                 st.stop()
 
+            config.set_collection(option)
+            st.cache_resource.clear()
+            vector_db = load_vectorstore()
             progress_text = f'正在处理文献(0/{file_count})，请勿关闭或刷新此页面'
             md_bar = st.progress(0, text=progress_text)
             for index, uploaded_file in tqdm(enumerate(uploaded_files), total=file_count):
+
                 doc = split_markdown(uploaded_file, year)
+                vector_db.add_documents(doc)
                 progress_num = (index + 1) / file_count
-                time.sleep(1)
                 md_bar.progress(progress_num, text=f'正在处理文本({index + 1}/{file_count})，请勿关闭或刷新此页面')
             md_bar.empty()
             st.write('处理完成，共添加了', file_count, '份文献')
