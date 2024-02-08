@@ -1,6 +1,5 @@
-import streamlit as st
-
 from Config import UserRole, config
+from uicomponent.StatusBus import *
 
 
 def side_bar_links():
@@ -16,6 +15,7 @@ def side_bar_links():
 def role_check(role: int, wide=False):
     if 'role' not in st.session_state:
         st.session_state['role'] = UserRole.VISITOR
+        set_visitor_enable()
 
     if st.session_state.get('role') < role:
         if wide:
@@ -31,7 +31,9 @@ def role_check(role: int, wide=False):
 
         if auth_code == config.ADMIN_TOKEN:
             st.session_state['role'] = UserRole.ADMIN
+            set_admin_enable()
             auth_holder.empty()
         elif auth_code == config.OWNER_TOKEN:
             st.session_state['role'] = UserRole.OWNER
+            set_owner_enable()
             auth_holder.empty()
