@@ -231,12 +231,12 @@ def pmc_tab():
         option = st.selectbox('选择知识库',
                               range(len(collections)),
                               format_func=lambda x: collections[x],
-                              disabled=st.session_state['pdf_uploader_disable'],
+                              disabled=st.session_state['pmc_uploader_disable'],
                               label_visibility='collapsed')
 
-        pmc_id = st.text_input('PMC ID', key='pmc_id')
+        pmc_id = st.text_input('PMC ID', key='pmc_id', disabled=st.session_state['pmc_uploader_disable'])
 
-        submit = st.button('下载并添加', type='primary')
+        submit = st.button('下载并添加', type='primary', disabled=st.session_state['pmc_uploader_disable'])
 
         if submit:
             config.set_collection(option)
