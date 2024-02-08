@@ -6,7 +6,7 @@ from langchain_community.vectorstores.milvus import Milvus
 from langchain_core.documents import Document
 from loguru import logger
 
-from Config import config
+from Config import config, Collection
 from llm.ModelCore import load_embedding_zh, load_embedding_en
 from vectorstore.MilvusConnection import MilvusConnection
 from vectorstore.MilvusParams import IndexType, get_index_param
@@ -44,7 +44,6 @@ else:
         'host': milvus_cfg.MILVUS_HOST,
         'port': milvus_cfg.MILVUS_PORT,
     }
-
 
 dtype = {
     0: 'NONE',
@@ -175,13 +174,14 @@ def new_tab():
                     drop_old=True
                 )
 
+                milvus_cfg.add_collection(
+                    Collection.from_dict({"collection_name": collection_name,
+                                          "language": language,
+                                          "title": title,
+                                          "description": description,
+                                          "index_param": index_param}))
             logger.info('success')
             st.success('创建成功')
-            st.write({"collection_name": collection_name,
-                      "language": language,
-                      "title": title,
-                      "description": description,
-                      "index_param": index_param})
             st.balloons()
 
 
