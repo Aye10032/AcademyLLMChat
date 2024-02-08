@@ -27,9 +27,6 @@ st.set_page_config(
 )
 st.title(title)
 
-if 'role' not in st.session_state:
-    st.session_state['role'] = UserRole.VISITOR
-
 with st.sidebar:
     side_bar_links()
 
