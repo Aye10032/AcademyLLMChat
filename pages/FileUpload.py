@@ -95,8 +95,8 @@ def pdf_tab():
     if 'md_text' not in st.session_state:
         st.session_state.md_text = ''
 
-    if 'disable' not in st.session_state:
-        st.session_state.disable = True
+    if 'pdf_md_submit_disable' not in st.session_state:
+        st.session_state['pdf_md_submit_disable'] = True
 
     col_1, col_2, col_3 = st.columns([1.2, 3, 0.5], gap='medium')
 
@@ -118,9 +118,9 @@ def pdf_tab():
                               range(len(collections)),
                               format_func=lambda x: collections[x],
                               label_visibility='collapsed')
-        uploaded_file = st.file_uploader('选择PDF文件', type=['pdf'])
+        uploaded_file = st.file_uploader('选择PDF文件', type=['pdf'], disabled=st.session_state['pdf_uploader_disable'])
 
-        submit = st.form_submit_button('解析PDF')
+        submit = st.form_submit_button('解析PDF', disabled=st.session_state['pdf_upload_submit_disable'])
 
         if submit:
             if uploaded_file is not None:
@@ -166,7 +166,7 @@ def pdf_tab():
                         md_text = f.read()
 
                     st.session_state.md_text = md_text
-                    st.session_state.disable = False
+                    st.session_state['pdf_md_submit_disable'] = False
 
                 st.success('PDF识别完毕')
 
@@ -179,7 +179,7 @@ def pdf_tab():
         if md_value:
             md_col2.container(height=800).write(md_value)
 
-        submit = st.button('添加文献', type='primary', disabled=st.session_state.disable)
+        submit = st.button('添加文献', type='primary', disabled=st.session_state['pdf_md_submit_disable'])
 
 
 tab1, tab2, tab3 = st.tabs(['Markdown', 'PDF', 'Pubmed Center'])
