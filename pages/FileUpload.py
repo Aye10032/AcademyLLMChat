@@ -50,6 +50,7 @@ def markdown_tab():
             option = st.selectbox('选择知识库',
                                   range(len(collections)),
                                   format_func=lambda x: collections[x],
+                                  disabled=st.session_state['md_uploader_disable'],
                                   label_visibility='collapsed')
 
         with col2:
@@ -58,6 +59,7 @@ def markdown_tab():
             current_year = datetime.now().year
             year = st.selectbox('Year',
                                 [year for year in range(1900, current_year + 1)][::-1],
+                                disabled=st.session_state['md_uploader_disable'],
                                 label_visibility='collapsed')
 
         st.markdown(' ')
@@ -72,7 +74,7 @@ def markdown_tab():
 
         submit = st.form_submit_button('导入文献',
                                        type='primary',
-                                       disabled=st.session_state['md_upload_submit_disable'])
+                                       disabled=st.session_state['md_uploader_disable'],)
 
         if submit:
             file_count = len(uploaded_files)
@@ -120,10 +122,11 @@ def pdf_tab():
         option = st.selectbox('选择知识库',
                               range(len(collections)),
                               format_func=lambda x: collections[x],
+                              disabled = st.session_state['pdf_uploader_disable'],
                               label_visibility='collapsed')
         uploaded_file = st.file_uploader('选择PDF文件', type=['pdf'], disabled=st.session_state['pdf_uploader_disable'])
 
-        submit = st.form_submit_button('解析PDF', disabled=st.session_state['pdf_upload_submit_disable'])
+        submit = st.form_submit_button('解析PDF', disabled=st.session_state['pdf_uploader_disable'])
 
         if submit:
             if uploaded_file is not None:
@@ -182,7 +185,11 @@ def pdf_tab():
     with st.container(border=True):
         md_col1, md_col2 = st.columns([1, 1], gap='medium')
 
-        md_value = md_col1.text_area('文本内容', height=800, key='md_text', label_visibility='collapsed')
+        md_value = md_col1.text_area('文本内容',
+                                     height=800,
+                                     key='md_text',
+                                     disabled=st.session_state['pdf_uploader_disable'],
+                                     label_visibility='collapsed')
 
         if md_value is not None:
             md_col2.container(height=800).write(md_value)

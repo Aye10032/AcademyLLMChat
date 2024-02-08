@@ -126,15 +126,17 @@ def new_tab():
     st.header('新建知识库')
     with st.container(border=True):
         col1_1, col1_2 = st.columns([3, 1], gap='medium')
-        collection_name = col1_1.text_input('知识库名称 :red[*]')
-        language = col1_2.selectbox('语言', ['en', 'zh'])
+        collection_name = col1_1.text_input('知识库名称 :red[*]', disabled=st.session_state['new_collection_disable'])
+        language = col1_2.selectbox('语言', ['en', 'zh'], disabled=st.session_state['new_collection_disable'])
 
-        title = st.text_input('页面名称')
-        description = st.text_area('collection 描述')
+        title = st.text_input('页面名称', disabled=st.session_state['new_collection_disable'])
+        description = st.text_area('collection 描述', disabled=st.session_state['new_collection_disable'])
 
         with st.expander('向量库参数设置'):
             col2_1, col2_2 = st.columns(2, gap='medium')
-            metric_type = col2_1.selectbox('Metric Type', ['L2', 'IP'])
+            metric_type = col2_1.selectbox('Metric Type',
+                                           ['L2', 'IP'],
+                                           disabled=st.session_state['new_collection_disable'])
 
             index_types = ['IVF_FLAT',
                            'IVF_SQ8',
@@ -149,11 +151,11 @@ def new_tab():
             index_type = col2_2.selectbox('Index Type',
                                           range(len(index_types)),
                                           format_func=lambda x: index_types[x],
-                                          index=IndexType.HNSW)
+                                          index=IndexType.HNSW,
+                                          disabled=st.session_state['new_collection_disable'])
 
             if index_type is not None:
-                # print(index_type)
-                param = st.text_area('params', value=get_index_param(index_type))
+                param = st.text_area('params', value=get_index_param(index_type), disabled=st.session_state['new_collection_disable'])
 
         if submit := st.button('新建知识库', type='primary', disabled=st.session_state['new_collection_disable']):
             if not (collection_name and is_en(collection_name)):
