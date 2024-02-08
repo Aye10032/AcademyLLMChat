@@ -9,6 +9,7 @@ from loguru import logger
 from Config import config, Collection, UserRole
 from llm.ModelCore import load_embedding_zh, load_embedding_en
 from uicomponent.StComponent import side_bar_links, role_check
+from utils.FileUtil import is_en
 from vectorstore.MilvusConnection import MilvusConnection
 from vectorstore.MilvusParams import IndexType, get_index_param
 
@@ -155,7 +156,7 @@ def new_tab():
                 param = st.text_area('params', value=get_index_param(index_type))
 
         if submit := st.button('新建知识库', type='primary', disabled=st.session_state['new_collection_disable']):
-            if not (collection_name and collection_name.isalpha()):
+            if not (collection_name and is_en(collection_name)):
                 st.error('知识库名称必须是不为空的英文')
                 st.stop()
 

@@ -38,6 +38,15 @@ def replace_multiple_spaces(text):
     return clean_text
 
 
+def is_en(text: str):
+    # 使用正则判断输入语句是否只含有英文大小写和数字
+    pattern = r'[a-zA-Z0-9]+'
+    if re.match(pattern, text):
+        return True
+    else:
+        return False
+
+
 def save_to_md(sections: list, output_path, append: bool = False):
     """
     Save sections to markdown file
