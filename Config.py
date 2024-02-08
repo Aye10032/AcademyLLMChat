@@ -45,6 +45,15 @@ class Collection:
     def from_dict(cls, data: Dict[str, any]):
         return cls(**data)
 
+    def to_dict(self):
+        return {
+            "collection_name": self.NAME,
+            "language": self.LANGUAGE,
+            "title": self.TITLE,
+            "description": self.DESCRIPTION,
+            "index_param": self.INDEX_PARAM
+        }
+
 
 class MilvusConfig:
     def __init__(self, data_root: str, milvus_host: str, milvus_port: int, en_model: str, zh_model: str,
@@ -75,6 +84,12 @@ class MilvusConfig:
     def get_collection(self):
         collection: Collection = self.COLLECTIONS[self.DEFAULT_COLLECTION]
         return collection
+
+    def add_collection(self, collection: Collection):
+        self.COLLECTIONS.append(collection)
+        json.dump({"collections": [c.to_dict() for c in self.COLLECTIONS]},
+                  open(self.CONFIG_PATH, 'w', encoding='utf-8'))
+        logger.info('update collection index file')
 
 
 class OpenaiConfig:
