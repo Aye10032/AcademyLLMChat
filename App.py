@@ -6,7 +6,7 @@ from Config import config
 from llm.ChatCore import chat_with_history
 from llm.RagCore import get_answer
 
-logger.add('log/run_time.log')
+logger.add('log/runtime_{time}.log', rotation='00:00', level='INFO', retention='10 days')
 
 milvus_cfg = config.milvus_config
 col = milvus_cfg.COLLECTIONS
