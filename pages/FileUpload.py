@@ -67,12 +67,19 @@ def markdown_tab():
             '上传Markdown文件',
             type=['md'],
             accept_multiple_files=True,
+            disabled=st.session_state['md_uploader_disable'],
             label_visibility='collapsed')
 
-        submit = st.form_submit_button('导入文献', type='primary')
+        submit = st.form_submit_button('导入文献',
+                                       type='primary',
+                                       disabled=st.session_state['md_upload_submit_disable'])
 
         if submit:
-            file_count: int = len(uploaded_files)
+            file_count = len(uploaded_files)
+            if file_count == 0:
+                st.warning('还没有上传文件')
+                st.stop()
+
             progress_text = f'正在处理文献(0/{file_count})，请勿关闭或刷新此页面'
             md_bar = st.progress(0, text=progress_text)
             for index, uploaded_file in tqdm(enumerate(uploaded_files), total=file_count):
