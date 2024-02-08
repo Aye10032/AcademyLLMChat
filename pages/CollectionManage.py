@@ -101,15 +101,18 @@ def manage_tab():
         st.subheader(':red[危险操作]')
         with st.container(border=True):
             st.markdown('**删除知识库**')
-            drop_verify = st.text_input('collection name', label_visibility='collapsed', key='verify_text')
+            drop_verify = st.text_input('collection name',
+                                        disabled=st.session_state['verify_text_disable'],
+                                        label_visibility='collapsed',
+                                        key='verify_text')
             st.caption(f'若确定要删除知识库，请在此输入 `{collection_name}`')
 
             if drop_verify == collection_name:
-                st.session_state.disabled = False
+                st.session_state['drop_collection_disable'] = False
             else:
-                st.session_state.disabled = True
+                st.session_state['drop_collection_disable'] = True
 
-            st.button('删除知识库', type='primary', disabled=st.session_state.disabled, key='drop')
+            st.button('删除知识库', type='primary', disabled=st.session_state['drop_collection_disable'], key='drop')
 
         if st.session_state.get('drop'):
             conn.drop_collection(collection_name)
@@ -151,8 +154,7 @@ def new_tab():
                 # print(index_type)
                 param = st.text_area('params', value=get_index_param(index_type))
 
-        if submit := st.button('新建知识库', type='primary'):
-            # conn.create_collection(collection_name)
+        if submit := st.button('新建知识库', type='primary', disabled=st.session_state['new_collection_disable']):
             if not (collection_name and collection_name.isalpha()):
                 st.error('知识库名称必须是不为空的英文')
                 st.stop()
