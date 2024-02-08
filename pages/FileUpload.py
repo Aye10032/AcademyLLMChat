@@ -11,6 +11,7 @@ from uicomponent.StComponent import side_bar_links, role_check
 from utils.FileUtil import save_to_md
 from utils.GrobidUtil import parse_xml, parse_pdf_to_xml
 from utils.MarkdownPraser import split_markdown, split_markdown_text
+from utils.PMCUtil import download_paper_data
 from utils.PubmedUtil import get_paper_info
 
 milvus_cfg = config.milvus_config
@@ -74,7 +75,7 @@ def markdown_tab():
 
         submit = st.form_submit_button('导入文献',
                                        type='primary',
-                                       disabled=st.session_state['md_uploader_disable'],)
+                                       disabled=st.session_state['md_uploader_disable'], )
 
         if submit:
             file_count = len(uploaded_files)
@@ -122,7 +123,7 @@ def pdf_tab():
         option = st.selectbox('选择知识库',
                               range(len(collections)),
                               format_func=lambda x: collections[x],
-                              disabled = st.session_state['pdf_uploader_disable'],
+                              disabled=st.session_state['pdf_uploader_disable'],
                               label_visibility='collapsed')
         uploaded_file = st.file_uploader('选择PDF文件', type=['pdf'], disabled=st.session_state['pdf_uploader_disable'])
 
@@ -212,6 +213,57 @@ def pdf_tab():
                 st.warning('输入不能为空')
 
 
+def pmc_tab():
+    col_1, col_2, col_3 = st.columns([1.2, 3, 0.8], gap='medium')
+
+    with col_1.container(border=True):
+        st.subheader('使用说明')
+        st.markdown(
+            """   
+            考虑到网络因素，目前暂时仅支持下载单个文献
+            1. 输入PMC编号，如`PMC5386761`
+            2. 等待解析完成即可
+            """
+        )
+
+    with col_2.container(border=True):
+        st.markdown('选择知识库')
+        option = st.selectbox('选择知识库',
+                              range(len(collections)),
+                              format_func=lambda x: collections[x],
+                              disabled=st.session_state['pdf_uploader_disable'],
+                              label_visibility='collapsed')
+
+        pmc_id = st.text_input('PMC ID', key='pmc_id')
+
+        submit = st.button('下载并添加', type='primary')
+
+        if submit:
+            config.set_collection(option)
+            with st.spinner('Downloading paper...'):
+                data = download_paper_data(pmc_id)
+
+            with st.spinner('Parsing paper...'):
+                filename = data['doi'].replace('/', '@') if data['doi'] else f'PMC{pmc_id}'
+                if not data['norm']:
+                    filename += '_(no abstract)'
+                output_path = os.path.join(config.get_md_path(), data['year'], f'{filename}.md')
+
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+                save_to_md(data['sections'], output_path)
+
+            with st.spinner('Adding paper to vector db...'):
+                with open(output_path, 'r', encoding='utf-8') as f:
+                    md_text = f.read()
+                    doc = split_markdown_text(md_text, int(data['year']), data['doi'])
+                    st.cache_resource.clear()
+                    vector_db = load_vectorstore()
+                    vector_db.add_documents(doc)
+
+            st.success('添加完成')
+
+
 tab1, tab2, tab3 = st.tabs(['Markdown', 'PDF', 'Pubmed Center'])
 
 with tab1:
@@ -219,3 +271,6 @@ with tab1:
 
 with tab2:
     pdf_tab()
+
+with tab3:
+    pmc_tab()
