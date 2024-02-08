@@ -6,7 +6,8 @@ import streamlit as st
 from tqdm import tqdm
 
 import Config
-from Config import config
+from Config import config, UserRole
+from uicomponent.StComponent import side_bar_links
 from utils.FileUtil import save_to_md
 from utils.GrobidUtil import parse_xml, parse_pdf_to_xml
 from utils.MarkdownPraser import split_markdown
@@ -18,16 +19,31 @@ for collection in milvus_cfg.COLLECTIONS:
     collections.append(collection.NAME)
 
 st.set_page_config(page_title="学术大模型知识库", page_icon="📖", layout='wide')
-st.title('添加文献')
 
 with st.sidebar:
-    st.header('欢迎使用学术LLM知识库')
+    side_bar_links()
 
-    st.page_link('App.py', label='Home', icon='💬')
-    st.page_link('pages/FileUpload.py', label='上传文件', icon='📂')
-    st.page_link('pages/CollectionManage.py', label='知识库管理', icon='🖥️')
 
-    st.divider()
+if 'role' not in st.session_state:
+    st.session_state['role'] = UserRole.VISITOR
+
+if st.session_state.get('role') < UserRole.ADMIN:
+    _, col_auth_2, _ = st.columns([1.2, 3, 1.2], gap='medium')
+    auth_holder = col_auth_2.empty()
+    with auth_holder.container(border=True):
+        st.warning('您无法使用本页面的功能，请输入身份码')
+        st.caption(f'当前的身份为{st.session_state.role}, 需要的权限为{UserRole.ADMIN}')
+        auth_code = st.text_input('身份码', type='password')
+
+    if auth_code == config.ADMIN_TOKEN:
+        st.session_state['role'] = UserRole.ADMIN
+        auth_holder.empty()
+    elif auth_code == config.OWNER_TOKEN:
+        st.session_state['role'] = UserRole.OWNER
+        auth_holder.empty()
+
+
+st.title('添加文献')
 
 
 def markdown_tab():

@@ -2,9 +2,10 @@ import streamlit as st
 from langchain_community.chat_message_histories import ChatMessageHistory
 from loguru import logger
 
-from Config import config
+from Config import config, UserRole
 from llm.ChatCore import chat_with_history
 from llm.RagCore import get_answer
+from uicomponent.StComponent import side_bar_links
 
 logger.add('log/runtime_{time}.log', rotation='00:00', level='INFO', retention='10 days')
 
@@ -20,21 +21,17 @@ st.set_page_config(
     page_icon='📖',
     layout='wide',
     menu_items={
-        # 'Get Help': 'https://www.extremelycoolapp.com/help',
         'Report a bug': 'https://github.com/Aye10032/AcademyKnowledgeBot/issues',
         'About': 'https://github.com/Aye10032/AcademyKnowledgeBot'
     }
 )
 st.title(title)
 
+if 'role' not in st.session_state:
+    st.session_state['role'] = UserRole.VISITOR
+
 with st.sidebar:
-    st.header('欢迎使用学术LLM知识库')
-
-    st.page_link('App.py', label='Home', icon='💬')
-    st.page_link('pages/FileUpload.py', label='上传文件', icon='📂')
-    st.page_link('pages/CollectionManage.py', label='知识库管理', icon='🖥️')
-
-    st.divider()
+    side_bar_links()
 
     st.markdown('#### 选择知识库')
     option = st.selectbox('选择知识库',

@@ -2,10 +2,17 @@
 import json
 import os
 import shutil
+from enum import IntEnum
 from typing import Dict
 
 import yaml
 from loguru import logger
+
+
+class UserRole(IntEnum):
+    VISITOR = 0
+    ADMIN = 1
+    OWNER = 2
 
 
 def get_work_path():
@@ -127,6 +134,9 @@ class Config:
             _proxy_host = self.yml['proxy']['host']
             _proxy_port = self.yml['proxy']['port']
             self.PROXY = f'{_proxy_type}://{_proxy_host}:{_proxy_port}'
+
+            self.ADMIN_TOKEN = self.yml['auth']['admin_token']
+            self.OWNER_TOKEN = self.yml['auth']['owner_token']
 
             self.pubmed_config: PubmedConfig = PubmedConfig.from_dict(self.yml['pubmed'])
             self.grobid_config: GrobidConfig = GrobidConfig.from_dict(self.yml['grobid'])
