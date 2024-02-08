@@ -74,7 +74,7 @@ with st.sidebar:
 
 
 def manage_tab():
-    st.header('知识库管理')
+    st.header('知识库信息')
     option = st.selectbox('选择知识库',
                           range(len(collections)),
                           format_func=lambda x: collections[x])
@@ -86,9 +86,9 @@ def manage_tab():
         for index, field in enumerate(conn.get_collection(collection_name).schema.fields):
             df = pd.DataFrame(
                 {
-                    'name': field.name,
-                    'type': dtype[field.dtype],
-                    'description': field.description,
+                    '字段': field.name,
+                    '类型': dtype[field.dtype],
+                    '描述': field.description,
                     'max_length': field.max_length,
                     'dim': field.dim,
                     'is_primary': field.is_primary,
@@ -100,6 +100,25 @@ def manage_tab():
             field_df = pd.concat([field_df, df], ignore_index=True)
 
         st.dataframe(field_df, hide_index=True)
+
+        st.subheader(':red[危险操作]')
+        with st.container(border=True):
+            st.markdown('**删除知识库**')
+            drop_verify = st.text_input('collection name', label_visibility='collapsed', key='verify_text')
+            st.caption(f'若确定要删除知识库，请在此输入 `{collection_name}`')
+
+            if drop_verify == collection_name:
+                st.session_state.disabled = False
+            else:
+                st.session_state.disabled = True
+
+            st.button('删除知识库', type='primary', disabled=st.session_state.disabled, key='drop')
+
+        if st.session_state.get('drop'):
+            conn.drop_collection(collection_name)
+            milvus_cfg.remove_collection(option)
+            st.session_state['verify_text'] = ''
+            st.rerun()
 
 
 def new_tab():
