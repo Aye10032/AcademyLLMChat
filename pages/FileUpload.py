@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 import Config
 from Config import config, UserRole
-from uicomponent.StComponent import side_bar_links
+from uicomponent.StComponent import side_bar_links, role_check
 from utils.FileUtil import save_to_md
 from utils.GrobidUtil import parse_xml, parse_pdf_to_xml
 from utils.MarkdownPraser import split_markdown
@@ -23,25 +23,7 @@ st.set_page_config(page_title="学术大模型知识库", page_icon="📖", layo
 with st.sidebar:
     side_bar_links()
 
-
-if 'role' not in st.session_state:
-    st.session_state['role'] = UserRole.VISITOR
-
-if st.session_state.get('role') < UserRole.ADMIN:
-    _, col_auth_2, _ = st.columns([1.2, 3, 1.2], gap='medium')
-    auth_holder = col_auth_2.empty()
-    with auth_holder.container(border=True):
-        st.warning('您无法使用本页面的功能，请输入身份码')
-        st.caption(f'当前的身份为{st.session_state.role}, 需要的权限为{UserRole.ADMIN}')
-        auth_code = st.text_input('身份码', type='password')
-
-    if auth_code == config.ADMIN_TOKEN:
-        st.session_state['role'] = UserRole.ADMIN
-        auth_holder.empty()
-    elif auth_code == config.OWNER_TOKEN:
-        st.session_state['role'] = UserRole.OWNER
-        auth_holder.empty()
-
+role_check(UserRole.ADMIN, True)
 
 st.title('添加文献')
 

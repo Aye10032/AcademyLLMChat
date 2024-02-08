@@ -8,7 +8,7 @@ from loguru import logger
 
 from Config import config, Collection, UserRole
 from llm.ModelCore import load_embedding_zh, load_embedding_en
-from uicomponent.StComponent import side_bar_links
+from uicomponent.StComponent import side_bar_links, role_check
 from vectorstore.MilvusConnection import MilvusConnection
 from vectorstore.MilvusParams import IndexType, get_index_param
 
@@ -67,22 +67,7 @@ dtype = {
 with st.sidebar:
     side_bar_links()
 
-if 'role' not in st.session_state:
-    st.session_state['role'] = UserRole.VISITOR
-
-if st.session_state.get('role') < UserRole.OWNER:
-    auth_holder = st.empty()
-    with auth_holder.container(border=True):
-        st.warning('您无法使用本页面的功能，请输入身份码')
-        st.caption(f'当前的身份为{st.session_state.role}, 需要的权限为{UserRole.OWNER}')
-        auth_code = st.text_input('身份码', type='password')
-
-    if auth_code == config.ADMIN_TOKEN:
-        st.session_state['role'] = UserRole.ADMIN
-        auth_holder.empty()
-    elif auth_code == config.OWNER_TOKEN:
-        st.session_state['role'] = UserRole.OWNER
-        auth_holder.empty()
+role_check(UserRole.OWNER)
 
 
 def manage_tab():
