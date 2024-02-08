@@ -1,5 +1,4 @@
 import os
-import time
 from datetime import datetime
 
 import streamlit as st
@@ -11,7 +10,7 @@ from llm.RagCore import load_vectorstore
 from uicomponent.StComponent import side_bar_links, role_check
 from utils.FileUtil import save_to_md
 from utils.GrobidUtil import parse_xml, parse_pdf_to_xml
-from utils.MarkdownPraser import split_markdown
+from utils.MarkdownPraser import split_markdown, split_markdown_text
 from utils.PubmedUtil import get_paper_info
 
 milvus_cfg = config.milvus_config
@@ -87,7 +86,6 @@ def markdown_tab():
             progress_text = f'正在处理文献(0/{file_count})，请勿关闭或刷新此页面'
             md_bar = st.progress(0, text=progress_text)
             for index, uploaded_file in tqdm(enumerate(uploaded_files), total=file_count):
-
                 doc = split_markdown(uploaded_file, year)
                 vector_db.add_documents(doc)
                 progress_num = (index + 1) / file_count
@@ -98,7 +96,7 @@ def markdown_tab():
 
 def pdf_tab():
     if 'md_text' not in st.session_state:
-        st.session_state.md_text = ''
+        st.session_state['md_text'] = ''
 
     if 'pdf_md_submit_disable' not in st.session_state:
         st.session_state['pdf_md_submit_disable'] = True
@@ -144,12 +142,16 @@ def pdf_tab():
                 with open(pdf_path, 'wb') as f:
                     f.write(uploaded_file.getbuffer())
 
+                doi = data['doi']
+                year = data['year']
+                st.session_state['paper_info'] = {'doi': doi, 'year': int(year)}
+
                 xml_path = os.path.join(Config.get_work_path(),
                                         config.DATA_ROOT,
                                         milvus_cfg.COLLECTIONS[option].NAME,
                                         config.XML_PATH,
-                                        data['year'],
-                                        data['doi'].replace('/', '@') + '.xml')
+                                        year,
+                                        doi.replace('/', '@') + '.xml')
 
                 os.makedirs(os.path.dirname(xml_path), exist_ok=True)
                 with st.spinner('Parsing pdf...'):
@@ -164,13 +166,14 @@ def pdf_tab():
                                            config.DATA_ROOT,
                                            milvus_cfg.COLLECTIONS[option].NAME,
                                            config.MD_PATH,
-                                           data['year'],
-                                           data['doi'].replace('/', '@') + '.md')
+                                           year,
+                                           doi.replace('/', '@') + '.md')
+                    os.makedirs(os.path.dirname(md_path), exist_ok=True)
                     save_to_md(md_dict, md_path)
                     with open(md_path, 'r', encoding='utf-8') as f:
                         md_text = f.read()
 
-                    st.session_state.md_text = md_text
+                    st.session_state['md_text'] = md_text
                     st.session_state['pdf_md_submit_disable'] = False
 
                 st.success('PDF识别完毕')
@@ -179,12 +182,27 @@ def pdf_tab():
     with st.container(border=True):
         md_col1, md_col2 = st.columns([1, 1], gap='medium')
 
-        md_value = md_col1.text_area('文本内容', st.session_state.md_text, height=800, label_visibility='collapsed')
+        md_value = md_col1.text_area('文本内容', height=800, key='md_text', label_visibility='collapsed')
 
-        if md_value:
+        if md_value is not None:
             md_col2.container(height=800).write(md_value)
 
         submit = st.button('添加文献', type='primary', disabled=st.session_state['pdf_md_submit_disable'])
+
+        if submit:
+            if st.session_state['md_text']:
+                with st.spinner('Adding markdown to vector db...'):
+                    doc = split_markdown_text(md_value,
+                                              st.session_state['paper_info']['year'],
+                                              st.session_state['paper_info']['doi'])
+                    config.set_collection(option)
+                    st.cache_resource.clear()
+                    vector_db = load_vectorstore()
+                    vector_db.add_documents(doc)
+
+                st.success('添加完成')
+            else:
+                st.warning('输入不能为空')
 
 
 tab1, tab2, tab3 = st.tabs(['Markdown', 'PDF', 'Pubmed Center'])
