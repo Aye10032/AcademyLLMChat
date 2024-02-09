@@ -99,6 +99,17 @@ def manage_tab():
 
         st.dataframe(field_df, hide_index=True)
 
+        st.markdown('数据库查询界面标题')
+        renam_col1, renam_col2 = st.columns([3, 1], gap='large')
+        renam_col1.text_input('数据库查询界面标题',
+                              milvus_cfg.COLLECTIONS[option].TITLE,
+                              key='col_title',
+                              label_visibility='collapsed')
+        if renam_col2.button('Rename'):
+            milvus_cfg.rename_collection(option, st.session_state['col_title'])
+
+        st.markdown(' ')
+
         st.subheader(':red[危险操作]')
         with st.container(border=True):
             st.markdown('**删除知识库**')
@@ -155,7 +166,8 @@ def new_tab():
                                           disabled=st.session_state['new_collection_disable'])
 
             if index_type is not None:
-                param = st.text_area('params', value=get_index_param(index_type), disabled=st.session_state['new_collection_disable'])
+                param = st.text_area('params', value=get_index_param(index_type),
+                                     disabled=st.session_state['new_collection_disable'])
 
         if submit := st.button('新建知识库', type='primary', disabled=st.session_state['new_collection_disable']):
             if not (collection_name and is_en(collection_name)):

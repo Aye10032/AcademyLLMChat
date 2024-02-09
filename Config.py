@@ -104,6 +104,12 @@ class MilvusConfig:
                   open(self.CONFIG_PATH, 'w', encoding='utf-8'))
         logger.info('update collection index file')
 
+    def rename_collection(self, index: int, new_name: str):
+        self.COLLECTIONS[index].TITLE = new_name
+        json.dump({"collections": [c.to_dict() for c in self.COLLECTIONS]},
+                  open(self.CONFIG_PATH, 'w', encoding='utf-8'))
+        logger.info('update collection index file')
+
 
 class OpenaiConfig:
     def __init__(self, use_proxy: bool, api_key: str):
