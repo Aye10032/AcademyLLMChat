@@ -197,8 +197,8 @@ def new_tab():
 
             with st.spinner('Creating collection...'):
                 doc = Document(page_content=description,
-                               metadata={'Title': 'About this collection', 'Section': 'Abstract', 'doi': 'empty',
-                                         'year': datetime.now().year})
+                               metadata={'Title': 'About this collection', 'Section': 'Abstract', 'doi': '',
+                                         'year': datetime.now().year, 'ref': ''})
                 vector_db = Milvus.from_documents(
                     [doc],
                     embedding,
