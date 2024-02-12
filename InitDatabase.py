@@ -87,7 +87,7 @@ def load_md(base_path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--collection', '-C', type=int, help='初始化特定collection，从0开始')
+    parser.add_argument('--collection', '-C', nargs='?', type=int, help='初始化特定collection，从0开始')
     parser.add_argument('--auto_create', '-A', action='store_true', help='根据目录结构自动初始化数据库')
     parser.add_argument('--force', '-F', action='store_true', help='强制覆盖已有配置')
     args = parser.parse_args()
@@ -123,7 +123,7 @@ if __name__ == '__main__':
 
     from Config import config
 
-    if args.collection is not None:
+    if (args.collection is not None) and (args.collection is True):
         if args.collection >= len(config.milvus_config.COLLECTIONS) or args.collection < 0:
             logger.error(f'collection index {args.collection} out of range')
             exit(1)
@@ -131,7 +131,7 @@ if __name__ == '__main__':
             logger.info(f'Only init collection {args.collection}')
             config.set_collection(args.collection)
             load_md(config.get_md_path())
-    else:
+    elif (args.collection is not None) and (not args.collection):
         for i in range(len(config.milvus_config.COLLECTIONS)):
             logger.info(f'Start init collection {i}')
             config.set_collection(i)
