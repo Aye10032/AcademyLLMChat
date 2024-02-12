@@ -111,6 +111,12 @@ def manage_tab():
         st.markdown(' ')
 
         st.subheader(':red[危险操作]')
+        if st.session_state.get('drop'):
+            conn.drop_collection(collection_name)
+            milvus_cfg.remove_collection(option)
+            st.session_state['verify_text'] = ''
+            st.rerun()
+
         with st.container(border=True):
             st.markdown('**删除知识库**')
             drop_verify = st.text_input('collection name',
@@ -125,12 +131,6 @@ def manage_tab():
                 st.session_state['drop_collection_disable'] = True
 
             st.button('删除知识库', type='primary', disabled=st.session_state['drop_collection_disable'], key='drop')
-
-        if st.session_state.get('drop'):
-            conn.drop_collection(collection_name)
-            milvus_cfg.remove_collection(option)
-            st.session_state['verify_text'] = ''
-            st.rerun()
 
 
 def new_tab():
