@@ -10,9 +10,10 @@ proxy:
   host: '127.0.0.1'
   port: 1080
 
+# 身份验证
 auth:
-  admin_token: 'admin'
-  owner_token: 'owner'
+  admin_token: 'admin' # admin身份组可以进行文件上传的操作
+  owner_token: 'owner' # owner身份组可以进行知识库删改的操作
 
 # NCBI相关
 pubmed:
