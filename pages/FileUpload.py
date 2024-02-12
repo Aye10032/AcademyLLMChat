@@ -234,11 +234,17 @@ def pmc_tab():
                               disabled=st.session_state['pmc_uploader_disable'],
                               label_visibility='collapsed')
 
-        pmc_id = st.text_input('PMC ID', key='pmc_id', disabled=st.session_state['pmc_uploader_disable'])
+        st.markdown('PMC ID')
+        pmc_col1, pmc_col2 = st.columns([3, 1], gap='large')
+        pmc_id = pmc_col1.text_input('PMC ID',
+                                     key='pmc_id',
+                                     disabled=st.session_state['pmc_uploader_disable'],
+                                     label_visibility='collapsed')
+        pmc_col2.checkbox('构建引用树', key='build_ref_tree', disabled=st.session_state['pmc_uploader_disable'])
 
-        submit = st.button('下载并添加', type='primary', disabled=st.session_state['pmc_uploader_disable'])
+        st.button('下载并添加', type='primary', key='pmc_submit', disabled=st.session_state['pmc_uploader_disable'])
 
-        if submit:
+        if st.session_state.get('pmc_submit'):
             config.set_collection(option)
             with st.spinner('Downloading paper...'):
                 data = download_paper_data(pmc_id)
@@ -253,15 +259,19 @@ def pmc_tab():
 
                 save_to_md(data['sections'], output_path)
 
-            with st.spinner('Adding paper to vector db...'):
-                with open(output_path, 'r', encoding='utf-8') as f:
-                    md_text = f.read()
-                    doc = split_markdown_text(md_text, int(data['year']), data['doi'])
-                    st.cache_resource.clear()
-                    vector_db = load_vectorstore()
-                    vector_db.add_documents(doc)
+            if st.session_state.get('build_ref_tree'):
+                # TODO
+                pass
+            else:
+                with st.spinner('Adding paper to vector db...'):
+                    with open(output_path, 'r', encoding='utf-8') as f:
+                        md_text = f.read()
+                        doc = split_markdown_text(md_text, int(data['year']), data['doi'])
+                        st.cache_resource.clear()
+                        vector_db = load_vectorstore()
+                        vector_db.add_documents(doc)
 
-            st.success('添加完成')
+                st.success('添加完成')
 
 
 tab1, tab2, tab3 = st.tabs(['Markdown', 'PDF', 'Pubmed Center'])
