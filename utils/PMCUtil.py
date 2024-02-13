@@ -1,7 +1,4 @@
 import json
-import random
-import time
-from typing import List
 
 import requests
 import pandas as pd
@@ -10,6 +7,7 @@ from loguru import logger
 from requests import sessions
 
 from Config import config
+from utils.FileUtil import Section
 from utils.TimeUtil import timer
 
 
@@ -31,13 +29,10 @@ def get_pmc_id(term: str):
     df.to_csv('pmlist.csv', mode='w', index=False, encoding='utf-8')
 
 
-def solve_section(soup: BeautifulSoup, sections: List, title_level: int):
+def solve_section(soup: BeautifulSoup, sections: list[Section], title_level: int):
     title = soup.find('title', recursive=False)
     if title:
-        sections.append({
-            'text': title.text,
-            'level': title_level
-        })
+        sections.append(Section(title.text, title_level, ''))
 
     section_list = soup.find_all('sec', recursive=False)
     if section_list:
@@ -48,7 +43,9 @@ def solve_section(soup: BeautifulSoup, sections: List, title_level: int):
         for text in text_list:
             if text and not text.text == '':
                 section = text.text.strip().replace('\n', ' ')
-                sections.append({'text': section, 'level': 0})
+                ref = text.find_all('xref', recursive=False, attrs={'ref-type': 'bibr'})
+                # TODO: ref
+                sections.append(Section(section, 0, ''))
 
     return sections
 
@@ -63,7 +60,8 @@ def download_paper_data(pmc_id: str):
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
 
-    sections = []
+    sections: list[Section] = []
+
     with sessions.Session() as session:
         if config.pubmed_config.USE_PROXY:
             proxies = {
@@ -88,13 +86,13 @@ def download_paper_data(pmc_id: str):
             if soup.find('pub-date') \
             else None
 
-        sections.append({'text': title, 'level': 1})
+        sections.append(Section(title, 1, ''))
 
         abs_block = soup.find('abstract')
 
         norm = True
         if abs_block:
-            sections.append({'text': 'Abstract', 'level': 2})
+            sections.append(Section('Abstract', 2, ''))
             sections = solve_section(abs_block, sections, 2)
         else:
             logger.warning(f'PMC{pmc_id} has no Abstract')
@@ -112,4 +110,3 @@ def download_paper_data(pmc_id: str):
         'sections': sections,
         'norm': norm
     }
-

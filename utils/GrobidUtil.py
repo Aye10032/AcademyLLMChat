@@ -97,7 +97,7 @@ def parse_xml(xml_path: LiteralString | str | bytes):
         keywords = split_words(key_div[0].get_text()) if len(key_div) != 0 else []
 
         # sections
-        sections = []
+        sections: list[Section] = []
         for section in soup.find('body').find_all('div'):
             if section.find('head') is None:
                 continue
@@ -105,13 +105,12 @@ def parse_xml(xml_path: LiteralString | str | bytes):
             title_level = section.find('head').attrs.get('n')
             level = title_level.count('.') + 1 if title_level else 2
 
-            sections.append({'text': section_title, 'level': level})
+            sections.append(Section(section_title, level, ''))
 
             for p in section.find_all('p'):
                 text = replace_multiple_spaces(p.text.strip())
                 if text:
-                    sections.append({'text': text, 'level': 0})
+                    sections.append(Section(text, 0, ''))
 
     return {'title': title, 'authors': authors, 'year': year, 'abstract': abstract, 'keywords': keywords,
             'sections': sections}
-

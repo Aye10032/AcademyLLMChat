@@ -1,8 +1,19 @@
 import os
 import re
 import string
+from dataclasses import dataclass
 
 from loguru import logger
+
+
+@dataclass
+class Section:
+    TEXT: str
+    LEVEL: int
+    REF: str
+
+    def get_ref_list(self) -> list:
+        return [ref for ref in self.REF.split(',') if ref != '']
 
 
 def format_filename(filename):
@@ -47,12 +58,10 @@ def is_en(text: str):
         return False
 
 
-def save_to_md(sections: list, output_path, append: bool = False):
+def save_to_md(sections: list[Section], output_path, append: bool = False):
     """
     Save sections to markdown file
     :param sections: markdown结构化段落
-                    - text: 文本
-                    - level: 标题等级(1-4)，0代表文本
     :param output_path: markdown文件输出路径
     :param append: 是否追加写入
     :return:
@@ -64,8 +73,8 @@ def save_to_md(sections: list, output_path, append: bool = False):
 
     with open(output_path, open_type, encoding='utf-8') as f:
         for sec in sections:
-            text = sec['text']
-            level = sec['level']
+            text = sec.TEXT
+            level = sec.LEVEL
             if level == 0:
                 f.write(f'{text}\n\n')
             elif level == 1:
