@@ -135,6 +135,7 @@ class Config:
             self.PDF_PATH = self.yml['pdf_path']
             self.MD_PATH = self.yml['md_path']
             self.XML_PATH = self.yml['xml_path']
+            self.SQLITE_PATH = self.yml['sqlite_path']
 
             _proxy_type = self.yml['proxy']['type']
             _proxy_host = self.yml['proxy']['host']
@@ -169,6 +170,10 @@ class Config:
     def get_xml_path(self):
         collection_name: str = self.milvus_config.get_collection().NAME
         return os.path.join(get_work_path(), self.DATA_ROOT, collection_name, self.XML_PATH)
+
+    def get_sqlite_path(self):
+        collection_name: str = self.milvus_config.get_collection().NAME
+        return os.path.join(get_work_path(), self.DATA_ROOT, collection_name, self.SQLITE_PATH)
 
 
 config = Config()
