@@ -8,7 +8,7 @@ from loguru import logger
 
 V = TypeVar("V")
 
-ITERATOR_WINDOW_SIZE = 1000
+ITERATOR_WINDOW_SIZE = 500
 
 _LANGCHAIN_DEFAULT_TABLE_NAME = "langchain"
 
@@ -46,7 +46,7 @@ class SqliteBaseStore(BaseStore[str, V], Generic[V]):
             stmt = f"""CREATE TABLE {self.table_name}
                     (
                         content TEXT,
-                        custom_id TEXT
+                        doc_id TEXT
                     );
                     """
             cur.execute(stmt)
@@ -83,9 +83,9 @@ class SqliteBaseStore(BaseStore[str, V], Generic[V]):
     def mget(self, keys: Sequence[str]) -> List[Optional[V]]:
         cur = self._conn.cursor()
         query = f"""
-        SELECT content, custom_id 
+        SELECT content, doc_id 
         FROM {self.table_name} 
-        WHERE custom_id  IN ({','.join(['?'] * len(keys))})
+        WHERE doc_id  IN ({','.join(['?'] * len(keys))})
         """
 
         cur.execute(query, keys)
@@ -118,7 +118,7 @@ class SqliteBaseStore(BaseStore[str, V], Generic[V]):
         if res.fetchone() is None:
             raise ValueError("Collection not found")
         if keys is not None:
-            stmt = f"DELETE FROM {self.table_name} WHERE custom_id IN ({','.join(['?'] * len(keys))})"
+            stmt = f"DELETE FROM {self.table_name} WHERE doc_id IN ({','.join(['?'] * len(keys))})"
             cur.execute(stmt)
         self._conn.commit()
         cur.close()
@@ -127,10 +127,9 @@ class SqliteBaseStore(BaseStore[str, V], Generic[V]):
         cur = self._conn.cursor()
         start = 0
         while True:
-            stop = start + ITERATOR_WINDOW_SIZE
-            query = f"SELECT custom_id FROM {self.table_name}"
+            query = f"SELECT doc_id FROM {self.table_name}"
             if prefix is not None:
-                query += f" AND custom_id LIKE '{prefix}%'"
+                query += f" AND doc_id LIKE '{prefix}%'"
             query += f" LIMIT {start}, {ITERATOR_WINDOW_SIZE}"
             cur.execute(query)
             items = cur.fetchall()
