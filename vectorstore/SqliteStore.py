@@ -4,6 +4,7 @@ from typing import Any, Generic, Iterator, List, Optional, Sequence, Tuple, Type
 from langchain_core.documents import Document
 from langchain_core.load import Serializable, dumps, loads
 from langchain_core.stores import BaseStore
+from loguru import logger
 
 V = TypeVar("V")
 
@@ -30,9 +31,9 @@ class SqliteBaseStore(BaseStore[str, V], Generic[V]):
         self.__post_init__()
 
     def __post_init__(self) -> None:
-        self.__create_tables_if_not_exists()
         if self.drop_old:
             self.__delete_table()
+        self.__create_tables_if_not_exists()
 
     def __connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.connection_string, **self.engine_args)
@@ -50,6 +51,7 @@ class SqliteBaseStore(BaseStore[str, V], Generic[V]):
                     """
             cur.execute(stmt)
             self._conn.commit()
+            logger.info(f'Create table {self.table_name}')
 
         cur.close()
 
