@@ -2,7 +2,7 @@ import json
 
 import requests
 import pandas as pd
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from loguru import logger
 from requests import sessions
 
@@ -29,7 +29,7 @@ def get_pmc_id(term: str):
     df.to_csv('pmlist.csv', mode='w', index=False, encoding='utf-8')
 
 
-def solve_section(soup: BeautifulSoup, sections: list[Section], title_level: int):
+def __solve_section(soup: BeautifulSoup, sections: list[Section], title_level: int, ref_soup: BeautifulSoup):
     title = soup.find('title', recursive=False)
     if title:
         sections.append(Section(title.text, title_level, ''))
@@ -37,17 +37,34 @@ def solve_section(soup: BeautifulSoup, sections: list[Section], title_level: int
     section_list = soup.find_all('sec', recursive=False)
     if section_list:
         for sec in section_list:
-            sections = solve_section(sec, sections, title_level + 1)
+            sections = __solve_section(sec, sections, title_level + 1, ref_soup)
     else:
         text_list = soup.select('p')
         for text in text_list:
             if text and not text.text == '':
                 section = text.text.strip().replace('\n', ' ')
-                ref = text.find_all('xref', recursive=False, attrs={'ref-type': 'bibr'})
+                ref_block = text.find_all('xref', {'ref-type': 'bibr'})
+                ref = __solve_ref(ref_soup, ref_block) if ref_block else ''
                 # TODO: ref
-                sections.append(Section(section, 0, ''))
+                sections.append(Section(section, 0, ref))
 
     return sections
+
+
+def __solve_ref(ref_soup: BeautifulSoup, ref_list: list[Tag]) -> str:
+    numbers = []
+    for ref in ref_list:
+        contents = ref.text.strip().split(',')
+        for content in contents:
+            if '–' in content:
+                start, end = map(int, content.split('–'))
+                numbers.extend(range(start, end + 1))
+            else:
+                numbers.append(int(content))
+
+    numbers = sorted(list(set(numbers)))
+
+    return ','.join(str(x) for x in numbers)
 
 
 def download_paper_data(pmc_id: str):
@@ -89,19 +106,19 @@ def download_paper_data(pmc_id: str):
         sections.append(Section(title, 1, ''))
 
         abs_block = soup.find('abstract')
+        main_sections = soup.select_one('body')
+        ref_sections = soup.select_one('back').select_one('ref-list')
 
         norm = True
         if abs_block:
             sections.append(Section('Abstract', 2, ''))
-            sections = solve_section(abs_block, sections, 2)
+            sections = __solve_section(abs_block, sections, 2, ref_sections)
         else:
             logger.warning(f'PMC{pmc_id} has no Abstract')
             norm = False
 
-        main_sections = soup.select_one('body')
-
         if main_sections:
-            sections = solve_section(main_sections, sections, 1)
+            sections = __solve_section(main_sections, sections, 1, ref_sections)
 
     return {
         'title': title,

@@ -46,5 +46,7 @@ if __name__ == '__main__':
     # term = 'Raman[Title] AND ("2019/02/01"[PDat] : "2024/01/30"[PDat])&retmode=json&retmax=2000'
     # get_pmc_id(term)
 
-    config.set_collection(1)
-    download_from_pmc('pmlist.csv')
+    # config.set_collection(1)
+    # download_from_pmc('pmlist.csv')
+
+    data = download_paper_data('10806785')
