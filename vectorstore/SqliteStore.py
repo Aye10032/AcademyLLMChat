@@ -1,19 +1,5 @@
-"""SQL storage that persists data in a SQL database
-and supports data isolation using collections."""
-# from __future__ import annotations
-
 import sqlite3
-import uuid
 from typing import Any, Generic, Iterator, List, Optional, Sequence, Tuple, TypeVar
-
-# import sqlalchemy
-# from sqlalchemy import JSON, UUID
-# from sqlalchemy.orm import Session, relationship
-#
-# try:
-#     from sqlalchemy.orm import declarative_base
-# except ImportError:
-#     from sqlalchemy.ext.declarative import declarative_base
 
 from langchain_core.documents import Document
 from langchain_core.load import Serializable, dumps, loads
@@ -23,132 +9,40 @@ V = TypeVar("V")
 
 ITERATOR_WINDOW_SIZE = 1000
 
-# Base = declarative_base()  # type: Any
+_LANGCHAIN_DEFAULT_TABLE_NAME = "langchain"
 
 
-_LANGCHAIN_DEFAULT_COLLECTION_NAME = "langchain"
-
-
-# class BaseModel(Base):
-#     """Base model for the SQL stores."""
-#
-#     __abstract__ = True
-#     uuid = sqlalchemy.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-#
-#
-# _classes: Any = None
-#
-#
-# def _get_storage_stores() -> Any:
-#     global _classes
-#     if _classes is not None:
-#         return _classes
-#
-#     class CollectionStore(BaseModel):
-#         """Collection store."""
-#
-#         __tablename__ = "langchain_storage_collection"
-#
-#         name = sqlalchemy.Column(sqlalchemy.String)
-#         cmetadata = sqlalchemy.Column(JSON)
-#
-#         items = relationship(
-#             "ItemStore",
-#             back_populates="collection",
-#             passive_deletes=True,
-#         )
-#
-#         @classmethod
-#         def get_by_name(
-#             cls, session: Session, name: str
-#         ) -> Optional["CollectionStore"]:
-#             # type: ignore
-#             return session.query(cls).filter(cls.name == name).first()
-#
-#         @classmethod
-#         def get_or_create(
-#             cls,
-#             session: Session,
-#             name: str,
-#             cmetadata: Optional[dict] = None,
-#         ) -> Tuple["CollectionStore", bool]:
-#             """
-#             Get or create a collection.
-#             Returns [Collection, bool] where the bool is True if the collection was created.
-#             """  # noqa: E501
-#             created = False
-#             collection = cls.get_by_name(session, name)
-#             if collection:
-#                 return collection, created
-#
-#             collection = cls(name=name, cmetadata=cmetadata)
-#             session.add(collection)
-#             session.commit()
-#             created = True
-#             return collection, created
-#
-#     class ItemStore(BaseModel):
-#         """Item store."""
-#
-#         __tablename__ = "langchain_storage_items"
-#
-#         collection_id = sqlalchemy.Column(
-#             UUID(as_uuid=True),
-#             sqlalchemy.ForeignKey(
-#                 f"{CollectionStore.__tablename__}.uuid",
-#                 ondelete="CASCADE",
-#             ),
-#         )
-#         collection = relationship(CollectionStore, back_populates="items")
-#
-#         content = sqlalchemy.Column(sqlalchemy.String, nullable=True)
-#
-#         # custom_id : any user defined id
-#         custom_id = sqlalchemy.Column(sqlalchemy.String, nullable=True)
-#
-#     _classes = (ItemStore, CollectionStore)
-#
-#     return _classes
-
-
-class SQLBaseStore(BaseStore[str, V], Generic[V]):
+class SqliteBaseStore(BaseStore[str, V], Generic[V]):
     def __init__(
             self,
             connection_string: str,
-            table_name: str = _LANGCHAIN_DEFAULT_COLLECTION_NAME,
-            collection_metadata: Optional[dict] = None,
-            pre_delete_collection: bool = False,
+            table_name: str = _LANGCHAIN_DEFAULT_TABLE_NAME,
+            drop_old: bool = False,
             connection: Optional[sqlite3.connect] = None,
             engine_args: Optional[dict[str, Any]] = None,
     ) -> None:
         self.connection_string = connection_string
         self.table_name = table_name
-        self.collection_metadata = collection_metadata
-        self.pre_delete_collection = pre_delete_collection
+        self.drop_old = drop_old
         self.engine_args = engine_args or {}
-        # Create a connection if not provided, otherwise use the provided connection
+
         self._conn = connection if connection else self.__connect()
         self.__post_init__()
 
-    def __post_init__(
-            self,
-    ) -> None:
-        """Initialize the store."""
-        # ItemStore, CollectionStore = _get_storage_stores()
-        # self.CollectionStore = CollectionStore
-        # self.ItemStore = ItemStore
+    def __post_init__(self) -> None:
         self.__create_tables_if_not_exists()
-        # self.__create_collection()
+        if self.drop_old:
+            self.__delete_table()
 
     def __connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.connection_string)
+        conn = sqlite3.connect(self.connection_string, **self.engine_args)
         return conn
 
     def __create_tables_if_not_exists(self) -> None:
         cur = self._conn.cursor()
         res = cur.execute(f"SELECT name FROM sqlite_master WHERE name='{self.table_name}'")
         if res.fetchone() is None:
-            stmt = f"""create table {self.table_name}
+            stmt = f"""CREATE TABLE {self.table_name}
                     (
                         content TEXT,
                         custom_id TEXT
@@ -159,24 +53,15 @@ class SQLBaseStore(BaseStore[str, V], Generic[V]):
 
         cur.close()
 
-    # def __create_collection(self) -> None:
-    #     if self.pre_delete_collection:
-    #         self.delete_collection()
-    #     with Session(self._conn) as session:
-    #         self.CollectionStore.get_or_create(
-    #             session, self.collection_name, cmetadata=self.collection_metadata
-    #         )
+    def __delete_table(self):
+        cur = self._conn.cursor()
+        res = cur.execute(f"SELECT name FROM sqlite_master WHERE name='{self.table_name}'")
+        if res.fetchone() is not None:
+            stmt = f"DROP table {self.table_name}"
+            cur.execute(stmt)
+            self._conn.commit()
 
-    # def delete_collection(self) -> None:
-    #     with self._conn.cursor() as cur:
-    #         collection = self.__get_collection(session)
-    #         if not collection:
-    #             return
-    #         session.delete(collection)
-    #         session.commit()
-
-    # def __get_collection(self, session: Session) -> Any:
-    #     return self.CollectionStore.get_by_name(session, self.collection_name)
+        cur.close()
 
     def __del__(self) -> None:
         if self._conn:
@@ -257,5 +142,5 @@ class SQLBaseStore(BaseStore[str, V], Generic[V]):
         cur.close()
 
 
-SQLDocStore = SQLBaseStore[Document]
-SQLStrStore = SQLBaseStore[str]
+SqliteDocStore = SqliteBaseStore[Document]
+SqliteStrStore = SqliteBaseStore[str]
