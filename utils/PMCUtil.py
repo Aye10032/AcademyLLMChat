@@ -1,4 +1,7 @@
 import json
+import os.path
+import re
+from enum import Enum
 
 import requests
 import pandas as pd
@@ -29,21 +32,21 @@ def get_pmc_id(term: str):
     df.to_csv('pmlist.csv', mode='w', index=False, encoding='utf-8')
 
 
-def __solve_section(soup: BeautifulSoup, sections: list[Section], title_level: int, ref_soup: BeautifulSoup):
+def __solve_section(soup: BeautifulSoup, sections: list[Section], title_level: int, ref_soup: BeautifulSoup | None):
     title = soup.find('title', recursive=False)
     if title:
-        sections.append(Section(title.text, title_level, ''))
+        sections.append(Section(title.text, title_level))
 
     section_list = soup.find_all('sec', recursive=False)
     if section_list:
         for sec in section_list:
             sections = __solve_section(sec, sections, title_level + 1, ref_soup)
     else:
-        text_list = soup.select('p')
-        for text in text_list:
-            if text and not text.text == '':
-                section = text.text.strip().replace('\n', ' ')
-                ref_block = text.find_all('xref', {'ref-type': 'bibr'})
+        p_tags = soup.select('p')
+        for p_tag in p_tags:
+            if p_tag and not p_tag.text == '':
+                section = p_tag.text.strip().replace('\n', ' ')
+                ref_block = p_tag.find_all('xref', {'ref-type': 'bibr'})
                 ref = __solve_ref(ref_soup, ref_block) if ref_block else ''
                 # TODO: ref
                 sections.append(Section(section, 0, ref))
@@ -51,20 +54,26 @@ def __solve_section(soup: BeautifulSoup, sections: list[Section], title_level: i
     return sections
 
 
-def __solve_ref(ref_soup: BeautifulSoup, ref_list: list[Tag]) -> str:
-    numbers = []
+def __solve_ref(ref_soup: BeautifulSoup, ref_list: list[Tag]) -> list[str]:
+    rid_list = []
     for ref in ref_list:
-        contents = ref.text.strip().split(',')
-        for content in contents:
-            if '–' in content:
-                start, end = map(int, content.split('–'))
-                numbers.extend(range(start, end + 1))
-            else:
-                numbers.append(int(content))
+        content = ref.text
+        if is_single_reference(content) == RefType.SINGLE:
+            rid_list.append(ref['rid'])
+        elif is_single_reference(content) == RefType.MULTI:
+            rid_list.extend([f'cit{i}' for i in parse_range_string(content)])
+        else:
+            logger.error('unknown type')
 
-    numbers = sorted(list(set(numbers)))
+    rid_list = sorted(list(set(rid_list)))
 
-    return ','.join(str(x) for x in numbers)
+    doi_list = []
+    for ref_id in rid_list:
+        ref_block = ref_soup.find('ref', {'id': ref_id})
+        doi_block = ref_block.find('pub-id', {'pub-id-type': 'doi'})
+        doi_list.append(doi_block.text) if doi_block else None
+
+    return doi_list
 
 
 def download_paper_data(pmc_id: str):
@@ -103,7 +112,14 @@ def download_paper_data(pmc_id: str):
             if soup.find('pub-date') \
             else None
 
-        sections.append(Section(title, 1, ''))
+        xml_path = os.path.join(config.get_xml_path(), year, doi.replace('/', '@') + '.xml')
+        os.makedirs(os.path.dirname(xml_path), exist_ok=True)
+
+        with open(xml_path, 'w', encoding='utf-8') as f:
+            f.write(response.text)
+            logger.info(f'save to {xml_path}')
+
+        sections.append(Section(title, 1))
 
         abs_block = soup.find('abstract')
         main_sections = soup.select_one('body')
@@ -111,7 +127,7 @@ def download_paper_data(pmc_id: str):
 
         norm = True
         if abs_block:
-            sections.append(Section('Abstract', 2, ''))
+            sections.append(Section('Abstract', 2))
             sections = __solve_section(abs_block, sections, 2, ref_sections)
         else:
             logger.warning(f'PMC{pmc_id} has no Abstract')
@@ -127,3 +143,29 @@ def download_paper_data(pmc_id: str):
         'sections': sections,
         'norm': norm
     }
+
+
+class RefType(Enum):
+    SINGLE = 0
+    MULTI = 1
+
+
+def is_single_reference(text: str) -> RefType:
+    if re.match(r'^\d+$', text):
+        return RefType.SINGLE
+    elif re.match(r'^[\d,\\–]+$', text):
+        return RefType.MULTI
+    else:
+        return RefType.SINGLE
+
+
+def parse_range_string(input_str) -> list[int]:
+    result = []
+    parts = input_str.split(',')
+    for part in parts:
+        if '–' in part:
+            start, end = map(int, part.split('–'))
+            result.extend(range(start, end + 1))
+        else:
+            result.append(int(part))
+    return result
