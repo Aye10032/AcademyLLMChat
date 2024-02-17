@@ -1,19 +1,15 @@
-import os
 import re
 import string
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from loguru import logger
+from langchain_core.documents import Document
 
 
 @dataclass
 class Section:
-    TEXT: str
-    LEVEL: int
-    REF: str
-
-    def get_ref_list(self) -> list:
-        return [ref for ref in self.REF.split(',') if ref != '']
+    text: str
+    level: int
+    ref: list[str] = field(default_factory=list)
 
 
 def format_filename(filename):
@@ -73,8 +69,8 @@ def save_to_md(sections: list[Section], output_path, append: bool = False):
 
     with open(output_path, open_type, encoding='utf-8') as f:
         for sec in sections:
-            text = sec.TEXT
-            level = sec.LEVEL
+            text = sec.text
+            level = sec.level
             if level == 0:
                 f.write(f'{text}\n\n')
             elif level == 1:
@@ -85,3 +81,30 @@ def save_to_md(sections: list[Section], output_path, append: bool = False):
                 f.write(f'### {text}\n\n')
             else:
                 f.write(f'#### {text}\n\n')
+
+
+def section_to_documents(sections: list[Section], year: int, doi: str) -> list[Document]:
+    __Title = ''
+    __Section = ''
+    docs: list[Document] = []
+
+    for section in sections:
+        match section.level:
+            case 1:
+                __Title = section.text
+            case 2:
+                __Section = section.text
+            case 0:
+                docs.append(Document(
+                    page_content=section.text,
+                    metadata={
+                        'title': __Title,
+                        'section': __Section,
+                        'year': int(year),
+                        'doi': doi,
+                        'ref': section.ref})
+                )
+            case _:
+                pass
+
+    return docs
