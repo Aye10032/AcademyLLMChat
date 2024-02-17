@@ -1,8 +1,6 @@
 from io import StringIO
 
 from langchain.text_splitter import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
-from langchain_core.documents import Document
-from loguru import logger
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 
@@ -13,7 +11,8 @@ def split_markdown(document: UploadedFile, year: int):
     r_splitter = RecursiveCharacterTextSplitter(
         chunk_size=450,
         chunk_overlap=0,
-        separators=['\n\n', '\n']
+        separators=['\n\n', '\n'],
+        keep_separator=False
     )
 
     doi = document.name.replace('@', '/').replace('.md', '')
@@ -36,7 +35,8 @@ def split_markdown_text(md_text: str, year: int, doi: str):
     r_splitter = RecursiveCharacterTextSplitter(
         chunk_size=450,
         chunk_overlap=0,
-        separators=['\n\n', '\n']
+        separators=['\n\n', '\n'],
+        keep_separator=False
     )
 
     head_split_docs = md_splitter.split_text(md_text)
