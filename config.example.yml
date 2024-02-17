@@ -3,7 +3,7 @@ data_root: 'data'
 pdf_path: 'document'
 md_path: 'output/markdown'
 xml_path: 'output/xml'
-sqlite_path: 'sqlite'
+sqlite_path: 'sqlite/document.db'
 
 # 配置代理
 proxy:

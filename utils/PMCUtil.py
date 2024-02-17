@@ -32,50 +32,6 @@ def get_pmc_id(term: str):
     df.to_csv('pmlist.csv', mode='w', index=False, encoding='utf-8')
 
 
-def __solve_section(soup: BeautifulSoup, sections: list[Section], title_level: int, ref_soup: BeautifulSoup | None):
-    title = soup.find('title', recursive=False)
-    if title:
-        sections.append(Section(title.text, title_level))
-
-    section_list = soup.find_all('sec', recursive=False)
-    if section_list:
-        for sec in section_list:
-            sections = __solve_section(sec, sections, title_level + 1, ref_soup)
-    else:
-        p_tags = soup.select('p')
-        for p_tag in p_tags:
-            if p_tag and not p_tag.text == '':
-                section = p_tag.text.strip().replace('\n', ' ')
-                ref_block = p_tag.find_all('xref', {'ref-type': 'bibr'})
-                ref = __solve_ref(ref_soup, ref_block) if ref_block else ''
-                # TODO: ref
-                sections.append(Section(section, 0, ref))
-
-    return sections
-
-
-def __solve_ref(ref_soup: BeautifulSoup, ref_list: list[Tag]) -> list[str]:
-    rid_list = []
-    for ref in ref_list:
-        content = ref.text
-        if is_single_reference(content) == RefType.SINGLE:
-            rid_list.append(ref['rid'])
-        elif is_single_reference(content) == RefType.MULTI:
-            rid_list.extend([f'cit{i}' for i in parse_range_string(content)])
-        else:
-            logger.error('unknown type')
-
-    rid_list = sorted(list(set(rid_list)))
-
-    doi_list = []
-    for ref_id in rid_list:
-        ref_block = ref_soup.find('ref', {'id': ref_id})
-        doi_block = ref_block.find('pub-id', {'pub-id-type': 'doi'})
-        doi_list.append(doi_block.text) if doi_block else None
-
-    return doi_list
-
-
 def download_paper_data(pmc_id: str):
     # logger.info(f'request PMC ID:{pmc_id}')
 
@@ -143,6 +99,49 @@ def download_paper_data(pmc_id: str):
         'sections': sections,
         'norm': norm
     }
+
+
+def __solve_section(soup: BeautifulSoup, sections: list[Section], title_level: int, ref_soup: BeautifulSoup | None):
+    title = soup.find('title', recursive=False)
+    if title:
+        sections.append(Section(title.text, title_level))
+
+    section_list = soup.find_all('sec', recursive=False)
+    if section_list:
+        for sec in section_list:
+            sections = __solve_section(sec, sections, title_level + 1, ref_soup)
+    else:
+        p_tags = soup.select('p')
+        for p_tag in p_tags:
+            if p_tag and not p_tag.text == '':
+                section = p_tag.text.strip().replace('\n', ' ')
+                ref_block = p_tag.find_all('xref', {'ref-type': 'bibr'})
+                ref = __solve_ref(ref_soup, ref_block) if ref_block else ''
+                sections.append(Section(section, 0, ref))
+
+    return sections
+
+
+def __solve_ref(ref_soup: BeautifulSoup, ref_list: list[Tag]) -> list[str]:
+    rid_list = []
+    for ref in ref_list:
+        content = ref.text
+        if is_single_reference(content) == RefType.SINGLE:
+            rid_list.append(ref['rid'])
+        elif is_single_reference(content) == RefType.MULTI:
+            rid_list.extend([f'cit{i}' for i in parse_range_string(content)])
+        else:
+            logger.error('unknown type')
+
+    rid_list = sorted(list(set(rid_list)))
+
+    doi_list = []
+    for ref_id in rid_list:
+        ref_block = ref_soup.find('ref', {'id': ref_id})
+        doi_block = ref_block.find('pub-id', {'pub-id-type': 'doi'})
+        doi_list.append(doi_block.text) if doi_block else None
+
+    return doi_list
 
 
 class RefType(Enum):
