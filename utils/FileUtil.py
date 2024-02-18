@@ -9,7 +9,7 @@ from langchain_core.documents import Document
 class Section:
     text: str
     level: int
-    ref: list[str] = field(default_factory=list)
+    ref: str = ''
 
 
 def format_filename(filename):
