@@ -114,9 +114,23 @@ def parse_paper_data(xml_text: str, year: str, doi: str):
 
     abs_block = soup.find('abstract')
     main_sections = soup.select_one('body')
-    ref_sections = soup.select_one('back').select_one('ref-list')
 
     norm = True
+
+    ref_block = soup.select_one('back')
+    if ref_block:
+        ref_sections = ref_block.select_one('ref-list')
+    else:
+        logger.warning(f'{doi} has no reference')
+        return {
+            'title': title,
+            'author': author,
+            'year': year,
+            'doi': doi,
+            'sections': sections,
+            'norm': False
+        }
+
     if abs_block:
         sections.append(Section('Abstract', 2))
         sections = __solve_section(abs_block, sections, 2, ref_sections)
@@ -209,7 +223,7 @@ def __solve_ref(ref_soup: BeautifulSoup, ref_list: list[Tag]) -> str:
 def is_single_reference(text: str) -> RefType:
     if re.match(r'^\d+$', text):
         return RefType.SINGLE
-    elif re.match(r'^[\d,\\–]+$', text):
+    elif re.match(r'[0-9]+[,-][0-9]+', text):
         return RefType.MULTI
     else:
         return RefType.SINGLE
