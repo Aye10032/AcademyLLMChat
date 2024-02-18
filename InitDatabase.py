@@ -10,10 +10,6 @@ from langchain_community.vectorstores.milvus import Milvus
 from loguru import logger
 from tqdm import tqdm
 
-from storage.SqliteStore import SqliteDocStore
-from utils.FileUtil import save_to_md, section_to_documents
-from utils.MarkdownPraser import split_markdown_text
-from utils.PMCUtil import parse_paper_data
 from utils.TimeUtil import timer
 
 logger.add('log/init_database.log')
@@ -198,28 +194,34 @@ if __name__ == '__main__':
 
         with open(file=yml_path, mode='r', encoding='utf-8') as file:
             yml = yaml.load(file, Loader=yaml.FullLoader)
-            DATA_ROOT = yml['data_root']
-            cfg_path = os.path.join(DATA_ROOT, 'collections.json')
 
-            if not args.force and os.path.exists(cfg_path):
-                logger.info('config file exists, use existing config file')
-            else:
-                cols = [{"collection_name": collection,
-                         "language": 'en',
-                         "title": collection,
-                         "description": f'This is a collection about {collection}',
-                         "index_param": {
-                             "metric_type": 'L2',
-                             "index_type": 'HNSW',
-                             "params": {"M": 8, "efConstruction": 64},
-                         }}
-                        for collection in os.listdir(DATA_ROOT)
-                        if os.path.isdir(os.path.join(DATA_ROOT, collection))]
+        DATA_ROOT = yml['data_root']
+        cfg_path = os.path.join(DATA_ROOT, 'collections.json')
 
-                json.dump({"collections": cols}, open(cfg_path, 'w', encoding='utf-8'))
-                logger.info(f'auto create config file {cfg_path}')
+        if not args.force and os.path.exists(cfg_path):
+            logger.info('config file exists, use existing config file')
+        else:
+            cols = [{"collection_name": collection,
+                     "language": 'en',
+                     "title": collection,
+                     "description": f'This is a collection about {collection}',
+                     "index_param": {
+                         "metric_type": 'L2',
+                         "index_type": 'HNSW',
+                         "params": {"M": 8, "efConstruction": 64},
+                     }}
+                    for collection in os.listdir(DATA_ROOT)
+                    if os.path.isdir(os.path.join(DATA_ROOT, collection))]
+
+            json.dump({"collections": cols}, open(cfg_path, 'w', encoding='utf-8'))
+            logger.info(f'auto create config file {cfg_path}')
 
     from Config import config
+
+    from storage.SqliteStore import SqliteDocStore
+    from utils.FileUtil import save_to_md, section_to_documents
+    from utils.MarkdownPraser import split_markdown_text
+    from utils.PMCUtil import parse_paper_data
 
     if args.collection is not None:
         if not args.collection:
