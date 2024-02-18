@@ -1,5 +1,6 @@
 import os
 import random
+import sys
 import time
 
 import pandas as pd
@@ -15,6 +16,8 @@ from storage.SqliteStore import SqliteDocStore
 from utils.FileUtil import save_to_md, section_to_documents
 from utils.PMCUtil import get_pmc_id, download_paper_data, parse_paper_data
 
+logger.remove()
+handler_id = logger.add(sys.stderr, level="INFO")
 logger.add('log/pmc.log')
 
 
@@ -110,6 +113,8 @@ def solve_xml(csv_file: str):
         data = parse_paper_data(xml_text, year, doi)
 
         if not data['norm']:
+            df_output.at[index, 'title'] = data['title']
+            df_output.to_csv(csv_file, index=False, encoding='utf-8')
             continue
 
         output_path = os.path.join(config.get_md_path(), year, doi.replace('/', '@') + '.md')
@@ -121,7 +126,6 @@ def solve_xml(csv_file: str):
 
         df_output.at[index, 'title'] = data['title']
         df_output.to_csv(csv_file, index=False, encoding='utf-8')
-        time.sleep(random.uniform(2.0, 5.0))
 
 
 if __name__ == '__main__':
