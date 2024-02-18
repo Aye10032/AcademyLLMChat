@@ -10,8 +10,23 @@ from loguru import logger
 from requests import sessions
 
 from Config import config
-from utils.FileUtil import Section
+from utils.FileUtil import Section, replace_multiple_spaces
 from utils.TimeUtil import timer
+
+
+class RefType(Enum):
+    SINGLE = 0
+    MULTI = 1
+
+
+class RefIdType(Enum):
+    FIXED = 0
+    UNFIXED = 1
+
+
+fix_journal = {'1176-9114'}
+
+id_length = RefIdType.UNFIXED
 
 
 @timer
@@ -75,11 +90,22 @@ def download_paper_data(pmc_id: str):
 def parse_paper_data(xml_text: str, year: str, doi: str):
     soup = BeautifulSoup(xml_text, 'xml')
 
+    issn_block = soup.find('front').find('journal-meta').find('issn', {'pub-type': 'ppub'})
+    if not issn_block:
+        issn_block = soup.find('front').find('journal-meta').find('issn', {'pub-type': 'epub'})
+
+    issn = issn_block.text if issn_block else None
+
+    if issn in fix_journal:
+        global id_length
+        id_length = RefIdType.FIXED
+
     sections: list[Section] = []
 
     title = soup.find('article-title').text.replace('\n', ' ') \
         if soup.find('article-title') \
         else None
+    title = replace_multiple_spaces(title)
 
     sections.append(Section(title, 1))
 
@@ -146,31 +172,38 @@ def __solve_section(
     return sections
 
 
-def __solve_ref(ref_soup: BeautifulSoup, ref_list: list[Tag]) -> list[str]:
+def __solve_ref(ref_soup: BeautifulSoup, ref_list: list[Tag]) -> str:
+    global id_length
     rid_list = []
     for ref in ref_list:
+        logger.debug(ref)
         content = ref.text
         if is_single_reference(content) == RefType.SINGLE:
             rid_list.append(ref['rid'])
         elif is_single_reference(content) == RefType.MULTI:
-            rid_list.extend([f'cit{i}' for i in parse_range_string(content)])
+            if id_length == RefIdType.UNFIXED:
+                _r_numbers = parse_range_string(content)
+                _rid = remove_last_digit(ref['rid'])
+                logger.debug(_rid)
+                rid_list.extend([f'{_rid}{i}' for i in _r_numbers])
+            else:
+                _r_numbers = parse_range_string(content)
+                _rid, digit = remove_digit_and_return(ref['rid'])
+                logger.debug(_rid)
+                rid_list.extend([f'{_rid}{str(i).zfill(digit)}' for i in _r_numbers])
         else:
             logger.error('unknown type')
 
     rid_list = sorted(list(set(rid_list)))
+    logger.debug(rid_list)
 
     doi_list = []
     for ref_id in rid_list:
-        ref_block = ref_soup.find('ref', {'id': ref_id})
+        ref_block = ref_soup.find(['ref', 'element-citation'], {'id': ref_id})
         doi_block = ref_block.find('pub-id', {'pub-id-type': 'doi'})
         doi_list.append(doi_block.text) if doi_block else None
 
-    return doi_list
-
-
-class RefType(Enum):
-    SINGLE = 0
-    MULTI = 1
+    return ','.join([x for x in doi_list])
 
 
 def is_single_reference(text: str) -> RefType:
@@ -180,6 +213,16 @@ def is_single_reference(text: str) -> RefType:
         return RefType.MULTI
     else:
         return RefType.SINGLE
+
+
+def remove_last_digit(input_string) -> str:
+    return input_string.rstrip('0123456789')
+
+
+def remove_digit_and_return(input_string):
+    result = remove_last_digit(input_string)
+    num_removed = len(input_string) - len(result)
+    return result, num_removed
 
 
 def parse_range_string(input_str) -> list[int]:
