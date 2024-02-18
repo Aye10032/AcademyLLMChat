@@ -1,4 +1,3 @@
-import argparse
 import json
 import os
 import shutil
@@ -161,7 +160,9 @@ def load_xml(base_path):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    import argparse
+
+    parser = argparse.ArgumentParser(description='初始化向量数据库')
     parser.add_argument('--collection', '-C', nargs='?', type=int, help='初始化特定collection，从0开始')
     parser.add_argument('--auto_create', '-A', action='store_true', help='根据目录结构自动初始化数据库')
     parser.add_argument('--force', '-F', action='store_true', help='强制覆盖已有配置')
