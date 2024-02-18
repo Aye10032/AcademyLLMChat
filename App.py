@@ -103,11 +103,12 @@ with col_doc:
         with st.container(height=550, border=True):
             for ref in st.session_state.documents:
                 st.divider()
-                _title = ref.metadata['Title']
+                _title = ref.metadata['title']
+                _author = ref.metadata['author']
                 _year = ref.metadata['year']
                 _doi = ref.metadata['doi']
                 st.markdown(f'#### {_title}')
-                st.caption(f'{_doi} ({_year})')
+                st.caption(f'{_author}({_year}) {_doi}')
                 st.markdown(ref.page_content)
 
 if prompt:

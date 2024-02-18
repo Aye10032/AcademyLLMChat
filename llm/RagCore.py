@@ -2,8 +2,8 @@ from typing import List
 
 from langchain.chains import RetrievalQA, LLMChain
 from langchain.output_parsers import PydanticOutputParser
-from langchain.retrievers import MultiQueryRetriever
-from langchain_community.embeddings import HuggingFaceBgeEmbeddings
+from langchain.retrievers import MultiQueryRetriever, ParentDocumentRetriever
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import milvus
 from langchain_community.vectorstores.milvus import Milvus
 from langchain_core.prompts import PromptTemplate
@@ -15,6 +15,7 @@ from Config import config
 from llm.AgentCore import translate_sentence
 from llm.ModelCore import load_gpt, load_gpt_16k, load_embedding_en, load_embedding_zh
 from llm.Template import RETRIEVER, ASK, TRANSLATE_TO_EN
+from storage.SqliteStore import SqliteDocStore
 
 
 class QuestionList(BaseModel):
@@ -65,9 +66,30 @@ def load_vectorstore():
 @st.cache_resource(show_spinner='Building retriever...')
 def load_retriever():
     retriever_llm = load_gpt()
-    db = load_vectorstore()
+    vector_store = load_vectorstore()
+    doc_store = SqliteDocStore(
+        connection_string=config.get_sqlite_path()
+    )
 
-    base_retriever = db.as_retriever(
+    parent_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=450,
+        chunk_overlap=0,
+        separators=['\n\n', '\n'],
+        keep_separator=False
+    )
+
+    child_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=100,
+        chunk_overlap=10,
+        separators=['.', '\n\n', '\n'],
+        keep_separator=False
+    )
+
+    base_retriever = ParentDocumentRetriever(
+        vectorstore=vector_store,
+        docstore=doc_store,
+        child_splitter=child_splitter,
+        parent_splitter=parent_splitter,
         search_type='mmr',
         search_kwargs={'k': 5, 'fetch_k': 10}
     )
@@ -88,7 +110,8 @@ def load_retriever():
     retriever = MultiQueryRetriever(
         retriever=base_retriever,
         llm_chain=llm_chain,
-        parser_key='answer'
+        parser_key='answer',
+        include_original=True
     )
 
     return retriever
