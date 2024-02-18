@@ -173,7 +173,9 @@ class Config:
 
     def get_sqlite_path(self):
         collection_name: str = self.milvus_config.get_collection().NAME
-        return os.path.join(get_work_path(), self.DATA_ROOT, collection_name, self.SQLITE_PATH)
+        sqlite_path = os.path.join(get_work_path(), self.DATA_ROOT, collection_name, self.SQLITE_PATH)
+        os.makedirs(os.path.dirname(sqlite_path), exist_ok=True)
+        return sqlite_path
 
 
 config = Config()
