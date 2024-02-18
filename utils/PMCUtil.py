@@ -33,16 +33,12 @@ def get_pmc_id(term: str):
 
 
 def download_paper_data(pmc_id: str):
-    # logger.info(f'request PMC ID:{pmc_id}')
-
     url = (f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id={pmc_id}'
            f'&retmode=xml&api_key={config.pubmed_config.API_KEY}')
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
-
-    sections: list[Section] = []
 
     with sessions.Session() as session:
         if config.pubmed_config.USE_PROXY:
@@ -60,10 +56,6 @@ def download_paper_data(pmc_id: str):
             if soup.find('article-id', {'pub-id-type': 'doi'}) \
             else None
 
-        title = soup.find('article-title').text.replace('\n', ' ') \
-            if soup.find('article-title') \
-            else None
-
         year = soup.find('pub-date').find('year').text \
             if soup.find('pub-date') \
             else None
@@ -73,27 +65,45 @@ def download_paper_data(pmc_id: str):
 
         with open(xml_path, 'w', encoding='utf-8') as f:
             f.write(response.text)
-            logger.info(f'save to {xml_path}')
 
-        sections.append(Section(title, 1))
+    return {
+        'year': year,
+        'doi': doi
+    }
 
-        abs_block = soup.find('abstract')
-        main_sections = soup.select_one('body')
-        ref_sections = soup.select_one('back').select_one('ref-list')
 
-        norm = True
-        if abs_block:
-            sections.append(Section('Abstract', 2))
-            sections = __solve_section(abs_block, sections, 2, ref_sections)
-        else:
-            logger.warning(f'PMC{pmc_id} has no Abstract')
-            norm = False
+def parse_paper_data(xml_text: str, year: str, doi: str):
+    soup = BeautifulSoup(xml_text, 'xml')
 
-        if main_sections:
-            sections = __solve_section(main_sections, sections, 1, ref_sections)
+    sections: list[Section] = []
+
+    title = soup.find('article-title').text.replace('\n', ' ') \
+        if soup.find('article-title') \
+        else None
+
+    sections.append(Section(title, 1))
+
+    author_block = soup.find('contrib-group').find('name')
+    author = __extract_author_name(author_block) if author_block else None
+
+    abs_block = soup.find('abstract')
+    main_sections = soup.select_one('body')
+    ref_sections = soup.select_one('back').select_one('ref-list')
+
+    norm = True
+    if abs_block:
+        sections.append(Section('Abstract', 2))
+        sections = __solve_section(abs_block, sections, 2, ref_sections)
+    else:
+        logger.warning(f'{doi} has no Abstract')
+        norm = False
+
+    if main_sections:
+        sections = __solve_section(main_sections, sections, 1, ref_sections)
 
     return {
         'title': title,
+        'author': author,
         'year': year,
         'doi': doi,
         'sections': sections,
@@ -101,7 +111,21 @@ def download_paper_data(pmc_id: str):
     }
 
 
-def __solve_section(soup: BeautifulSoup, sections: list[Section], title_level: int, ref_soup: BeautifulSoup | None):
+def __extract_author_name(xml_block: BeautifulSoup) -> str:
+    surname = xml_block.find('surname').text
+    given_names = xml_block.find('given-names').text
+
+    initials = ' '.join([name[0] + '.' for name in given_names.split()])
+
+    return f'{surname}, {initials}'
+
+
+def __solve_section(
+        soup: BeautifulSoup,
+        sections: list[Section],
+        title_level: int,
+        ref_soup: BeautifulSoup | None
+) -> list[Section]:
     title = soup.find('title', recursive=False)
     if title:
         sections.append(Section(title.text, title_level))

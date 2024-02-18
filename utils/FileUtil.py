@@ -83,7 +83,7 @@ def save_to_md(sections: list[Section], output_path, append: bool = False):
                 f.write(f'#### {text}\n\n')
 
 
-def section_to_documents(sections: list[Section], year: int, doi: str) -> list[Document]:
+def section_to_documents(sections: list[Section], author: str, year: int, doi: str) -> list[Document]:
     __Title = ''
     __Section = ''
     docs: list[Document] = []
@@ -100,6 +100,7 @@ def section_to_documents(sections: list[Section], year: int, doi: str) -> list[D
                     metadata={
                         'title': __Title,
                         'section': __Section,
+                        'author': author,
                         'year': int(year),
                         'doi': doi,
                         'ref': section.ref})
