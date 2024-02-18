@@ -153,7 +153,7 @@ def parse_paper_data(xml_text: str, year: str, doi: str):
 
 def __extract_author_name(xml_block: BeautifulSoup) -> str:
     surname = xml_block.find('surname').text
-    given_names = xml_block.find('given-names').text
+    given_names = xml_block.find('given-names').text if xml_block.find('given-names') else ''
 
     initials = ' '.join([name[0] + '.' for name in given_names.split()])
 
@@ -214,6 +214,9 @@ def __solve_ref(ref_soup: BeautifulSoup, ref_list: list[Tag]) -> str:
     doi_list = []
     for ref_id in rid_list:
         ref_block = ref_soup.find(['ref', 'element-citation'], {'id': ref_id})
+        if not ref_block:
+            ref_block = ref_soup.find(attrs={'id': ref_id})
+
         doi_block = ref_block.find('pub-id', {'pub-id-type': 'doi'})
         doi_list.append(doi_block.text) if doi_block else None
 
