@@ -12,7 +12,9 @@ from loguru import logger
 from tqdm import tqdm
 
 from storage.SqliteStore import SqliteDocStore
+from utils.FileUtil import save_to_md, section_to_documents
 from utils.MarkdownPraser import split_markdown_text
+from utils.PMCUtil import parse_paper_data
 from utils.TimeUtil import timer
 
 logger.add('log/init_database.log')
@@ -99,20 +101,60 @@ def load_md(base_path):
     logger.info('start loading file...')
 
     for root, dirs, files in os.walk(base_path):
-        for _file in tqdm(files, total=len(files)):
+        if len(files) == 0:
+            continue
+
+        year = int(os.path.basename(root))
+        for _file in tqdm(files, total=len(files), desc=f'load file in ({year})'):
             file_path = os.path.join(root, _file)
-            file_year = int(os.path.basename(root))
             doi = _file.replace('@', '/').replace('.md', '')
 
             with open(file_path, 'r', encoding='utf-8') as f:
                 md_text = f.read()
 
-            md_docs = split_markdown_text(md_text, file_year, doi)
+            md_docs = split_markdown_text(md_text, year, doi)
 
             try:
                 retriever.add_documents(md_docs)
             except Exception as e:
-                logger.error(f'loading <{_file}> ({file_year}) fail')
+                logger.error(f'loading <{_file}> ({year}) fail')
+                logger.error(e)
+
+    logger.info(f'done')
+
+
+@timer
+def load_xml(base_path):
+    retriever = init_retriever()
+    logger.info('start loading file...')
+
+    for root, dirs, files in os.walk(base_path):
+        if len(files) == 0:
+            continue
+
+        year = os.path.basename(root)
+        for _file in tqdm(files, total=len(files), desc=f'load file in ({year})'):
+            file_path = os.path.join(root, _file)
+            doi = _file.replace('@', '/').replace('.xml', '')
+
+            with open(file_path, 'r', encoding='utf-8') as f:
+                xml_text = f.read()
+
+            data = parse_paper_data(xml_text, year, doi)
+
+            if not data['norm']:
+                continue
+
+            output_path = os.path.join(config.get_md_path(), year, doi.replace('/', '@') + '.md')
+            os.makedirs(os.path.join(config.get_md_path(), year), exist_ok=True)
+            save_to_md(data['sections'], output_path)
+
+            docs = section_to_documents(data['sections'], data['author'], int(year), doi)
+
+            try:
+                retriever.add_documents(docs)
+            except Exception as e:
+                logger.error(f'loading <{_file}> ({year}) fail')
                 logger.error(e)
 
     logger.info(f'done')
@@ -170,7 +212,8 @@ if __name__ == '__main__':
             else:
                 config.set_collection(args.collection)
                 if args.build_reference:
-                    pass
+                    logger.info(f'Only init collection {args.collection} with reference')
+                    load_xml(config.get_xml_path())
                 else:
                     logger.info(f'Only init collection {args.collection}')
                     load_md(config.get_md_path())
