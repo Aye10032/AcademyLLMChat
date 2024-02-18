@@ -162,11 +162,32 @@ def load_xml(base_path):
 if __name__ == '__main__':
     import argparse
 
-    parser = argparse.ArgumentParser(description='初始化向量数据库')
-    parser.add_argument('--collection', '-C', nargs='?', type=int, help='初始化特定collection，从0开始')
-    parser.add_argument('--auto_create', '-A', action='store_true', help='根据目录结构自动初始化数据库')
-    parser.add_argument('--force', '-F', action='store_true', help='强制覆盖已有配置')
-    parser.add_argument('--build_reference', '-R', action='store_true', help='在创建文档时构建引用树')
+    parser = argparse.ArgumentParser(description='init vector database')
+    parser.add_argument(
+        '--collection',
+        '-C',
+        nargs='?',
+        type=int,
+        help='Initialize a specific collection, starting from 0.'
+    )
+    parser.add_argument(
+        '--auto_create',
+        '-A',
+        action='store_true',
+        help='Automatic database initialization based on directory structure'
+    )
+    parser.add_argument(
+        '--force',
+        '-F',
+        action='store_true',
+        help='Force override of existing configurations'
+    )
+    parser.add_argument(
+        '--build_reference',
+        '-R',
+        action='store_true',
+        help='Building a reference tree when creating a document'
+    )
     args = parser.parse_args()
 
     if args.auto_create:
