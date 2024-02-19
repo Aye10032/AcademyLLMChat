@@ -61,13 +61,21 @@ def get_paper_info(pmid: str):
         doi = None
         logger.warning('DOI not found')
 
+    pmc_block = soup.find('ArticleIdList').find('ArticleId', {'IdType': 'pmc'})
+    if pmc_block:
+        pmc = pmc_block.text.replace('PMC', '')
+    else:
+        pmc = None
+        logger.warning('PMC not found')
+
     return {
         'title': title,
         'author': author,
         'year': year,
         'abstract': abstract,
         'keywords': keywords,
-        'doi': doi
+        'doi': doi,
+        'pmc': pmc
     }
 
 
