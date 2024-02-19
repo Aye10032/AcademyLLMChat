@@ -83,7 +83,8 @@ def download_paper_data(pmc_id: str):
 
     return {
         'year': year,
-        'doi': doi
+        'doi': doi,
+        'output_path': xml_path
     }
 
 
