@@ -9,11 +9,12 @@ def get_paper_info(pmid: str):
     """
     :param pmid: pubmed id
     :return:
-        'title': title,
-        'year': year,
-        'abstract': abstract,
-        'keywords': keywords,
-        'doi': doi
+        'title': str,
+        'author': str,
+        'year': str,
+        'abstract': str,
+        'keywords': list[str,
+        'doi': str
     """
     logger.info(f'request PMID:{pmid}')
     url = (f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id={pmid}'
@@ -38,6 +39,13 @@ def get_paper_info(pmid: str):
     year = (soup.find('Article')
             .find('JournalIssue')
             .find('PubDate').find('Year').text)
+
+    author = ''
+    if author_block := soup.find('Author'):
+        last_name = author_block.find('LastName').text if author_block.find('LastName') else ''
+        initials = author_block.find('Initials').text if author_block.find('Initials') else ''
+        author = f'{last_name}, {initials}'
+
     abstract = soup.find('AbstractText').text if soup.find('AbstractText') else None
 
     keyword_list = soup.find('KeywordList')
@@ -55,6 +63,7 @@ def get_paper_info(pmid: str):
 
     return {
         'title': title,
+        'author': author,
         'year': year,
         'abstract': abstract,
         'keywords': keywords,
@@ -65,4 +74,3 @@ def get_paper_info(pmid: str):
 if __name__ == '__main__':
     data = get_paper_info('26846317')
     print(data)
-
