@@ -12,7 +12,7 @@ from loguru import logger
 from tqdm import tqdm
 
 from Config import config
-from llm.storage import SqliteDocStore
+from llm.storage.SqliteStore import SqliteDocStore
 from utils.FileUtil import save_to_md, section_to_documents
 from utils.PMCUtil import download_paper_data, parse_paper_data
 
