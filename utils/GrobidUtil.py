@@ -1,3 +1,4 @@
+import os
 from typing import LiteralString
 
 from grobid_client.grobid_client import GrobidClient
@@ -76,10 +77,11 @@ def parse_xml(xml_path: LiteralString | str | bytes):
             middle_name = middle_name.text.strip() if middle_name is not None else ''
             last_name = author.find('surname')
             last_name = last_name.text.strip() if last_name is not None else ''
+
             if middle_name != '':
-                authors.append(f'{first_name} {middle_name} {last_name}')
+                authors.append(__extract_author_name(last_name, f'{first_name} {middle_name}'))
             else:
-                authors.append(f'{first_name} {last_name}')
+                authors.append(__extract_author_name(last_name, first_name))
 
         # date
         pub_date = soup.find('publicationStmt')
@@ -114,3 +116,9 @@ def parse_xml(xml_path: LiteralString | str | bytes):
 
     return {'title': title, 'authors': authors, 'year': year, 'abstract': abstract, 'keywords': keywords,
             'sections': sections}
+
+
+def __extract_author_name(surname, given_names) -> str:
+    initials = ' '.join([name[0] + '.' for name in given_names.split()])
+
+    return f'{surname}, {initials}'
