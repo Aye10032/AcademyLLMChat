@@ -10,8 +10,8 @@ from Config import config, Collection, UserRole
 from llm.ModelCore import load_embedding_zh, load_embedding_en
 from uicomponent.StComponent import side_bar_links, role_check
 from utils.FileUtil import is_en
-from storage.MilvusConnection import MilvusConnection
-from storage.MilvusParams import IndexType, get_index_param
+from llm.storage import MilvusConnection
+from llm.storage import IndexType, get_index_param
 
 st.set_page_config(
     page_title='学术大模型知识库',

@@ -8,9 +8,7 @@ from langchain.retrievers.self_query.milvus import MilvusTranslator
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import milvus
 from langchain_community.vectorstores.milvus import Milvus
-from langchain_core.language_models import BaseChatModel
 from langchain_core.prompts import PromptTemplate
-from langchain_core.vectorstores import VectorStore
 from pydantic import BaseModel, Field
 
 import streamlit as st
@@ -19,7 +17,7 @@ from Config import config
 from llm.AgentCore import translate_sentence
 from llm.ModelCore import load_gpt, load_gpt_16k, load_embedding_en, load_embedding_zh
 from llm.Template import RETRIEVER, ASK, TRANSLATE_TO_EN
-from storage.SqliteStore import SqliteDocStore
+from llm.storage.SqliteStore import SqliteDocStore
 
 
 class QuestionList(BaseModel):

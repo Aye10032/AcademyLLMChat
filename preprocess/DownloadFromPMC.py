@@ -12,9 +12,9 @@ from loguru import logger
 from tqdm import tqdm
 
 from Config import config
-from storage.SqliteStore import SqliteDocStore
+from llm.storage import SqliteDocStore
 from utils.FileUtil import save_to_md, section_to_documents
-from utils.PMCUtil import get_pmc_id, download_paper_data, parse_paper_data
+from utils.PMCUtil import download_paper_data, parse_paper_data
 
 logger.remove()
 handler_id = logger.add(sys.stderr, level="INFO")
