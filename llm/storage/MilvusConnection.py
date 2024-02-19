@@ -3,15 +3,8 @@ from streamlit.connections import BaseConnection
 from pymilvus import connections, utility, Collection, MilvusClient
 
 
-class MilvusConnection(BaseConnection[connections]):
-    def _connect(self, **kwargs) -> connections:
-        if 'uri' in kwargs:
-            uri = kwargs.pop('uri')
-        elif 'uri' in self._secrets:
-            uri = self._secrets['uri']
-        else:
-            raise Exception('no milvus uri found')
-
+class MilvusConnection:
+    def __init__(self, uri: str, **kwargs):
         """
         可选参数:
             - user
@@ -19,9 +12,9 @@ class MilvusConnection(BaseConnection[connections]):
             - secure
         """
 
+        connections.connect('default', uri=uri, **kwargs)
         self.client = MilvusClient(uri, **kwargs)
 
-        return connections.connect('default', uri=uri, **kwargs)
 
     def list_collections(self) -> list:
         return utility.list_collections()

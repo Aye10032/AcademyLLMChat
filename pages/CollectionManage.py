@@ -8,10 +8,10 @@ from loguru import logger
 
 from Config import config, Collection, UserRole
 from llm.ModelCore import load_embedding_zh, load_embedding_en
+from llm.storage.MilvusConnection import MilvusConnection
 from uicomponent.StComponent import side_bar_links, role_check
 from utils.FileUtil import is_en
-from llm.storage import MilvusConnection
-from llm.storage import IndexType, get_index_param
+from llm.storage.MilvusParams import IndexType, get_index_param
 
 st.set_page_config(
     page_title='学术大模型知识库',
@@ -28,11 +28,7 @@ if milvus_cfg.USING_REMOTE:
     uri = milvus_cfg.REMOTE_DATABASE['url']
     user = milvus_cfg.REMOTE_DATABASE['username']
     password = milvus_cfg.REMOTE_DATABASE['password']
-    conn = st.connection('milvus', type=MilvusConnection,
-                         uri=uri,
-                         user=user,
-                         password=password,
-                         secure=True)
+    conn = MilvusConnection(uri=uri, user=user, password=password, secure=True)
     connection_args = {
         'uri': milvus_cfg.REMOTE_DATABASE['url'],
         'user': milvus_cfg.REMOTE_DATABASE['username'],
@@ -40,8 +36,7 @@ if milvus_cfg.USING_REMOTE:
         'secure': True,
     }
 else:
-    conn = st.connection('milvus', type=MilvusConnection,
-                         uri=f'http://{milvus_cfg.MILVUS_HOST}:{milvus_cfg.MILVUS_PORT}')
+    conn = MilvusConnection(uri=f'http://{milvus_cfg.MILVUS_HOST}:{milvus_cfg.MILVUS_PORT}')
     connection_args = {
         'host': milvus_cfg.MILVUS_HOST,
         'port': milvus_cfg.MILVUS_PORT,
