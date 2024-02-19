@@ -54,7 +54,7 @@ def is_en(text: str):
         return False
 
 
-def save_to_md(sections: list[Section], output_path, append: bool = False):
+def save_to_md(sections: list[Section], output_path, append: bool = False, **kwargs):
     """
     Save sections to markdown file
     :param sections: markdown结构化段落
@@ -68,19 +68,25 @@ def save_to_md(sections: list[Section], output_path, append: bool = False):
         open_type = 'w'
 
     with open(output_path, open_type, encoding='utf-8') as f:
+        if not append:
+            ref: bool = kwargs.get('ref')
+            year: str = kwargs.get('year')
+            author: str = kwargs.get('author')
+            doi: str = kwargs.get('doi')
+            f.write(f'---\nref: {ref}\t\nauthor: {author}\t\nyear: {year}\t\ndoi: {doi}\t\n---\n\n')
         for sec in sections:
             text = sec.text
             level = sec.level
             if level == 0:
-                f.write(f'{text}\n\n')
+                f.write(f'{text}\t\n')
             elif level == 1:
-                f.write(f'# {text}\n\n')
+                f.write(f'# {text}\t\n')
             elif level == 2:
-                f.write(f'## {text}\n\n')
+                f.write(f'## {text}\t\n')
             elif level == 3:
-                f.write(f'### {text}\n\n')
+                f.write(f'### {text}\t\n')
             else:
-                f.write(f'#### {text}\n\n')
+                f.write(f'#### {text}\t\n')
 
 
 def section_to_documents(sections: list[Section], author: str, year: int, doi: str) -> list[Document]:
