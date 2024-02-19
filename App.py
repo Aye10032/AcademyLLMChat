@@ -102,7 +102,6 @@ with col_doc:
         st.subheader('参考文献')
         with st.container(height=550, border=True):
             for ref in st.session_state.documents:
-                st.divider()
                 _title = ref.metadata['title']
                 _author = ref.metadata['author']
                 _year = ref.metadata['year']
@@ -110,6 +109,7 @@ with col_doc:
                 st.markdown(f'#### {_title}')
                 st.caption(f'{_author}({_year}) {_doi}')
                 st.markdown(ref.page_content)
+                st.divider()
 
 if prompt:
     if not chat_type:
