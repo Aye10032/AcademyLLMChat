@@ -1,12 +1,16 @@
 from typing import List
 
 from langchain.chains import RetrievalQA, LLMChain
+from langchain.chains.query_constructor.schema import AttributeInfo
 from langchain.output_parsers import PydanticOutputParser
-from langchain.retrievers import MultiQueryRetriever, ParentDocumentRetriever
+from langchain.retrievers import MultiQueryRetriever, ParentDocumentRetriever, SelfQueryRetriever
+from langchain.retrievers.self_query.milvus import MilvusTranslator
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import milvus
 from langchain_community.vectorstores.milvus import Milvus
+from langchain_core.language_models import BaseChatModel
 from langchain_core.prompts import PromptTemplate
+from langchain_core.vectorstores import VectorStore
 from pydantic import BaseModel, Field
 
 import streamlit as st
@@ -63,13 +67,12 @@ def load_vectorstore():
     return vector_db
 
 
-@st.cache_resource(show_spinner='Building retriever...')
-def load_retriever():
-    retriever_llm = load_gpt()
-    vector_store = load_vectorstore()
+@st.cache_resource(show_spinner='Building base retriever...')
+def load_base_retriever() -> ParentDocumentRetriever:
     doc_store = SqliteDocStore(
         connection_string=config.get_sqlite_path()
     )
+    vector_store = load_vectorstore()
 
     parent_splitter = RecursiveCharacterTextSplitter(
         chunk_size=450,
@@ -94,6 +97,13 @@ def load_retriever():
         search_kwargs={'k': 5, 'fetch_k': 10}
     )
 
+    return base_retriever
+
+
+@st.cache_resource(show_spinner='Building retriever...')
+def load_multi_query_retriever() -> MultiQueryRetriever:
+    retriever_llm = load_gpt()
+    base_retriever = load_base_retriever()
     query_prompt = PromptTemplate(
         input_variables=["question"],
         template=RETRIEVER,
@@ -117,11 +127,56 @@ def load_retriever():
     return retriever
 
 
+@st.cache_resource(show_spinner='Building retriever...')
+def load_self_query_retriever():
+    metadata_field_info = [
+        AttributeInfo(
+            name='title',
+            description='Title of the article',
+            type='string'
+        ),
+        AttributeInfo(
+            name='section',
+            description='Title of article section',
+            type='string'
+        ),
+        AttributeInfo(
+            name='year',
+            description='Years in which the article was published',
+            type='integer'
+        ),
+        AttributeInfo(
+            name='doi',
+            description='The article\'s DOI number',
+            type='string'
+        ),
+        AttributeInfo(
+            name='ref',
+            description='The DOI numbers of the articles cited in this text, separated by ","',
+            type='string'
+        ),
+    ]
+
+    document_content_description = 'Specifics of the article'
+
+    retriever_llm = load_gpt()
+    vector_store = load_vectorstore()
+    retriever = SelfQueryRetriever.from_llm(
+        llm=retriever_llm,
+        vectorstore=vector_store,
+        document_contents=document_content_description,
+        metadata_field_info=metadata_field_info,
+        structured_query_translator=MilvusTranslator()
+    )
+
+    return retriever
+
+
 @st.cache_data(show_spinner='Asking from LLM chain...')
 def get_answer(question: str):
     prompt = PromptTemplate.from_template(ASK)
     llm = load_gpt_16k()
-    retriever = load_retriever()
+    retriever = load_multi_query_retriever()
 
     qa_chain = RetrievalQA.from_chain_type(
         llm,
