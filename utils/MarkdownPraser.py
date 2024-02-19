@@ -6,7 +6,7 @@ from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 def split_markdown(document: UploadedFile, year: int):
     md_splitter = MarkdownHeaderTextSplitter(
-        headers_to_split_on=[('#', 'Title'), ('##', 'Section'), ('###', 'Subtitle'), ('####', 'Subtitle')]
+        headers_to_split_on=[('#', 'title'), ('##', 'section'), ('###', 'subtitle'), ('####', 'subtitle')]
     )
     r_splitter = RecursiveCharacterTextSplitter(
         chunk_size=450,
@@ -30,12 +30,12 @@ def split_markdown(document: UploadedFile, year: int):
 
 def split_markdown_text(md_text: str, year: int, doi: str):
     md_splitter = MarkdownHeaderTextSplitter(
-        headers_to_split_on=[('#', 'Title'), ('##', 'Section'), ('###', 'Subtitle'), ('####', 'Subtitle')]
+        headers_to_split_on=[('#', 'title'), ('##', 'section'), ('###', 'subtitle'), ('####', 'subtitle')]
     )
     r_splitter = RecursiveCharacterTextSplitter(
         chunk_size=450,
         chunk_overlap=0,
-        separators=['\n\n', '\n'],
+        separators=['\n\n', '\n', '\t\n'],
         keep_separator=False
     )
 
