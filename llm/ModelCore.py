@@ -7,7 +7,7 @@ from Config import config
 
 
 @st.cache_resource(show_spinner=f'Loading {config.milvus_config.EN_MODEL}...')
-def load_embedding_en():
+def load_embedding_en() -> HuggingFaceBgeEmbeddings:
     model = config.milvus_config.EN_MODEL
 
     embedding = HuggingFaceBgeEmbeddings(
@@ -20,7 +20,7 @@ def load_embedding_en():
 
 
 @st.cache_resource(show_spinner=f'Loading {config.milvus_config.ZH_MODEL}...')
-def load_embedding_zh():
+def load_embedding_zh() -> HuggingFaceEmbeddings:
     model = config.milvus_config.ZH_MODEL
 
     embedding = HuggingFaceEmbeddings(
@@ -33,7 +33,7 @@ def load_embedding_zh():
 
 
 @st.cache_resource(show_spinner='Loading GPT3.5 16k...')
-def load_gpt_16k():
+def load_gpt_16k() -> ChatOpenAI:
     if config.openai_config.USE_PROXY:
         http_client = httpx.Client(proxies=config.PROXY)
         llm = ChatOpenAI(model_name="gpt-3.5-turbo-16k",
@@ -48,7 +48,7 @@ def load_gpt_16k():
 
 
 @st.cache_resource(show_spinner='Loading GPT3.5...')
-def load_gpt():
+def load_gpt() -> ChatOpenAI:
     if config.openai_config.USE_PROXY:
         http_client = httpx.Client(proxies=config.PROXY)
         llm = ChatOpenAI(model_name="gpt-3.5-turbo",
