@@ -28,14 +28,13 @@ def load_csv(year: int):
 
     length = df_10.shape[0]
     for index, row in tqdm(df_10.iterrows(), total=length, desc=f'search documents in {year}'):
-        time.sleep(random.uniform(2.0, 5.0))
         if pd.isna(row.PMID):
-            logger.warning(f'PMID {row.Title} is None')
             continue
 
         if not pd.isna(row.Title):
             continue
 
+        time.sleep(random.uniform(2.0, 5.0))
         pm_data = get_paper_info(row.PMID)
         if pm_data['pmc']:
             time.sleep(random.uniform(1.0, 4.0))
