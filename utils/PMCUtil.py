@@ -120,7 +120,7 @@ def parse_paper_data(xml_text: str, year: str, doi: str):
 
     ref_block = soup.select_one('back')
     if ref_block:
-        ref_sections = ref_block.select_one('ref-list')
+        pass
     else:
         logger.warning(f'{doi} has no reference')
         return {
@@ -134,13 +134,13 @@ def parse_paper_data(xml_text: str, year: str, doi: str):
 
     if abs_block:
         sections.append(Section('Abstract', 2))
-        sections = __solve_section(abs_block, sections, 2, ref_sections)
+        sections = __solve_section(abs_block, sections, 2, ref_block)
     else:
         logger.warning(f'{doi} has no Abstract')
         norm = False
 
     if main_sections:
-        sections = __solve_section(main_sections, sections, 1, ref_sections)
+        sections = __solve_section(main_sections, sections, 1, ref_block)
 
     return {
         'title': title,
@@ -215,7 +215,7 @@ def __solve_ref(ref_soup: BeautifulSoup, ref_list: list[Tag]) -> str:
     doi_list = []
     for ref_id in rid_list:
         ref_block = ref_soup.find(['ref', 'element-citation'], {'id': ref_id})
-        if not ref_block:
+        if ref_block is None:
             ref_block = ref_soup.find(attrs={'id': ref_id})
 
         doi_block = ref_block.find('pub-id', {'pub-id-type': 'doi'})
