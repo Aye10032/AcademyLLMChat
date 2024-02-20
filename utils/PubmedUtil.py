@@ -15,6 +15,7 @@ def get_paper_info(pmid: str):
         'abstract': str,
         'keywords': list[str,
         'doi': str
+        'pmc': str
     """
     logger.info(f'request PMID:{pmid}')
     url = (f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id={pmid}'
@@ -66,7 +67,6 @@ def get_paper_info(pmid: str):
         pmc = pmc_block.text.replace('PMC', '')
     else:
         pmc = None
-        logger.warning('PMC not found')
 
     return {
         'title': title,
