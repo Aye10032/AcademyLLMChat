@@ -43,7 +43,8 @@ def init_retriever() -> ParentDocumentRetriever:
     logger.info(f'load collection [{collection}], using model {model}')
 
     doc_store = SqliteDocStore(
-        connection_string=config.get_sqlite_path()
+        connection_string=config.get_sqlite_path(),
+        drop_old=True
     )
 
     if milvus_cfg.USING_REMOTE:
