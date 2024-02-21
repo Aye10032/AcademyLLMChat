@@ -32,7 +32,7 @@ def parse_pdf(pdf_path: LiteralString | str):
         relative_path = os.path.relpath(path, pdf_path)
         xml_path = os.path.join(config.get_xml_path(), relative_path)
         logger.info(f'Parsing {path} to {xml_path}')
-        client.process(grobid_cfg.SERVICE, pdf_path, output=xml_path, n=grobid_cfg.MULTI_PROCESS)
+        client.process(grobid_cfg.SERVICE, path, output=xml_path, n=grobid_cfg.MULTI_PROCESS)
     pdf_paths.clear()
 
 
