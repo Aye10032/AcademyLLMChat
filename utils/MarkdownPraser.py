@@ -47,13 +47,13 @@ def split_markdown_text(md_text: str, **kwargs):
         doi = kwargs.get('doi')
         author = kwargs.get('author')
     else:
-        yaml_text = head_split_docs[0].page_content.replace('---', '')
+        yaml_text = head_split_docs.pop(0).page_content.replace('---', '')
         data = yaml.load(yaml_text, Loader=yaml.FullLoader)
         year = data['year']
         doi = data['doi']
         author = data['author']
 
-    for doc in head_split_docs[1:]:
+    for doc in head_split_docs:
         doc.metadata['doi'] = doi
         doc.metadata['year'] = int(year)
         doc.metadata['author'] = author
