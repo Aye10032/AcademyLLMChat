@@ -102,12 +102,11 @@ def load_md(base_path):
         year = int(os.path.basename(root))
         for _file in tqdm(files, total=len(files), desc=f'load file in ({year})'):
             file_path = os.path.join(root, _file)
-            doi = _file.replace('@', '/').replace('.md', '')
 
             with open(file_path, 'r', encoding='utf-8') as f:
                 md_text = f.read()
 
-            md_docs = split_markdown_text(md_text, year, doi)
+            md_docs = split_markdown_text(md_text)
 
             try:
                 retriever.add_documents(md_docs)

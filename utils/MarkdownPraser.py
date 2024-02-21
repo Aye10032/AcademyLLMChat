@@ -1,5 +1,6 @@
 from io import StringIO
 
+import yaml
 from langchain.text_splitter import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
@@ -28,7 +29,7 @@ def split_markdown(document: UploadedFile, year: int):
     return md_docs
 
 
-def split_markdown_text(md_text: str, year: int, doi: str):
+def split_markdown_text(md_text: str, **kwargs):
     md_splitter = MarkdownHeaderTextSplitter(
         headers_to_split_on=[('#', 'title'), ('##', 'section'), ('###', 'subtitle'), ('####', 'subtitle')]
     )
@@ -40,9 +41,22 @@ def split_markdown_text(md_text: str, year: int, doi: str):
     )
 
     head_split_docs = md_splitter.split_text(md_text)
+
+    if kwargs.get('year'):
+        year = kwargs.get('year')
+        doi = kwargs.get('doi')
+        author = kwargs.get('author')
+    else:
+        yaml_text = head_split_docs.pop().page_content.replace('---', '')
+        data = yaml.load(yaml_text, Loader=yaml.FullLoader)
+        year = data['year']
+        doi = data['doi']
+        author = data['author']
+
     for doc in head_split_docs:
         doc.metadata['doi'] = doi
         doc.metadata['year'] = year
+        doc.metadata['author'] = author
     md_docs = r_splitter.split_documents(head_split_docs)
 
     return md_docs
