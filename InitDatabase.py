@@ -1,6 +1,7 @@
 import json
 import os
 import shutil
+import sys
 
 import yaml
 from langchain.retrievers import ParentDocumentRetriever
@@ -12,6 +13,8 @@ from tqdm import tqdm
 
 from utils.TimeUtil import timer
 
+logger.remove()
+handler_id = logger.add(sys.stderr, level="INFO")
 logger.add('log/init_database.log')
 
 
@@ -104,6 +107,9 @@ def load_md(base_path):
             if _file.endswith('.grobid.tei.xml'):
                 file_path = os.path.join(config.get_md_path(), year, _file.replace('.grobid.tei.xml', '.md'))
 
+                if not os.path.exists(file_path):
+                    logger.warning(f'loading <{_file}> ({year}) fail')
+                    continue
                 with open(file_path, 'r', encoding='utf-8') as f:
                     md_text = f.read()
 
