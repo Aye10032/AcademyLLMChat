@@ -201,8 +201,9 @@ def pdf_tab():
             if st.session_state['md_text']:
                 with st.spinner('Adding markdown to vector db...'):
                     doc = split_markdown_text(md_value,
-                                              st.session_state['paper_info']['year'],
-                                              st.session_state['paper_info']['doi'])
+                                              year=st.session_state['paper_info']['year'],
+                                              doi=st.session_state['paper_info']['doi'],
+                                              author='')  # todo
                     config.set_collection(option)
                     st.cache_resource.clear()
                     vector_db = load_vectorstore()
@@ -266,7 +267,8 @@ def pmc_tab():
                 with st.spinner('Adding paper to vector db...'):
                     with open(output_path, 'r', encoding='utf-8') as f:
                         md_text = f.read()
-                        doc = split_markdown_text(md_text, int(data['year']), data['doi'])
+                        doc = split_markdown_text(md_text, year=int(data['year']), doi=data['doi'],
+                                                  author=data['author'])
                         st.cache_resource.clear()
                         vector_db = load_vectorstore()
                         vector_db.add_documents(doc)
