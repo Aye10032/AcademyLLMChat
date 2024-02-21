@@ -189,6 +189,7 @@ if __name__ == '__main__':
         '--collection',
         '-C',
         nargs='?',
+        const=-1,
         type=int,
         help='Initialize a specific collection, starting from 0.'
     )
@@ -250,13 +251,13 @@ if __name__ == '__main__':
     from utils.PMCUtil import parse_paper_data
 
     if args.collection is not None:
-        if not args.collection:
+        if args.collection == -1:
             for i in range(len(config.milvus_config.COLLECTIONS)):
                 logger.info(f'Start init collection {i}')
                 config.set_collection(i)
                 load_md(config.get_xml_path())
-        elif args.collection is True:
-            if args.collection >= len(config.milvus_config.COLLECTIONS) or args.collection < 0:
+        else:
+            if args.collection >= len(config.milvus_config.COLLECTIONS) or args.collection < -1:
                 logger.error(f'collection index {args.collection} out of range')
                 exit(1)
             else:
