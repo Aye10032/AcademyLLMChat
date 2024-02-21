@@ -99,20 +99,40 @@ def load_md(base_path):
         if len(files) == 0:
             continue
 
-        year = int(os.path.basename(root))
+        year = os.path.basename(root)
         for _file in tqdm(files, total=len(files), desc=f'load file in ({year})'):
-            file_path = os.path.join(root, _file)
+            if _file.endswith('.grobid.tei.xml'):
+                file_path = os.path.join(config.get_md_path(), year, _file.replace('.grobid.tei.xml', '.md'))
 
-            with open(file_path, 'r', encoding='utf-8') as f:
-                md_text = f.read()
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    md_text = f.read()
 
-            md_docs = split_markdown_text(md_text)
+                md_docs = split_markdown_text(md_text)
 
-            try:
-                retriever.add_documents(md_docs)
-            except Exception as e:
-                logger.error(f'loading <{_file}> ({year}) fail')
-                logger.error(e)
+                try:
+                    retriever.add_documents(md_docs)
+                except Exception as e:
+                    logger.error(f'loading <{_file}> ({year}) fail')
+                    logger.error(e)
+            else:
+                file_path = os.path.join(root, _file)
+                doi = _file.replace('@', '/').replace('.xml', '')
+
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    xml_text = f.read()
+
+                data = parse_paper_data(xml_text, year, doi)
+
+                if not data['norm']:
+                    continue
+
+                docs = section_to_documents(data['sections'], data['author'], int(year), doi)
+
+                try:
+                    retriever.add_documents(docs)
+                except Exception as e:
+                    logger.error(f'loading <{_file}> ({year}) fail')
+                    logger.error(e)
 
     logger.info(f'done')
 
@@ -227,7 +247,7 @@ if __name__ == '__main__':
             for i in range(len(config.milvus_config.COLLECTIONS)):
                 logger.info(f'Start init collection {i}')
                 config.set_collection(i)
-                load_md(config.get_md_path())
+                load_md(config.get_xml_path())
         elif args.collection is True:
             if args.collection >= len(config.milvus_config.COLLECTIONS) or args.collection < 0:
                 logger.error(f'collection index {args.collection} out of range')
