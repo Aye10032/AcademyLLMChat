@@ -36,7 +36,7 @@ class SqliteBaseStore(BaseStore[str, V], Generic[V]):
         self.__create_tables_if_not_exists()
 
     def __connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.connection_string, **self.engine_args)
+        conn = sqlite3.connect(self.connection_string, **self.engine_args, check_same_thread=False)
         return conn
 
     def __create_tables_if_not_exists(self) -> None:
