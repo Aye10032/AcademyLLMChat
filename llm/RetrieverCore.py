@@ -6,10 +6,12 @@ from langchain.output_parsers import PydanticOutputParser
 from langchain.retrievers import ParentDocumentRetriever, MultiQueryRetriever
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.prompts import PromptTemplate
+from langchain_core.vectorstores import VectorStore
 from pydantic import BaseModel, Field
 
 from llm.ModelCore import load_gpt
 from llm.Template import RETRIEVER
+from llm.storage.SqliteStore import SqliteBaseStore
 
 
 class QuestionList(BaseModel):
@@ -26,7 +28,7 @@ class LineListOutputParser(PydanticOutputParser):
 
 
 @st.cache_resource(show_spinner='Building base retriever...')
-def base_retriever(_vector_store, _doc_store) -> ParentDocumentRetriever:
+def base_retriever(_vector_store: VectorStore, _doc_store: SqliteBaseStore) -> ParentDocumentRetriever:
     parent_splitter = RecursiveCharacterTextSplitter(
         chunk_size=450,
         chunk_overlap=0,
@@ -54,9 +56,8 @@ def base_retriever(_vector_store, _doc_store) -> ParentDocumentRetriever:
 
 
 @st.cache_resource(show_spinner='Building retriever...')
-def multi_query_retriever() -> MultiQueryRetriever:
+def multi_query_retriever(_base_retriever) -> MultiQueryRetriever:
     retriever_llm = load_gpt()
-    b_retriever = base_retriever()
     query_prompt = PromptTemplate(
         input_variables=["question"],
         template=RETRIEVER,
@@ -71,10 +72,10 @@ def multi_query_retriever() -> MultiQueryRetriever:
     )
 
     retriever = MultiQueryRetriever(
-        retriever=b_retriever,
+        retriever=_base_retriever,
         llm_chain=llm_chain,
         parser_key='answer',
-        include_original=True
+        include_original=False
     )
 
     return retriever
