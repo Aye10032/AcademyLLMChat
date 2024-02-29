@@ -30,7 +30,7 @@ id_length = RefIdType.UNFIXED
 
 
 @timer
-def get_pmc_id(term: str):
+def get_pmc_id(term: str, file_name: str = 'pmlist.csv'):
     url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pmc&term={term}'
 
     headers = {
@@ -44,7 +44,7 @@ def get_pmc_id(term: str):
     pmc_list = data['esearchresult']['idlist']
     df = pd.DataFrame({'title': pd.NA, 'pmc_id': pmc_list, 'doi': pd.NA, 'year': pd.NA})
 
-    df.to_csv('pmlist.csv', mode='w', index=False, encoding='utf-8')
+    df.to_csv(file_name, mode='w', index=False, encoding='utf-8')
 
 
 def download_paper_data(pmc_id: str):
