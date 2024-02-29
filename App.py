@@ -110,7 +110,7 @@ with col_doc:
                 _year = ref.metadata['year']
                 _doi = ref.metadata['doi']
                 st.markdown(f'#### {_title}')
-                st.caption(f'{_author}({_year}) {_doi}')
+                st.caption(f'{_author}({_year}) [{_doi}](https://doi.org/{_doi})')
                 st.markdown(ref.page_content)
                 st.divider()
 
