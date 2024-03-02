@@ -91,11 +91,14 @@ def download_paper_data(pmc_id: str):
 def parse_paper_data(xml_text: str, year: str, doi: str):
     soup = BeautifulSoup(xml_text, 'xml')
 
-    issn_block = soup.find('front').find('journal-meta').find('issn', {'pub-type': 'ppub'})
-    if not issn_block:
-        issn_block = soup.find('front').find('journal-meta').find('issn', {'pub-type': 'epub'})
+    try:
+        issn_block = soup.find('front').find('journal-meta').find('issn', {'pub-type': 'ppub'})
+        if not issn_block:
+            issn_block = soup.find('front').find('journal-meta').find('issn', {'pub-type': 'epub'})
 
-    issn = issn_block.text if issn_block else None
+        issn = issn_block.text if issn_block else None
+    except:
+        issn = None
 
     if issn in fix_journal:
         global id_length
