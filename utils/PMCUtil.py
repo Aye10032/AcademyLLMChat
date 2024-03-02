@@ -5,7 +5,7 @@ from enum import Enum
 
 import requests
 import pandas as pd
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup, Tag, NavigableString
 from loguru import logger
 from requests import sessions
 
@@ -30,7 +30,7 @@ id_length = RefIdType.UNFIXED
 
 
 @timer
-def get_pmc_id(term: str, file_name: str = 'pmlist.csv'):
+def get_pmc_id(term: str, file_name: str = 'pmlist.csv') -> None:
     url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pmc&term={term}'
 
     headers = {
@@ -47,7 +47,7 @@ def get_pmc_id(term: str, file_name: str = 'pmlist.csv'):
     df.to_csv(file_name, mode='w', index=False, encoding='utf-8')
 
 
-def download_paper_data(pmc_id: str):
+def download_paper_data(pmc_id: str) -> dict:
     url = (f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id={pmc_id}'
            f'&retmode=xml&api_key={config.pubmed_config.API_KEY}')
 
@@ -88,7 +88,7 @@ def download_paper_data(pmc_id: str):
     }
 
 
-def parse_paper_data(xml_text: str, year: str, doi: str):
+def parse_paper_data(xml_text: str, year: str, doi: str) -> dict:
     soup = BeautifulSoup(xml_text, 'xml')
 
     try:
@@ -97,7 +97,7 @@ def parse_paper_data(xml_text: str, year: str, doi: str):
             issn_block = soup.find('front').find('journal-meta').find('issn', {'pub-type': 'epub'})
 
         issn = issn_block.text if issn_block else None
-    except:
+    finally:
         issn = None
 
     if issn in fix_journal:
@@ -155,7 +155,7 @@ def parse_paper_data(xml_text: str, year: str, doi: str):
     }
 
 
-def __extract_author_name(xml_block: BeautifulSoup) -> str:
+def __extract_author_name(xml_block: BeautifulSoup | NavigableString | None) -> str:
     surname = xml_block.find('surname').text
     given_names = xml_block.find('given-names').text if xml_block.find('given-names') else ''
 
@@ -236,17 +236,17 @@ def is_single_reference(text: str) -> RefType:
         return RefType.SINGLE
 
 
-def remove_last_digit(input_string) -> str:
+def remove_last_digit(input_string: str) -> str:
     return input_string.rstrip('0123456789')
 
 
-def remove_digit_and_return(input_string):
+def remove_digit_and_return(input_string: str) -> (str, int):
     result = remove_last_digit(input_string)
     num_removed = len(input_string) - len(result)
     return result, num_removed
 
 
-def parse_range_string(input_str) -> list[int]:
+def parse_range_string(input_str: str) -> list[int]:
     result = []
     parts = input_str.split(',')
     for part in parts:
