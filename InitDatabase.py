@@ -267,4 +267,4 @@ if __name__ == '__main__':
                     load_xml(config.get_xml_path())
                 else:
                     logger.info(f'Only init collection {args.collection}')
-                    load_md(config.get_md_path())
+                    load_md(config.get_xml_path())
