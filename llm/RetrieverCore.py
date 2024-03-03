@@ -17,7 +17,7 @@ from langchain_core.vectorstores import VectorStore
 from loguru import logger
 
 from llm.ModelCore import load_gpt
-from llm.Template import RETRIEVER
+from llm.Template import GENERATE_QUESTION
 from llm.storage.SqliteStore import SqliteBaseStore
 
 
@@ -104,7 +104,7 @@ def multi_query_retriever(_base_retriever) -> MultiQueryRetriever:
     retriever_llm = load_gpt()
     query_prompt = PromptTemplate(
         input_variables=["question"],
-        template=RETRIEVER,
+        template=GENERATE_QUESTION,
     )
 
     parser = LineListOutputParser()
