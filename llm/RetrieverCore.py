@@ -3,8 +3,8 @@ from typing import List, Optional, Dict, Any
 import streamlit as st
 from langchain.chains import LLMChain
 from langchain.chains.query_constructor.schema import AttributeInfo
-from langchain.output_parsers import PydanticOutputParser
 from langchain.retrievers import ParentDocumentRetriever, MultiQueryRetriever, SelfQueryRetriever, MultiVectorRetriever
+from langchain.retrievers.multi_query import LineListOutputParser
 from langchain.retrievers.multi_vector import SearchType
 from langchain.retrievers.self_query.milvus import MilvusTranslator
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -15,24 +15,10 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.stores import BaseStore
 from langchain_core.vectorstores import VectorStore
 from loguru import logger
-from pydantic import BaseModel, Field
 
 from llm.ModelCore import load_gpt
 from llm.Template import RETRIEVER
 from llm.storage.SqliteStore import SqliteBaseStore
-
-
-class QuestionList(BaseModel):
-    answer: List[str] = Field(description='List of generated questions.')
-
-
-class LineListOutputParser(PydanticOutputParser):
-    def __init__(self) -> None:
-        super().__init__(pydantic_object=QuestionList)
-
-    def parse(self, text: str) -> QuestionList:
-        lines = text.strip().split('\n')
-        return QuestionList(answer=lines)
 
 
 class ReferenceRetriever(MultiVectorRetriever):
@@ -132,7 +118,6 @@ def multi_query_retriever(_base_retriever) -> MultiQueryRetriever:
     retriever = MultiQueryRetriever(
         retriever=_base_retriever,
         llm_chain=llm_chain,
-        parser_key='answer',
         include_original=False
     )
 
