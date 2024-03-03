@@ -6,12 +6,13 @@ from tqdm import tqdm
 
 import Config
 from Config import config, UserRole
-from llm.RagCore import load_vectorstore
+from llm.RagCore import load_vectorstore, load_doc_store
+from llm.RetrieverCore import base_retriever
 from uicomponent.StComponent import side_bar_links, role_check
-from utils.FileUtil import save_to_md
+from utils.FileUtil import save_to_md, section_to_documents
 from utils.GrobidUtil import parse_xml, parse_pdf_to_xml
 from utils.MarkdownPraser import split_markdown, split_markdown_text
-from utils.PMCUtil import download_paper_data
+from utils.PMCUtil import download_paper_data, parse_paper_data
 from utils.PubmedUtil import get_paper_info
 
 milvus_cfg = config.milvus_config
@@ -248,35 +249,40 @@ def pmc_tab():
         if st.session_state.get('pmc_submit'):
             config.set_collection(option)
             with st.spinner('Downloading paper...'):
-                data = download_paper_data(pmc_id)
+                dl = download_paper_data(pmc_id)
+
+            doi = dl['doi']
+            year = dl['year']
+            xml_path = dl['output_path']
 
             with st.spinner('Parsing paper...'):
-                filename = data['doi'].replace('/', '@') if data['doi'] else f'PMC{pmc_id}'
-                if not data['norm']:
-                    filename += '_(no abstract)'
-                output_path = os.path.join(config.get_md_path(), data['year'], f'{filename}.md')
+                with open(xml_path, 'r', encoding='utf-8') as f:
+                    xml_text = f.read()
 
+                data = parse_paper_data(xml_text, year, doi)
+
+                output_path = os.path.join(config.get_md_path(), year, f"{doi.replace('/', '@')}.md")
                 os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                save_to_md(data['sections'], output_path, ref=True, year=year, author=data['author'], doi=doi)
 
-                save_to_md(data['sections'], output_path)
+            with st.spinner('Adding paper to vector db...'):
+                doc = section_to_documents(data['sections'], year=int(year), doi=doi, author=data['author'])
+                st.cache_resource.clear()
+
+                vector_db = load_vectorstore()
+                doc_db = load_doc_store()
+                retriever = base_retriever(vector_db, doc_db)
+
+                retriever.add_documents(doc)
 
             if st.session_state.get('build_ref_tree'):
                 # TODO
                 pass
-            else:
-                with st.spinner('Adding paper to vector db...'):
-                    with open(output_path, 'r', encoding='utf-8') as f:
-                        md_text = f.read()
-                        doc = split_markdown_text(md_text, year=int(data['year']), doi=data['doi'],
-                                                  author=data['author'])
-                        st.cache_resource.clear()
-                        vector_db = load_vectorstore()
-                        vector_db.add_documents(doc)
 
-                st.success('添加完成')
+            st.success('添加完成')
 
 
-tab1, tab2, tab3 = st.tabs(['Markdown', 'PDF', 'Pubmed Center'])
+tab1, tab2, tab3, tab4 = st.tabs(['Markdown', 'PDF', 'Pubmed Center', 'arXiv'])
 
 with tab1:
     markdown_tab()
