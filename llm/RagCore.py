@@ -15,7 +15,7 @@ from llm.storage.SqliteStore import SqliteDocStore
 
 
 @st.cache_resource(show_spinner='Loading Vector Database...')
-def load_vectorstore() -> VectorStore:
+def load_vectorstore() -> Milvus:
     milvus_cfg = config.milvus_config
 
     if milvus_cfg.get_collection().LANGUAGE == 'zh':

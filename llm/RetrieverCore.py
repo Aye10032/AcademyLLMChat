@@ -5,13 +5,16 @@ from langchain.chains import LLMChain
 from langchain.chains.query_constructor.schema import AttributeInfo
 from langchain.output_parsers import PydanticOutputParser
 from langchain.retrievers import ParentDocumentRetriever, MultiQueryRetriever, SelfQueryRetriever, MultiVectorRetriever
+from langchain.retrievers.multi_vector import SearchType
 from langchain.retrievers.self_query.milvus import MilvusTranslator
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_core.callbacks import Callbacks, CallbackManagerForRetrieverRun
+from langchain_community.vectorstores.milvus import Milvus
+from langchain_core.callbacks import CallbackManagerForRetrieverRun
 from langchain_core.documents import Document
 from langchain_core.prompts import PromptTemplate
-from langchain_core.retrievers import BaseRetriever
+from langchain_core.stores import BaseStore
 from langchain_core.vectorstores import VectorStore
+from loguru import logger
 from pydantic import BaseModel, Field
 
 from llm.ModelCore import load_gpt
@@ -33,12 +36,53 @@ class LineListOutputParser(PydanticOutputParser):
 
 
 class ReferenceRetriever(MultiVectorRetriever):
-    retriever: SelfQueryRetriever
 
     def _get_relevant_documents(
             self, query: str, *, run_manager: CallbackManagerForRetrieverRun
     ) -> List[Document]:
-        return self.retriever.invoke(query)
+        vec_doc = self.vectorstore.similarity_search(query, k=3)
+
+        ids = []
+        for doc in vec_doc:
+            ref_list: list[str] = doc.metadata['ref'].split(',') if doc.metadata['ref'] != '' else []
+            if ref_list:
+                expr = "[" + ",".join(['"' + item + '"' for item in ref_list]) + "]"
+                sub_docs: list[Document] = self.vectorstore.similarity_search(doc.page_content, expr=f'doi in {expr}')
+
+                for d in sub_docs:
+                    if self.id_key in d.metadata and d.metadata[self.id_key] not in ids:
+                        ids.append(d.metadata[self.id_key])
+
+        result = self.docstore.mget(ids)
+
+        return result
+
+
+class MultiVectorSelfQueryRetriever(SelfQueryRetriever):
+    doc_store: BaseStore[str, Document]
+    id_key: str = "doc_id"
+
+    def _get_relevant_documents(
+            self, query: str, *, run_manager: CallbackManagerForRetrieverRun
+    ) -> List[Document]:
+        structured_query = self.query_constructor.invoke(
+            {"query": query}, config={"callbacks": run_manager.get_child()}
+        )
+        if self.verbose:
+            logger.debug(f"Generated Query: {structured_query}")
+
+        new_query, search_kwargs = self._prepare_query(query, structured_query)
+        logger.debug(search_kwargs)
+        sub_doc = self._get_docs_with_query(new_query, search_kwargs)
+
+        ids = []
+        for d in sub_doc:
+            if self.id_key in d.metadata and d.metadata[self.id_key] not in ids:
+                ids.append(d.metadata[self.id_key])
+
+        result = self.doc_store.mget(ids)
+
+        return result
 
 
 @st.cache_resource(show_spinner='Building base retriever...')
@@ -62,7 +106,7 @@ def base_retriever(_vector_store: VectorStore, _doc_store: SqliteBaseStore) -> P
         docstore=_doc_store,
         child_splitter=child_splitter,
         parent_splitter=parent_splitter,
-        search_type='mmr',
+        search_type=SearchType.mmr,
         search_kwargs={'k': 5, 'fetch_k': 10}
     )
 
@@ -96,7 +140,7 @@ def multi_query_retriever(_base_retriever) -> MultiQueryRetriever:
 
 
 @st.cache_resource(show_spinner='Building retriever...')
-def load_self_query_retriever(_vector_store: VectorStore):
+def self_query_retriever(_vector_store: VectorStore, _doc_store: SqliteBaseStore):
     metadata_field_info = [
         AttributeInfo(
             name='title',
@@ -115,25 +159,30 @@ def load_self_query_retriever(_vector_store: VectorStore):
         ),
         AttributeInfo(
             name='doi',
-            description='The article\'s DOI number',
+            description="The article's DOI number",
             type='string'
-        ),
-        AttributeInfo(
-            name='ref',
-            description='The DOI numbers of the articles cited in this text, separated by ","',
-            type='string'
-        ),
+        )
     ]
 
     document_content_description = 'Specifics of the article'
 
     retriever_llm = load_gpt()
-    retriever = SelfQueryRetriever.from_llm(
+    retriever = MultiVectorSelfQueryRetriever.from_llm(
         llm=retriever_llm,
         vectorstore=_vector_store,
+        doc_store=_doc_store,
         document_contents=document_content_description,
         metadata_field_info=metadata_field_info,
         structured_query_translator=MilvusTranslator()
+    )
+
+    return retriever
+
+
+def reference_retriever(_vector_store: Milvus, _doc_store: SqliteBaseStore) -> ReferenceRetriever:
+    retriever = ReferenceRetriever(
+        vectorstore=_vector_store,
+        docstore=_doc_store
     )
 
     return retriever
