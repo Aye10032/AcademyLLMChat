@@ -1,14 +1,18 @@
+import os
 from datetime import datetime
 
 import pandas as pd
 import streamlit as st
+from langchain.retrievers import ParentDocumentRetriever
 from langchain_community.vectorstores.milvus import Milvus
 from langchain_core.documents import Document
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
 
-from Config import config, Collection, UserRole
+from Config import config, Collection, UserRole, get_work_path
 from llm.ModelCore import load_embedding_zh, load_embedding_en
 from llm.storage.MilvusConnection import MilvusConnection
+from llm.storage.SqliteStore import SqliteDocStore
 from uicomponent.StComponent import side_bar_links, role_check
 from utils.FileUtil import is_en
 from llm.storage.MilvusParams import IndexType, get_index_param
@@ -192,15 +196,59 @@ def new_tab():
 
             with st.spinner('Creating collection...'):
                 doc = Document(page_content=description,
-                               metadata={'Title': 'About this collection', 'Section': 'Abstract', 'doi': '',
-                                         'year': datetime.now().year, 'ref': ''})
-                vector_db = Milvus.from_documents(
-                    [doc],
+                               metadata={
+                                   'title': 'About this collection',
+                                   'section': 'Abstract',
+                                   'author': '',
+                                   'doi': '',
+                                   'year': datetime.now().year,
+                                   'ref': ''
+                               })
+
+                sqlite_path = os.path.join(get_work_path(), config.DATA_ROOT, collection_name, config.SQLITE_PATH)
+                os.makedirs(os.path.dirname(sqlite_path), exist_ok=True)
+
+                doc_store = SqliteDocStore(
+                    connection_string=sqlite_path,
+                    drop_old=True
+                )
+
+                if milvus_cfg.USING_REMOTE:
+                    connection_args = {
+                        'uri': milvus_cfg.REMOTE_DATABASE['url'],
+                        'user': milvus_cfg.REMOTE_DATABASE['username'],
+                        'password': milvus_cfg.REMOTE_DATABASE['password'],
+                        'secure': True,
+                    }
+                else:
+                    connection_args = {
+                        'host': milvus_cfg.MILVUS_HOST,
+                        'port': milvus_cfg.MILVUS_PORT,
+                    }
+
+                vector_db = Milvus(
                     embedding,
                     collection_name=collection_name,
                     connection_args=connection_args,
-                    drop_old=True
+                    index_params=index_param,
+                    drop_old=True,
+                    auto_id=True
                 )
+
+                child_splitter = RecursiveCharacterTextSplitter(
+                    chunk_size=100,
+                    chunk_overlap=10,
+                    separators=['.', '\n\n', '\n'],
+                    keep_separator=False
+                )
+
+                retriever = ParentDocumentRetriever(
+                    vectorstore=vector_db,
+                    docstore=doc_store,
+                    child_splitter=child_splitter
+                )
+
+                retriever.add_documents([doc])
 
                 milvus_cfg.add_collection(
                     Collection.from_dict({"collection_name": collection_name,
