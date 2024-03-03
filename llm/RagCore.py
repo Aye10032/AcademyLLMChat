@@ -4,7 +4,6 @@ from langchain_community.vectorstores.milvus import Milvus
 from langchain_core.prompts import PromptTemplate
 
 import streamlit as st
-from langchain_core.vectorstores import VectorStore
 
 from Config import config
 from llm.AgentCore import translate_sentence
@@ -46,12 +45,19 @@ def load_vectorstore() -> Milvus:
     return vector_db
 
 
-@st.cache_data(show_spinner='Asking from LLM chain...')
-def get_answer(question: str):
-    vec_store = load_vectorstore()
+@st.cache_resource
+def load_doc_store() -> SqliteDocStore:
     doc_store = SqliteDocStore(
         connection_string=config.get_sqlite_path()
     )
+
+    return doc_store
+
+
+@st.cache_data(show_spinner='Asking from LLM chain...')
+def get_answer(question: str):
+    vec_store = load_vectorstore()
+    doc_store = load_doc_store()
     b_retriever = base_retriever(vec_store, doc_store)
     retriever = multi_query_retriever(b_retriever)
 
