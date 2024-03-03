@@ -65,7 +65,8 @@ def init_retriever() -> ParentDocumentRetriever:
         collection_name=collection,
         connection_args=connection_args,
         index_params=milvus_cfg.get_collection().INDEX_PARAM,
-        drop_old=True
+        drop_old=True,
+        auto_id=True
     )
 
     logger.info('done')

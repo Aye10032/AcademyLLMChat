@@ -6,10 +6,9 @@ from langchain_core.prompts import PromptTemplate
 import streamlit as st
 
 from Config import config
-from llm.AgentCore import translate_sentence
-from llm.ModelCore import load_gpt, load_gpt_16k, load_embedding_en, load_embedding_zh
+from llm.ModelCore import load_gpt_16k, load_embedding_en, load_embedding_zh
 from llm.RetrieverCore import multi_query_retriever, base_retriever
-from llm.Template import ASK, TRANSLATE_TO_EN
+from llm.Template import ASK
 from llm.storage.SqliteStore import SqliteDocStore
 
 
@@ -39,7 +38,8 @@ def load_vectorstore() -> Milvus:
         embedding,
         collection_name=milvus_cfg.get_collection().NAME,
         connection_args=connection_args,
-        search_params={'ef': 15}
+        search_params={'ef': 15},
+        auto_id=True
     )
 
     return vector_db

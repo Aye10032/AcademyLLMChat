@@ -85,7 +85,6 @@ def manage_tab():
                 {
                     '字段': field.name,
                     '类型': dtype[field.dtype],
-                    '描述': field.description,
                     'max_length': field.max_length,
                     'dim': field.dim,
                     'is_primary': field.is_primary,

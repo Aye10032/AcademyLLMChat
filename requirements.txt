@@ -7,11 +7,11 @@ beautifulsoup4~=4.12.2
 requests[socks]~=2.31.0
 pandas~=2.2.0
 
-langchain==0.1.4
-langchain_community==0.0.16
+langchain==0.1.10
+langchain_community==0.0.25
 unstructured
 markdown
-pymilvus==2.3.5
+pymilvus==2.3.6
 sentence_transformers
 pydantic
 lark
