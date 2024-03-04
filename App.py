@@ -1,4 +1,5 @@
 import os
+import sys
 
 import streamlit as st
 from langchain_community.chat_message_histories import ChatMessageHistory
@@ -9,6 +10,8 @@ from llm.ChatCore import chat_with_history
 from llm.RagCore import get_answer
 from uicomponent.StComponent import side_bar_links
 
+logger.remove()
+handler_id = logger.add(sys.stderr, level="INFO")
 logger.add('log/runtime_{time}.log', rotation='00:00', level='INFO', retention='10 days')
 os.environ["LANGCHAIN_PROJECT"] = 'AcademyLLMChat'
 
@@ -47,12 +50,19 @@ with st.sidebar:
         st.rerun()
 
     st.markdown('#### 选择对话模式')
-    chat_type = st.toggle('对话模式', label_visibility='collapsed')
+    st.toggle('对话模式', key='chat_type', label_visibility='collapsed')
 
-    if chat_type:
+    if st.session_state.get('chat_type'):
         st.caption('当前为对话模式')
     else:
         st.caption('当前为知识库查询模式')
+
+    st.toggle('精准查找', key='self_query', label_visibility='collapsed')
+
+    if st.session_state.get('self_query'):
+        st.caption('精准模式：:green[开]')
+    else:
+        st.caption('精准模式：:red[关]')
 
     st.divider()
     st.subheader('使用说明')
@@ -80,7 +90,7 @@ with col_chat:
         if prompt:
             st.chat_message('user').markdown(prompt)
 
-            if chat_type:
+            if st.session_state.get('chat_type'):
                 logger.info(f'chat: {prompt}')
                 st.session_state.messages.append({'role': 'user', 'content': prompt})
 
@@ -115,11 +125,11 @@ with col_doc:
                 st.divider()
 
 if prompt:
-    if not chat_type:
+    if not st.session_state.get('chat_type'):
         logger.info(f'question: {prompt}')
         st.session_state.messages = [{'role': 'user', 'content': prompt}]
 
-        response = get_answer(prompt)
+        response = get_answer(prompt, st.session_state.get('self_query'))
 
         st.session_state.documents = response['source_documents']
         st.session_state.messages.append({'role': 'assistant', 'content': response['result']})

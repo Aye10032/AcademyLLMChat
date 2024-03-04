@@ -58,6 +58,8 @@ class MultiVectorSelfQueryRetriever(SelfQueryRetriever):
             logger.debug(f"Generated Query: {structured_query}")
 
         new_query, search_kwargs = self._prepare_query(query, structured_query)
+        search_kwargs['k'] = 6
+        logger.debug(new_query)
         logger.debug(search_kwargs)
         sub_doc = self._get_docs_with_query(new_query, search_kwargs)
 
@@ -69,6 +71,12 @@ class MultiVectorSelfQueryRetriever(SelfQueryRetriever):
         result = self.doc_store.mget(ids)
 
         return result
+
+    def _get_docs_with_query(
+        self, query: str, search_kwargs: Dict[str, Any]
+    ) -> List[Document]:
+        docs = self.vectorstore.search(query, self.search_type, **search_kwargs)
+        return docs
 
 
 @st.cache_resource(show_spinner='Building base retriever...')
@@ -158,7 +166,8 @@ def self_query_retriever(_vector_store: VectorStore, _doc_store: SqliteBaseStore
         doc_store=_doc_store,
         document_contents=document_content_description,
         metadata_field_info=metadata_field_info,
-        structured_query_translator=MilvusTranslator()
+        structured_query_translator=MilvusTranslator(),
+        verbose=True,
     )
 
     return retriever
