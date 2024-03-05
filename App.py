@@ -5,23 +5,19 @@ import streamlit as st
 from langchain_community.chat_message_histories import ChatMessageHistory
 from loguru import logger
 
-from Config import config, UserRole
+from Config import config
 from llm.ChatCore import chat_with_history
 from llm.RagCore import get_answer
 from uicomponent.StComponent import side_bar_links
 
-logger.remove()
-handler_id = logger.add(sys.stderr, level="INFO")
-logger.add('log/runtime_{time}.log', rotation='00:00', level='INFO', retention='10 days')
-os.environ["LANGCHAIN_PROJECT"] = 'AcademyLLMChat'
 
-milvus_cfg = config.milvus_config
-col = milvus_cfg.COLLECTIONS
-collections = []
-for collection in col:
-    collections.append(collection.NAME)
+@st.cache_resource
+def setup_log():
+    logger.remove()
+    handler_id = logger.add(sys.stderr, level="INFO")
+    logger.add('log/runtime_{time}.log', rotation='00:00', level='INFO', retention='10 days')
 
-title = milvus_cfg.get_collection().TITLE
+
 st.set_page_config(
     page_title='学术大模型知识库',
     page_icon='📖',
@@ -31,6 +27,17 @@ st.set_page_config(
         'About': 'https://github.com/Aye10032/AcademyKnowledgeBot'
     }
 )
+
+os.environ["LANGCHAIN_PROJECT"] = 'AcademyLLMChat'
+setup_log()
+
+milvus_cfg = config.milvus_config
+col = milvus_cfg.COLLECTIONS
+collections = []
+for collection in col:
+    collections.append(collection.NAME)
+
+title = milvus_cfg.get_collection().TITLE
 st.title(title)
 
 with st.sidebar:
