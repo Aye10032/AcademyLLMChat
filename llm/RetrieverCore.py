@@ -58,7 +58,8 @@ class MultiVectorSelfQueryRetriever(SelfQueryRetriever):
             logger.debug(f"Generated Query: {structured_query}")
 
         new_query, search_kwargs = self._prepare_query(query, structured_query)
-        search_kwargs['k'] = 6
+        search_kwargs['k'] = 5
+        search_kwargs['fetch_k'] = 10
         logger.debug(new_query)
         logger.debug(search_kwargs)
         sub_doc = self._get_docs_with_query(new_query, search_kwargs)
@@ -73,9 +74,9 @@ class MultiVectorSelfQueryRetriever(SelfQueryRetriever):
         return result
 
     def _get_docs_with_query(
-        self, query: str, search_kwargs: Dict[str, Any]
+            self, query: str, search_kwargs: Dict[str, Any]
     ) -> List[Document]:
-        docs = self.vectorstore.search(query, self.search_type, **search_kwargs)
+        docs = self.vectorstore.search(query, 'mmr', **search_kwargs)
         return docs
 
 
