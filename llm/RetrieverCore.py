@@ -143,12 +143,20 @@ def self_query_retriever(_vector_store: VectorStore, _doc_store: SqliteBaseStore
         ),
         AttributeInfo(
             name='section',
-            description='Title of article section',
+            description="""Title of article section.
+            Among them, the Abstract chapter is usually the summary information of the whole article, 
+            the Introduction chapter is usually the introduction of the research background of the article, 
+            and the Conclusion chapter is usually the summary and outlook of the whole research""",
             type='string'
         ),
         AttributeInfo(
             name='year',
             description='Years in which the article was published',
+            type='integer'
+        ),
+        AttributeInfo(
+            name='author',
+            description="the article's Author",
             type='integer'
         ),
         AttributeInfo(

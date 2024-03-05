@@ -39,7 +39,7 @@ class CitedAnswer(BaseModel):
 
 def format_docs(docs: List[Document]) -> str:
     formatted = [
-        f"Fragment ID: {i} \nFragment Snippet: {doc.page_content}"
+        f"Fragment ID: {i} \nEssay Title: {doc.metadata['title']}\nEssay Author: {doc.metadata['author']}\nPublish year: {doc.metadata['year']}\nEssay DOI: {doc.metadata['doi']}\nFragment Snippet: {doc.page_content}"
         for i, doc in enumerate(docs)
     ]
     return "\n\n" + "\n\n".join(formatted)
