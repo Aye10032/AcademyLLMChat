@@ -144,7 +144,7 @@ if prompt:
         answer_str = f"""
         {answer['answer_en']}\n
         {answer['answer_zh']}\n
-        cite: [{','.join(str(cit) for cit in answer['citations'])}]
+        cite: [{','.join(str(cit + 1) for cit in answer['citations'])}]
         """
         st.session_state.messages.append({'role': 'assistant', 'content': answer_str})
         logger.info(f"answer: {response['answer'][0]['answer_zh']}")
