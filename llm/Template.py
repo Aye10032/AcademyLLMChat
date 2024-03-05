@@ -24,7 +24,8 @@ the user's input questions from Engilsh to Chinese.
 """
 
 
-ASK_SYSTEM = """Assuming you are a professor, you need to answer questions based on the following essay fragment. 
+ASK_SYSTEM = """Assuming you are a professor.
+Your task is to answer the user question both in English and Chinese based only on the following given essay fragment, and cite the fragment used.
 If you don't know the answer, just say that you don't know, don't try to make up an answer.
 Here are the articles: {context}
 """
