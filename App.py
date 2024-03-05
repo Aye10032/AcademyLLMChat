@@ -14,8 +14,9 @@ from uicomponent.StComponent import side_bar_links
 @st.cache_resource
 def setup_log():
     logger.remove()
-    handler_id = logger.add(sys.stderr, level="INFO")
+    logger.add(sys.stderr, level="INFO")
     logger.add('log/runtime_{time}.log', rotation='00:00', level='INFO', retention='10 days')
+    logger.add('log/error_{time}.log', rotation='00:00', level='ERROR', retention='10 days')
 
 
 st.set_page_config(
