@@ -84,7 +84,8 @@ with col_chat:
 
     with st.container(height=610, border=False):
         for message in st.session_state.messages:
-            with st.chat_message(message['role']):
+            icon = 'logo.png' if message['role'] != 'user' else None
+            with st.chat_message(message['role'], avatar=icon):
                 st.markdown(message['content'])
 
         if prompt:
@@ -103,7 +104,7 @@ with col_chat:
 
                 response = chat_with_history(chat_history, prompt)
 
-                st.chat_message('assistant').markdown(response.content)
+                st.chat_message('assistant', avatar='logo.png').markdown(response.content)
                 st.session_state.messages.append({'role': 'assistant', 'content': response.content})
                 logger.info(f'answer: {response.content}')
 
@@ -142,7 +143,7 @@ if prompt:
         answer = response['answer'][0]
         st.session_state.cite_list = answer['citations']
         cite_str = ','.join(str(cit + 1) for cit in answer['citations'])
-        answer_str = f"{answer['answer_en']}\n{answer['answer_zh']}\n参考文献：[{cite_str}]"
+        answer_str = f"{answer['answer_en']}\n\n{answer['answer_zh']}\n\n参考文献：[{cite_str}]"
         st.session_state.messages.append({'role': 'assistant', 'content': answer_str})
         logger.info(f"answer: {response['answer'][0]['answer_zh']}")
 
