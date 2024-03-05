@@ -1,16 +1,48 @@
-from langchain.chains import RetrievalQA
+from operator import itemgetter
+from typing import List
+
 from langchain_community.vectorstores import milvus
 from langchain_community.vectorstores.milvus import Milvus
-from langchain_core.prompts import PromptTemplate
+from langchain_core.documents import Document
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.output_parsers.openai_tools import JsonOutputKeyToolsParser
+from langchain_core.prompts import PromptTemplate, ChatPromptTemplate
+from langchain_core.pydantic_v1 import BaseModel, Field
 
 import streamlit as st
+from langchain_core.runnables import RunnableLambda, RunnableParallel, RunnablePassthrough
 
 from Config import config
 from llm.AgentCore import translate_sentence
 from llm.ModelCore import load_gpt_16k, load_embedding_en, load_embedding_zh
 from llm.RetrieverCore import multi_query_retriever, base_retriever, self_query_retriever
-from llm.Template import ASK, TRANSLATE_TO_EN
+from llm.Template import TRANSLATE_TO_EN, ASK_SYSTEM, ASK_USER
 from llm.storage.SqliteStore import SqliteDocStore
+
+
+class CitedAnswer(BaseModel):
+    """Answer the user question both in English and Chinese based only on the given essay fragment, and cite the sources used."""
+
+    answer_en: str = Field(
+        ...,
+        description="The answer to the user question in English, which is based only on the given fragment.",
+    )
+    answer_zh: str = Field(
+        ...,
+        description="The answer to the user question in Chinese, which is based only on the given fragment.",
+    )
+    citations: List[int] = Field(
+        ...,
+        description="The integer IDs of the SPECIFIC fragment which justify the answer.",
+    )
+
+
+def format_docs(docs: List[Document]) -> str:
+    formatted = [
+        f"Fragment ID: {i} \nFragment Snippet: {doc.page_content}"
+        for i, doc in enumerate(docs)
+    ]
+    return "\n\n" + "\n\n".join(formatted)
 
 
 @st.cache_resource(show_spinner='Loading Vector Database...')
@@ -60,22 +92,33 @@ def get_answer(question: str, self_query: bool = False):
     vec_store = load_vectorstore()
     doc_store = load_doc_store()
 
-    prompt = PromptTemplate.from_template(ASK)
     llm = load_gpt_16k()
+    llm_tool = llm.bind_tools(
+        [CitedAnswer],
+        tool_choice="CitedAnswer",
+    )
+
+    question = translate_sentence(question, TRANSLATE_TO_EN).trans
 
     if self_query:
         retriever = self_query_retriever(vec_store, doc_store)
-        question = translate_sentence(question, TRANSLATE_TO_EN).trans
     else:
         b_retriever = base_retriever(vec_store, doc_store)
         retriever = multi_query_retriever(b_retriever)
 
-    qa_chain = RetrievalQA.from_chain_type(
-        llm,
-        retriever=retriever,
-        return_source_documents=True,
-        chain_type_kwargs={'prompt': prompt}
+    prompt = ChatPromptTemplate.from_messages([('system', ASK_SYSTEM), ('human', ASK_USER)])
+
+    formatter = itemgetter("docs") | RunnableLambda(format_docs)
+
+    output_parser = JsonOutputKeyToolsParser(key_name="CitedAnswer", return_single=True)
+    answer = prompt | llm_tool | output_parser
+    chain = (
+        RunnableParallel(question=RunnablePassthrough(), docs=retriever)
+        .assign(context=formatter)
+        .assign(answer=answer)
+        .pick(["answer", "docs"])
     )
-    result = qa_chain.invoke({'query': question})
+
+    result = chain.invoke(question)
 
     return result

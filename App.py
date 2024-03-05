@@ -111,15 +111,21 @@ with col_doc:
     if 'documents' not in st.session_state:
         st.session_state.documents = []
 
+    if 'cite_list' not in st.session_state:
+        st.session_state.cite_list = []
+
     if len(st.session_state.documents) > 0:
         st.subheader('参考文献')
         with st.container(height=550, border=True):
-            for ref in st.session_state.documents:
+            for index, ref in enumerate(st.session_state.documents):
                 _title = ref.metadata['title']
                 _author = ref.metadata['author']
                 _year = ref.metadata['year']
                 _doi = ref.metadata['doi']
-                st.markdown(f'#### {_title}')
+                if index in st.session_state.get('cite_list'):
+                    st.markdown(f'#### ✅{_title}')
+                else:
+                    st.markdown(f'#### {_title}')
                 st.caption(f'{_author}({_year}) [{_doi}](https://doi.org/{_doi})')
                 st.markdown(ref.page_content)
                 st.divider()
@@ -131,8 +137,16 @@ if prompt:
 
         response = get_answer(prompt, st.session_state.get('self_query'))
 
-        st.session_state.documents = response['source_documents']
-        st.session_state.messages.append({'role': 'assistant', 'content': response['result']})
-        logger.info(f'answer: {response["result"]}')
+        st.session_state.documents = response['docs']
+
+        answer = response['answer'][0]
+        st.session_state.cite_list = answer['citations']
+        answer_str = f"""
+        {answer['answer_en']}\n
+        {answer['answer_zh']}\n
+        cite: [{','.join(str(cit) for cit in answer['citations'])}]
+        """
+        st.session_state.messages.append({'role': 'assistant', 'content': answer_str})
+        logger.info(f"answer: {response['answer'][0]['answer_zh']}")
 
         st.rerun()

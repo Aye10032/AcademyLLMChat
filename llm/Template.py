@@ -24,10 +24,10 @@ the user's input questions from Engilsh to Chinese.
 """
 
 
-ASK = """Use the following pieces of context to answer the question at the end. 
+ASK_SYSTEM = """Assuming you are a professor, you need to answer questions based on the following essay fragment. 
 If you don't know the answer, just say that you don't know, don't try to make up an answer.
-{context}
-Question: {question}
-You need to give citations in your answer in standard academic essay format, and the citation numbers will follow the order of the context as given.
-Answer the question within 100 words, translate your answer into Chinese, and use line breaks to separate Chinese and English responses!
+Here are the articles: {context}
 """
+
+ASK_USER = """Answer the question within 100 words, translate your answer into Chinese, and use line breaks to separate Chinese and English responses!
+{question}"""
