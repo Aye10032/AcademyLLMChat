@@ -3,22 +3,22 @@ tqdm
 
 grobid-client-python==0.0.8
 lxml
-beautifulsoup4~=4.12.2
-requests[socks]~=2.31.0
+pyyaml
+beautifulsoup4
+requests[socks]
 pandas~=2.2.0
 
 langchain==0.1.10
 langchain_community==0.0.25
-unstructured
 markdown
 pymilvus==2.3.6
 sentence_transformers
 pydantic
 lark
-# torch==2.1.2+cu121
+# torch==2.2.1+cu121
 
 httpx
 langchain-openai
 openai
+
 streamlit~=1.31.0
-pyyaml
