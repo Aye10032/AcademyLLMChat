@@ -39,14 +39,20 @@ class CitedAnswer(BaseModel):
 
 def format_docs(docs: List[Document]) -> str:
     formatted = [
-        f"Fragment ID: {i} \nEssay Title: {doc.metadata['title']}\nEssay Author: {doc.metadata['author']}\nPublish year: {doc.metadata['year']}\nEssay DOI: {doc.metadata['doi']}\nFragment Snippet: {doc.page_content}"
+        f"""Fragment ID: {i}
+        Essay Title: {doc.metadata['title']}
+        Essay Author: {doc.metadata['author']}
+        Publish year: {doc.metadata['year']}
+        Essay DOI: {doc.metadata['doi']}
+        Fragment Snippet: {doc.page_content}
+        """
         for i, doc in enumerate(docs)
     ]
     return "\n\n" + "\n\n".join(formatted)
 
 
 @st.cache_resource(show_spinner='Loading Vector Database...')
-def load_vectorstore() -> Milvus:
+def load_vectorstore(collection_name: str) -> Milvus:
     milvus_cfg = config.milvus_config
 
     if milvus_cfg.get_collection().LANGUAGE == 'zh':
@@ -69,7 +75,7 @@ def load_vectorstore() -> Milvus:
 
     vector_db: milvus = Milvus(
         embedding,
-        collection_name=milvus_cfg.get_collection().NAME,
+        collection_name=collection_name,
         connection_args=connection_args,
         search_params={'ef': 15},
         auto_id=True
@@ -78,7 +84,6 @@ def load_vectorstore() -> Milvus:
     return vector_db
 
 
-@st.cache_resource
 def load_doc_store() -> SqliteDocStore:
     doc_store = SqliteDocStore(
         connection_string=config.get_sqlite_path()
@@ -89,7 +94,7 @@ def load_doc_store() -> SqliteDocStore:
 
 @st.cache_data(show_spinner='Asking from LLM chain...')
 def get_answer(question: str, self_query: bool = False):
-    vec_store = load_vectorstore()
+    vec_store = load_vectorstore(config.milvus_config.get_collection().NAME)
     doc_store = load_doc_store()
 
     llm = load_gpt_16k()
