@@ -92,6 +92,17 @@ class MilvusConfig:
         collection: Collection = self.COLLECTIONS[self.DEFAULT_COLLECTION]
         return collection
 
+    def get_conn_args(self):
+        if self.USING_REMOTE:
+            return {
+                'uri': self.REMOTE_DATABASE['url'],
+                'user': self.REMOTE_DATABASE['username'],
+                'password': self.REMOTE_DATABASE['password'],
+                'secure': True,
+            }
+        else:
+            return {'uri': f'http://{self.MILVUS_HOST}:{self.MILVUS_PORT}'}
+
     def add_collection(self, collection: Collection):
         self.COLLECTIONS.append(collection)
         json.dump({"collections": [c.to_dict() for c in self.COLLECTIONS]},

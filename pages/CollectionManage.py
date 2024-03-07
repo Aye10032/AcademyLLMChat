@@ -28,23 +28,9 @@ collections = []
 for collection in milvus_cfg.COLLECTIONS:
     collections.append(collection.NAME)
 
-if milvus_cfg.USING_REMOTE:
-    uri = milvus_cfg.REMOTE_DATABASE['url']
-    user = milvus_cfg.REMOTE_DATABASE['username']
-    password = milvus_cfg.REMOTE_DATABASE['password']
-    conn = MilvusConnection(uri=uri, user=user, password=password, secure=True)
-    connection_args = {
-        'uri': milvus_cfg.REMOTE_DATABASE['url'],
-        'user': milvus_cfg.REMOTE_DATABASE['username'],
-        'password': milvus_cfg.REMOTE_DATABASE['password'],
-        'secure': True,
-    }
-else:
-    conn = MilvusConnection(uri=f'http://{milvus_cfg.MILVUS_HOST}:{milvus_cfg.MILVUS_PORT}')
-    connection_args = {
-        'host': milvus_cfg.MILVUS_HOST,
-        'port': milvus_cfg.MILVUS_PORT,
-    }
+
+conn = MilvusConnection(milvus_cfg.get_conn_args())
+
 
 dtype = {
     0: 'NONE',

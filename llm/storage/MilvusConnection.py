@@ -11,10 +11,21 @@ class MilvusConnection:
             - password
             - secure
         """
+        self.uri = uri
+        self.kwargs = kwargs
 
-        connections.connect('default', uri=uri, **kwargs)
-        self.client = MilvusClient(uri, **kwargs)
+        connections.connect('default', uri=self.uri, **self.kwargs)
+        self.client = None
 
+    def __enter__(self):
+        self.client = MilvusClient(self.uri, **self.kwargs)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        connections.disconnect('default')
+        connections.disconnect()
+
+    def __del__(self):
+        connections.disconnect()
 
     def list_collections(self) -> list:
         return utility.list_collections()
@@ -36,6 +47,3 @@ class MilvusConnection:
 
     def drop_collection(self, collection_name) -> None:
         utility.drop_collection(collection_name)
-
-    def disconnect(self):
-        connections.disconnect('default')

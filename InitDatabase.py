@@ -47,23 +47,10 @@ def init_retriever() -> ParentDocumentRetriever:
         drop_old=True
     )
 
-    if milvus_cfg.USING_REMOTE:
-        connection_args = {
-            'uri': milvus_cfg.REMOTE_DATABASE['url'],
-            'user': milvus_cfg.REMOTE_DATABASE['username'],
-            'password': milvus_cfg.REMOTE_DATABASE['password'],
-            'secure': True,
-        }
-    else:
-        connection_args = {
-            'host': milvus_cfg.MILVUS_HOST,
-            'port': milvus_cfg.MILVUS_PORT,
-        }
-
     vector_db = Milvus(
         embedding,
         collection_name=collection,
-        connection_args=connection_args,
+        connection_args=milvus_cfg.get_conn_args(),
         index_params=milvus_cfg.get_collection().INDEX_PARAM,
         drop_old=True,
         auto_id=True

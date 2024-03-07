@@ -60,23 +60,10 @@ def load_vectorstore(collection_name: str) -> Milvus:
     else:
         embedding = load_embedding_en()
 
-    if milvus_cfg.USING_REMOTE:
-        connection_args = {
-            'uri': milvus_cfg.REMOTE_DATABASE['url'],
-            'user': milvus_cfg.REMOTE_DATABASE['username'],
-            'password': milvus_cfg.REMOTE_DATABASE['password'],
-            'secure': True,
-        }
-    else:
-        connection_args = {
-            'host': milvus_cfg.MILVUS_HOST,
-            'port': milvus_cfg.MILVUS_PORT
-        }
-
     vector_db: milvus = Milvus(
         embedding,
         collection_name=collection_name,
-        connection_args=connection_args,
+        connection_args=milvus_cfg.get_conn_args(),
         search_params={'ef': 15},
         auto_id=True
     )

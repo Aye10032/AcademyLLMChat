@@ -7,12 +7,14 @@ import streamlit as st
 from langchain_core.documents import Document
 from loguru import logger
 from pandas import DataFrame
+from pymilvus import connections
 from tqdm import tqdm
 
 import Config
 from Config import config, UserRole
 from llm.RagCore import load_vectorstore, load_doc_store
 from llm.RetrieverCore import base_retriever
+from llm.storage.MilvusConnection import MilvusConnection
 from uicomponent.StComponent import side_bar_links, role_check
 from utils.FileUtil import save_to_md, section_to_documents, Section
 from utils.GrobidUtil import parse_xml, parse_pdf_to_xml
@@ -35,10 +37,15 @@ role_check(UserRole.ADMIN, True)
 st.title('添加文献')
 
 
+def check_exist(ref_list: DataFrame) -> DataFrame:
+    ref_list['exist'] = False
+    with MilvusConnection(config.milvus_config.get_conn_args()) as conn:
+        for row in ref_list.itertuples():
+            pass
+
+    return ref_list
 
 
-def check_exist(ref_list:DataFrame) -> DataFrame:
-    pass
 def add_documents(docs: list[Document]) -> None:
     vector_db = load_vectorstore(config.milvus_config.get_collection().NAME)
     doc_db = load_doc_store()
