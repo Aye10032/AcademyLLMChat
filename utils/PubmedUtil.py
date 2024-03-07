@@ -1,3 +1,6 @@
+from typing import Dict
+
+import pandas as pd
 import requests
 
 from Config import config
@@ -5,7 +8,7 @@ from bs4 import BeautifulSoup
 from loguru import logger
 
 
-def get_paper_info(pmid: str):
+def get_paper_info(pmid: str) -> Dict:
     """
     :param pmid: pubmed id
     :return:
@@ -19,7 +22,7 @@ def get_paper_info(pmid: str):
     """
     logger.info(f'request PMID:{pmid}')
     url = (f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id={pmid}'
-           f'&rettype=abstract&retmode=xml&api_key={config.pubmed_config.API_KEY}')
+           f'&retmode=xml&api_key={config.pubmed_config.API_KEY}')
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
@@ -68,6 +71,29 @@ def get_paper_info(pmid: str):
     else:
         pmc = None
 
+    ref_block = soup.find('ReferenceList')
+
+    ref_list = []
+    if ref_block:
+        for ref in ref_block.find_all('Reference'):
+            if id_list := ref.find('ArticleIdList'):
+                if ref_pmc_block := id_list.find('ArticleId', {'IdType': 'pmc'}):
+                    ref_pmc = ref_pmc_block.text
+                else:
+                    ref_pmc = pd.NA
+
+                if ref_pm_block := id_list.find('ArticleId', {'IdType': 'pubmed'}):
+                    ref_pm = ref_pm_block.text
+                else:
+                    ref_pm = pd.NA
+
+                if ref_doi_block := id_list.find('ArticleId', {'IdType': 'doi'}):
+                    ref_doi = ref_doi_block.text
+                else:
+                    ref_doi = pd.NA
+
+                ref_list.append({'doi': ref_doi, 'pubmed': ref_pm, 'pmc': ref_pmc})
+
     return {
         'title': title,
         'author': author,
@@ -75,7 +101,8 @@ def get_paper_info(pmid: str):
         'abstract': abstract,
         'keywords': keywords,
         'doi': doi,
-        'pmc': pmc
+        'pmc': pmc,
+        'ref_list': pd.DataFrame(ref_list)
     }
 
 
