@@ -1,9 +1,24 @@
 version: '3'
 services:
-  grobid:
-    image: lfoppiano/grobid:0.8.0
+#  grobid:
+#    image: lfoppiano/grobid:0.8.0
+#    ports:
+#      - "8070:8070"
+#    ulimits:
+#      core: 2
+#    restart: on-failure
+
+  grobid-gpu:
+    image: grobid/grobid:0.8.0
     ports:
       - "8070:8070"
     ulimits:
-      core: 2
+      core: 0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 0
+              capabilities: [ gpu ]
     restart: on-failure
