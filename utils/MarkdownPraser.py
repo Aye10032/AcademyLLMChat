@@ -5,27 +5,10 @@ from langchain.text_splitter import MarkdownHeaderTextSplitter, RecursiveCharact
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 
-def split_markdown(document: UploadedFile, year: int):
-    md_splitter = MarkdownHeaderTextSplitter(
-        headers_to_split_on=[('#', 'title'), ('##', 'section'), ('###', 'subtitle'), ('####', 'subtitle')]
-    )
-    r_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=450,
-        chunk_overlap=0,
-        separators=['\n\n', '\n'],
-        keep_separator=False
-    )
-
-    doi = document.name.replace('@', '/').replace('.md', '')
-
+def split_markdown(document: UploadedFile):
     stringio = StringIO(document.getvalue().decode("utf-8"))
     string_data = stringio.read()
-    head_split_docs = md_splitter.split_text(string_data)
-    for doc in head_split_docs:
-        doc.metadata['doi'] = doi
-        doc.metadata['year'] = year
-    md_docs = r_splitter.split_documents(head_split_docs)
-
+    md_docs = split_markdown_text(string_data)
     return md_docs
 
 
