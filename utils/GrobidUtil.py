@@ -1,5 +1,5 @@
 import os
-from typing import LiteralString
+from typing import LiteralString, Any
 
 from grobid_client.grobid_client import GrobidClient
 from bs4 import BeautifulSoup
@@ -36,7 +36,7 @@ def parse_pdf(pdf_path: LiteralString | str):
     pdf_paths.clear()
 
 
-def parse_pdf_to_xml(pdf_path: LiteralString | str | bytes):
+def parse_pdf_to_xml(pdf_path: LiteralString | str | bytes) -> (Any, int, str):
     """
     将pdf解析为xml文件
     :param pdf_path: 单个pdf文件
@@ -107,14 +107,18 @@ def parse_xml(xml_path: LiteralString | str | bytes):
             title_level = section.find('head').attrs.get('n')
             level = title_level.count('.') + 1 if title_level else 2
 
-            sections.append(Section(section_title, level, ''))
+            sections.append(Section(section_title, level))
 
             for p in section.find_all('p'):
                 text = replace_multiple_spaces(p.text.strip())
                 if text:
-                    sections.append(Section(text, 0, ''))
+                    sections.append(Section(text, 0))
 
-    return {'title': title, 'authors': authors, 'year': year, 'abstract': abstract, 'keywords': keywords,
+    return {'title': title,
+            'authors': authors,
+            'year': year,
+            'abstract': abstract,
+            'keywords': keywords,
             'sections': sections}
 
 
