@@ -29,7 +29,7 @@ for collection in milvus_cfg.COLLECTIONS:
     collections.append(collection.NAME)
 
 
-conn = MilvusConnection(milvus_cfg.get_conn_args())
+conn = MilvusConnection(**milvus_cfg.get_conn_args())
 
 
 dtype = {

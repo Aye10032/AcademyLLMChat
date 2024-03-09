@@ -11,11 +11,9 @@ class MilvusConnection:
             - password
             - secure
         """
-        self.uri = uri
-        self.kwargs = kwargs
 
-        connections.connect('default', uri=self.uri, **self.kwargs)
-        self.client = MilvusClient(self.uri, **self.kwargs)
+        connections.connect('default', uri=uri, **kwargs)
+        self.client = MilvusClient(uri=uri, **kwargs)
 
     def __enter__(self) -> MilvusClient:
         return self.client

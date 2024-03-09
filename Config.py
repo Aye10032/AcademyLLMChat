@@ -3,7 +3,7 @@ import json
 import os
 import shutil
 from enum import IntEnum
-from typing import Dict
+from typing import Dict, Tuple
 
 import yaml
 from loguru import logger
@@ -101,7 +101,9 @@ class MilvusConfig:
                 'secure': True,
             }
         else:
-            return {'uri': f'http://{self.MILVUS_HOST}:{self.MILVUS_PORT}'}
+            return {
+                'uri': f'http://{self.MILVUS_HOST}:{self.MILVUS_PORT}'
+            }
 
     def add_collection(self, collection: Collection):
         self.COLLECTIONS.append(collection)
