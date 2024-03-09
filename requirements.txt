@@ -20,5 +20,6 @@ lark
 httpx
 langchain-openai
 openai
+langchain-anthropic
 
 streamlit~=1.31.0

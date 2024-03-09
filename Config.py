@@ -132,6 +132,17 @@ class OpenaiConfig:
         return cls(**data)
 
 
+class ClaudeConfig:
+    def __init__(self, use_proxy: bool, model: str, api_key: str):
+        self.USE_PROXY = use_proxy
+        self.MODEL = model
+        self.API_KEY = api_key
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, any]):
+        return cls(**data)
+
+
 class Config:
     def __init__(self):
         yml_path = os.path.join(get_work_path(), 'config.yml')
@@ -148,10 +159,9 @@ class Config:
             self.XML_PATH = self.yml['xml_path']
             self.SQLITE_PATH = self.yml['sqlite_path']
 
-            _proxy_type = self.yml['proxy']['type']
-            _proxy_host = self.yml['proxy']['host']
-            _proxy_port = self.yml['proxy']['port']
-            self.PROXY = f'{_proxy_type}://{_proxy_host}:{_proxy_port}'
+            self.PROXY_TYPE = self.yml['proxy']['type']
+            self.PROXY_HOST = self.yml['proxy']['host']
+            self.PROXY_PORT = self.yml['proxy']['port']
 
             self.ADMIN_TOKEN = self.yml['auth']['admin_token']
             self.OWNER_TOKEN = self.yml['auth']['owner_token']
@@ -159,7 +169,8 @@ class Config:
             self.pubmed_config: PubmedConfig = PubmedConfig.from_dict(self.yml['pubmed'])
             self.grobid_config: GrobidConfig = GrobidConfig.from_dict(self.yml['grobid'])
             self.milvus_config: MilvusConfig = MilvusConfig.from_dict(self.DATA_ROOT, self.yml['milvus'])
-            self.openai_config: OpenaiConfig = OpenaiConfig.from_dict(self.yml['openai'])
+            self.openai_config: OpenaiConfig = OpenaiConfig.from_dict(self.yml['llm']['openai'])
+            self.claude_config: ClaudeConfig = ClaudeConfig.from_dict(self.yml['llm']['claude3'])
 
     def set_collection(self, collection: int):
         if collection >= len(self.milvus_config.COLLECTIONS):
@@ -187,6 +198,9 @@ class Config:
         sqlite_path = os.path.join(get_work_path(), self.DATA_ROOT, collection_name, self.SQLITE_PATH)
         os.makedirs(os.path.dirname(sqlite_path), exist_ok=True)
         return sqlite_path
+
+    def get_proxy(self):
+        return f'{self.PROXY_TYPE}://{self.PROXY_HOST}:{self.PROXY_PORT}'
 
 
 config = Config()
