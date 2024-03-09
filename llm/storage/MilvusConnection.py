@@ -15,17 +15,16 @@ class MilvusConnection:
         self.kwargs = kwargs
 
         connections.connect('default', uri=self.uri, **self.kwargs)
-        self.client = None
-
-    def __enter__(self):
         self.client = MilvusClient(self.uri, **self.kwargs)
+
+    def __enter__(self) -> MilvusClient:
+        return self.client
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         connections.disconnect('default')
-        connections.disconnect()
 
     def __del__(self):
-        connections.disconnect()
+        connections.disconnect('default')
 
     def list_collections(self) -> list:
         return utility.list_collections()
