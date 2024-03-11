@@ -30,8 +30,8 @@ def get_paper_info(pmid: str) -> Dict:
 
     if config.pubmed_config.USE_PROXY:
         proxies = {
-            'http': config.PROXY,
-            'https': config.PROXY
+            'http': config.get_proxy(),
+            'https': config.get_proxy()
         }
         response = requests.request("GET", url, headers=headers, proxies=proxies, timeout=10)
     else:
