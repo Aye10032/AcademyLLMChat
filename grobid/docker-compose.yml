@@ -19,6 +19,6 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              count: 0
-              capabilities: [ gpu ]
+              capabilities: ["gpu"]
+              device_ids: ["0"]
     restart: on-failure
