@@ -1,4 +1,4 @@
-from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain_community.chat_message_histories import ChatMessageHistory, StreamlitChatMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
@@ -8,7 +8,7 @@ import streamlit as st
 
 
 @st.cache_data(show_spinner='chat with GPT...')
-def chat_with_history(_chat_history: ChatMessageHistory, question: str):
+def chat_with_history(_chat_history: ChatMessageHistory | StreamlitChatMessageHistory, question: str):
     prompt = ChatPromptTemplate.from_messages(
         [
             (

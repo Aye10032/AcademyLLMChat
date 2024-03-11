@@ -54,7 +54,6 @@ with st.sidebar:
 
     if not option == milvus_cfg.DEFAULT_COLLECTION:
         config.set_collection(option)
-        st.cache_resource.clear()
         st.rerun()
 
     st.markdown('#### 选择对话模式')
@@ -65,10 +64,15 @@ with st.sidebar:
     else:
         st.caption('当前为知识库查询模式')
 
-    st.toggle('精准查找', key='self_query', label_visibility='collapsed')
+    st.markdown('#### 精准询问')
+    st.toggle('精准询问', key='self_query', label_visibility='collapsed')
 
     if st.session_state.get('self_query'):
         st.caption('精准模式：:green[开]')
+        with st.expander('索引条件'):
+            st.text_input('doi', key='target_doi')
+            st.text_input('title', key='target_title')
+            st.text_input('author', key='target_author')
     else:
         st.caption('精准模式：:red[关]')
 
@@ -99,22 +103,22 @@ with col_chat:
         if prompt:
             st.chat_message('user').markdown(prompt)
 
-            if st.session_state.get('chat_type'):
-                logger.info(f'chat: {prompt}')
-                st.session_state.messages.append({'role': 'user', 'content': prompt})
-
-                chat_history = ChatMessageHistory()
-                for message in st.session_state.messages:
-                    if message['role'] == 'assistant':
-                        chat_history.add_ai_message(message['content'])
-                    else:
-                        chat_history.add_user_message(message['content'])
-
-                response = chat_with_history(chat_history, prompt)
-
-                st.chat_message('assistant', avatar='logo.png').markdown(response.content)
-                st.session_state.messages.append({'role': 'assistant', 'content': response.content})
-                logger.info(f'answer: {response.content}')
+            # if st.session_state.get('chat_type'):
+            #     logger.info(f'chat: {prompt}')
+            #     st.session_state.messages.append({'role': 'user', 'content': prompt})
+            #
+            #     chat_history = ChatMessageHistory()
+            #     for message in st.session_state.messages:
+            #         if message['role'] == 'assistant':
+            #             chat_history.add_ai_message(message['content'])
+            #         else:
+            #             chat_history.add_user_message(message['content'])
+            #
+            #     response = chat_with_history(chat_history, prompt)
+            #
+            #     st.chat_message('assistant', avatar='logo.png').markdown(response.content)
+            #     st.session_state.messages.append({'role': 'assistant', 'content': response.content})
+            #     logger.info(f'answer: {response.content}')
 
 with col_doc:
     if 'documents' not in st.session_state:
@@ -154,5 +158,23 @@ if prompt:
         answer_str = f"{answer['answer_en']}\n\n{answer['answer_zh']}\n\n参考文献：[{cite_str}]"
         st.session_state.messages.append({'role': 'assistant', 'content': answer_str})
         logger.info(f"answer: {response['answer'][0]['answer_zh']}")
+
+        st.rerun()
+    else:
+        logger.info(f'chat: {prompt}')
+        st.session_state.messages.append({'role': 'user', 'content': prompt})
+
+        chat_history = ChatMessageHistory()
+        for message in st.session_state.messages:
+            if message['role'] == 'assistant':
+                chat_history.add_ai_message(message['content'])
+            else:
+                chat_history.add_user_message(message['content'])
+
+        response = chat_with_history(chat_history, prompt)
+
+        st.chat_message('assistant', avatar='logo.png').markdown(response.content)
+        st.session_state.messages.append({'role': 'assistant', 'content': response.content})
+        logger.info(f'answer: {response.content}')
 
         st.rerun()
