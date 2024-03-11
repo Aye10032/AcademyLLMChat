@@ -38,7 +38,7 @@ def load_csv(year: int):
         pm_data = get_paper_info(row.PMID)
         if pm_data['pmc']:
             time.sleep(random.uniform(1.0, 4.0))
-            download_info = download_paper_data(pm_data['pmc'])
+            _, download_info = download_paper_data(pm_data['pmc'])
             doi = download_info['doi']
             year = download_info['year']
             xml_path = download_info['output_path']

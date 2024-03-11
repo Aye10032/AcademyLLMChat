@@ -2,6 +2,7 @@ import json
 import os.path
 import re
 from enum import Enum
+from typing import Tuple
 
 import requests
 import pandas as pd
@@ -47,7 +48,7 @@ def get_pmc_id(term: str, file_name: str = 'pmlist.csv') -> None:
     df.to_csv(file_name, mode='w', index=False, encoding='utf-8')
 
 
-def download_paper_data(pmc_id: str) -> dict:
+def download_paper_data(pmc_id: str) -> Tuple[int, dict]:
     url = (f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id={pmc_id}'
            f'&retmode=xml&api_key={config.pubmed_config.API_KEY}')
 
@@ -81,7 +82,7 @@ def download_paper_data(pmc_id: str) -> dict:
         with open(xml_path, 'w', encoding='utf-8') as f:
             f.write(response.text)
 
-    return {
+    return response.status_code, {
         'year': year,
         'doi': doi,
         'output_path': xml_path

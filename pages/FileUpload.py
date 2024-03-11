@@ -36,17 +36,80 @@ role_check(UserRole.ADMIN, True)
 
 st.title('添加文献')
 
+if 'ref_list' not in st.session_state:
+    st.session_state['ref_list'] = None
 
-def check_exist(ref_list: DataFrame) -> DataFrame:
+if 'retry_disable' not in st.session_state:
+    st.session_state['retry_disable'] = True
+
+
+def __check_exist(ref_list: DataFrame) -> DataFrame:
     ref_list['exist'] = False
-    with MilvusConnection(config.milvus_config.get_conn_args()) as conn:
-        for row in ref_list.itertuples():
-            pass
+    with MilvusConnection(**milvus_cfg.get_conn_args()) as conn:
+        for index, row in ref_list.iterrows():
+            _num = conn.query(milvus_cfg.get_collection().NAME, filter=f'doi == "{row.doi}"')
+            if len(_num) != 0:
+                ref_list.at[index, 'exist'] = True
 
     return ref_list
 
 
-def add_documents(docs: list[Document]) -> None:
+def __download_reference(ref_list: DataFrame):
+    st.session_state['retry_disable'] = True
+
+    ref_bar = st.progress(0, text='')
+    file_count = ref_list.shape[0]
+
+    for index, row in ref_list.iterrows():
+
+        if row.download or row.exist:
+            logger.info(f'skip {row.doi}')
+            continue
+
+        if pd.notna(row.pmc):
+            tag = __download_from_pmc(row.pmc)
+            if tag == 0:
+                ref_list.at[index, 'exist'] = True
+            else:
+                ref_list.at[index, 'exist'] = False
+            ref_list.at[index, 'download'] = True
+            st.session_state['ref_list'] = ref_list
+
+        progress_num = (int(str(index)) + 1) / file_count
+        ref_bar.progress(progress_num, text=f'正在处理文本({int(str(index)) + 1}/{file_count})，请勿关闭或刷新此页面')
+
+    ref_bar.empty()
+
+
+def __download_from_pmc(pmc_id: str) -> int:
+    with st.spinner('Downloading paper...'):
+        _, dl = download_paper_data(pmc_id)
+
+    doi = dl['doi']
+    year = dl['year']
+    xml_path = dl['output_path']
+
+    with st.spinner('Parsing paper...'):
+        with open(xml_path, 'r', encoding='utf-8') as f:
+            xml_text = f.read()
+
+        data = parse_paper_data(xml_text, year, doi)
+
+        if not data['norm']:
+            return -1
+
+        output_path = os.path.join(config.get_md_path(), year, f"{doi.replace('/', '@')}.md")
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        save_to_md(data['sections'], output_path, ref=True, year=year, author=data['author'], doi=doi)
+
+    with st.spinner('Adding paper to vector db...'):
+        docs = section_to_documents(data['sections'], year=int(year), doi=doi, author=data['author'])
+        __add_documents(docs)
+
+    return 0
+
+
+def __add_documents(docs: list[Document]) -> None:
     vector_db = load_vectorstore(config.milvus_config.get_collection().NAME)
     doc_db = load_doc_store()
     retriever = base_retriever(vector_db, doc_db)
@@ -114,7 +177,7 @@ def markdown_tab():
             md_bar = st.progress(0, text=progress_text)
             for index, uploaded_file in tqdm(enumerate(uploaded_files), total=file_count):
                 doc = split_markdown(uploaded_file)
-                add_documents(doc)
+                __add_documents(doc)
                 progress_num = (index + 1) / file_count
                 md_bar.progress(progress_num, text=f'正在处理文本({index + 1}/{file_count})，请勿关闭或刷新此页面')
             md_bar.empty()
@@ -146,31 +209,42 @@ def pdf_tab():
                               label_visibility='collapsed')
         uploaded_file = st.file_uploader('选择PDF文件', type=['pdf'], disabled=st.session_state['pdf_uploader_disable'])
 
-        st.button('导入文献', key='pdf_submit', disabled=st.session_state['pdf_uploader_disable'])
+        st.button('下载并添加', key='pdf_submit', type='primary', disabled=st.session_state['pdf_uploader_disable'])
+
+        if st.session_state.get('ref_list') is not None:
+            st.dataframe(st.session_state.get('ref_list'), use_container_width=True)
+
+        retry_block = st.empty()
+        error_block = st.empty()
+
+        if not st.session_state.get('retry_disable'):
+            retry_block.button('重试', key='pdf_retry', disabled=st.session_state['retry_disable'])
+            error_block.error('下载出现错误，请重试')
 
         if st.session_state.get('pdf_submit'):
             if uploaded_file is not None:
                 logger.debug(st.session_state.get('pdf_selection'))
                 config.set_collection(option)
 
-                data = get_paper_info(uploaded_file.name.replace('.pdf', '').replace('PM', ''))
-                pdf_path = os.path.join(config.get_pdf_path(), data['year'], uploaded_file.name)
-                os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+                with st.spinner('Download information from pubmed...'):
+                    data = get_paper_info(uploaded_file.name.replace('.pdf', '').replace('PM', ''))
 
-                section_dict = [Section(data['title'], 1), Section('Abstract', 2), Section(data['abstract'], 0)]
+                    pdf_path = os.path.join(config.get_pdf_path(), data['year'], uploaded_file.name)
+                    os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
 
-                with open(pdf_path, 'wb') as f:
-                    f.write(uploaded_file.getbuffer())
+                    section_dict = [Section(data['title'], 1), Section('Abstract', 2), Section(data['abstract'], 0)]
 
-                doi = data['doi']
-                year = data['year']
-                author = data['author']
-                ref_list: pd.DataFrame = data['ref_list']
-                ref_list['download'] = False
+                    with open(pdf_path, 'wb') as f:
+                        f.write(uploaded_file.getbuffer())
 
-                xml_path = os.path.join(config.get_xml_path(), year, doi.replace('/', '@') + '.grobid.tei.xml')
+                    doi = data['doi']
+                    year = data['year']
+                    author = data['author']
 
-                os.makedirs(os.path.dirname(xml_path), exist_ok=True)
+                    xml_path = os.path.join(config.get_xml_path(), year, doi.replace('/', '@') + '.grobid.tei.xml')
+
+                    os.makedirs(os.path.dirname(xml_path), exist_ok=True)
+
                 with st.spinner('Parsing pdf...'):
                     _, _, xml_text = parse_pdf_to_xml(pdf_path)
                     with open(xml_path, 'w', encoding='utf-8') as f:
@@ -183,20 +257,39 @@ def pdf_tab():
                     os.makedirs(os.path.dirname(md_path), exist_ok=True)
                     save_to_md(section_dict, md_path, year=year, doi=doi, author=author, ref=False)
 
-                st.success('PDF识别完毕')
-                st.dataframe(ref_list, use_container_width=True)
+                st.toast('PDF识别完毕')
 
-                for index, row in ref_list.iterrows():
-                    if row.download:
-                        st.write('skip')
-                        pass
+                with st.spinner('Analysing reference...'):
+                    ref_list = data['ref_list']
+                    ref_list['download'] = False
+                    ref_list = __check_exist(ref_list)
 
-                    else:
-                        row.download = True
-                        time.sleep(2)
+                    st.session_state['retry_visible'] = True
+                    try:
+                        __download_reference(ref_list)
+                    except Exception as e:
+                        logger.error(e)
+                        st.session_state['retry_disable'] = False
+                        st.rerun()
+                    finally:
+                        st.success('引用处理完毕')
 
             else:
                 st.warning('请先上传PDF文件')
+
+        if st.session_state.get('pdf_retry'):
+            ref_list = st.session_state.get('ref_list')
+            error_block.empty()
+
+            with st.spinner('Analysing reference...'):
+                try:
+                    __download_reference(ref_list)
+                except Exception as e:
+                    logger.error(e)
+                    st.session_state['retry_disable'] = False
+                    st.rerun()
+                finally:
+                    st.success('引用处理完毕')
 
 
 def pmc_tab():
@@ -235,30 +328,10 @@ def pmc_tab():
         if st.session_state.get('pmc_submit'):
             config.set_collection(option)
 
-            with st.spinner('Downloading paper...'):
-                dl = download_paper_data(pmc_id)
+            tag = __download_from_pmc(pmc_id)
 
-            doi = dl['doi']
-            year = dl['year']
-            xml_path = dl['output_path']
-
-            with st.spinner('Parsing paper...'):
-                with open(xml_path, 'r', encoding='utf-8') as f:
-                    xml_text = f.read()
-
-                data = parse_paper_data(xml_text, year, doi)
-
-                if not data['norm']:
-                    st.error('文章结构不完整！请检查相关信息，或尝试通过PDF加载.')
-                    st.stop()
-
-                output_path = os.path.join(config.get_md_path(), year, f"{doi.replace('/', '@')}.md")
-                os.makedirs(os.path.dirname(output_path), exist_ok=True)
-                save_to_md(data['sections'], output_path, ref=True, year=year, author=data['author'], doi=doi)
-
-            with st.spinner('Adding paper to vector db...'):
-                docs = section_to_documents(data['sections'], year=int(year), doi=doi, author=data['author'])
-                add_documents(docs)
+            if tag == -1:
+                st.error('文章结构不完整！请检查相关信息，或尝试通过PDF加载.')
 
             if st.session_state.get('build_ref_tree'):
                 # TODO

@@ -19,7 +19,7 @@ def __download(csv_path: str):
             continue
 
         pmcid = row.PMCID
-        data = download_paper_data(pmcid)
+        _, data = download_paper_data(pmcid)
 
         df_output.at[index, 'Year'] = data['year']
         df_output.to_csv(csv_path, index=False, encoding='utf-8')
