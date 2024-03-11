@@ -66,6 +66,8 @@ def download_paper_data(pmc_id: str) -> Tuple[int, dict]:
         else:
             response = session.request("GET", url, headers=headers, timeout=10)
 
+    if response.status_code == 200:
+
         soup = BeautifulSoup(response.text, 'xml')
 
         doi = soup.find('article-id', {'pub-id-type': 'doi'}).text \
@@ -76,17 +78,26 @@ def download_paper_data(pmc_id: str) -> Tuple[int, dict]:
             if soup.find('pub-date') \
             else None
 
-        xml_path = os.path.join(config.get_xml_path(), year, doi.replace('/', '@') + '.xml')
-        os.makedirs(os.path.dirname(xml_path), exist_ok=True)
+        xml_path = os.path.join(config.get_xml_path(), year, doi.replace('/', '@') + '.xml') if doi else None
 
-        with open(xml_path, 'w', encoding='utf-8') as f:
-            f.write(response.text)
+        if xml_path:
+            os.makedirs(os.path.dirname(xml_path), exist_ok=True)
 
-    return response.status_code, {
-        'year': year,
-        'doi': doi,
-        'output_path': xml_path
-    }
+            with open(xml_path, 'w', encoding='utf-8') as f:
+                f.write(response.text)
+
+        return response.status_code, {
+            'year': year,
+            'doi': doi,
+            'output_path': xml_path
+        }
+    else:
+        return response.status_code, {
+            'year': None,
+            'doi': None,
+            'output_path': None
+        }
+
 
 
 def parse_paper_data(xml_text: str, year: str, doi: str) -> dict:

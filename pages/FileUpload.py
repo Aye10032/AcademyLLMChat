@@ -63,7 +63,9 @@ def __download_reference(ref_list: DataFrame):
     for index, row in ref_list.iterrows():
 
         if row.download or row.exist:
-            logger.info(f'skip {row.doi}')
+            logger.info(f'{row.doi} exist, skip.')
+            ref_list.at[index, 'download'] = True
+            st.session_state['ref_list'] = ref_list
             continue
 
         if pd.notna(row.pmc):
@@ -83,11 +85,19 @@ def __download_reference(ref_list: DataFrame):
 
 def __download_from_pmc(pmc_id: str) -> int:
     with st.spinner('Downloading paper...'):
-        _, dl = download_paper_data(pmc_id)
+        status_code, dl = download_paper_data(pmc_id)
+
+    if status_code == 200:
+        pass
+    else:
+        raise Exception('下载请求失败')
 
     doi = dl['doi']
     year = dl['year']
     xml_path = dl['output_path']
+
+    if xml_path is None:
+        return -1
 
     with st.spinner('Parsing paper...'):
         with open(xml_path, 'r', encoding='utf-8') as f:
@@ -211,11 +221,12 @@ def pdf_tab():
 
         st.button('下载并添加', key='pdf_submit', type='primary', disabled=st.session_state['pdf_uploader_disable'])
 
-        if st.session_state.get('ref_list') is not None:
-            st.dataframe(st.session_state.get('ref_list'), use_container_width=True)
-
+        df_block = st.empty()
         retry_block = st.empty()
         error_block = st.empty()
+
+        if st.session_state.get('ref_list') is not None:
+            df_block.dataframe(st.session_state.get('ref_list'), use_container_width=True)
 
         if not st.session_state.get('retry_disable'):
             retry_block.button('重试', key='pdf_retry', disabled=st.session_state['retry_disable'])
@@ -272,6 +283,7 @@ def pdf_tab():
                         st.session_state['retry_disable'] = False
                         st.rerun()
                     finally:
+                        df_block.dataframe(st.session_state.get('ref_list'), use_container_width=True)
                         st.success('引用处理完毕')
 
             else:
