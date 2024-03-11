@@ -219,7 +219,7 @@ def pdf_tab():
                               label_visibility='collapsed')
         uploaded_file = st.file_uploader('选择PDF文件', type=['pdf'], disabled=st.session_state['pdf_uploader_disable'])
 
-        st.button('下载并添加', key='pdf_submit', type='primary', disabled=st.session_state['pdf_uploader_disable'])
+        st.button('解析并添加', key='pdf_submit', type='primary', disabled=st.session_state['pdf_uploader_disable'])
 
         df_block = st.empty()
         retry_block = st.empty()
@@ -256,19 +256,29 @@ def pdf_tab():
 
                     os.makedirs(os.path.dirname(xml_path), exist_ok=True)
 
-                with st.spinner('Parsing pdf...'):
-                    _, _, xml_text = parse_pdf_to_xml(pdf_path)
-                    with open(xml_path, 'w', encoding='utf-8') as f:
-                        f.write(xml_text)
-                    result = parse_xml(xml_path)
+                with MilvusConnection(**milvus_cfg.get_conn_args()) as conn:
+                    _num = conn.query(milvus_cfg.get_collection().NAME, filter=f'doi == "{doi}"')
 
-                    section_dict.extend(result['sections'])
+                if len(_num) == 0:
+                    with st.spinner('Parsing pdf...'):
+                        _, _, xml_text = parse_pdf_to_xml(pdf_path)
+                        with open(xml_path, 'w', encoding='utf-8') as f:
+                            f.write(xml_text)
+                        result = parse_xml(xml_path)
 
-                    md_path = os.path.join(config.get_md_path(), year, doi.replace('/', '@') + '.md')
-                    os.makedirs(os.path.dirname(md_path), exist_ok=True)
-                    save_to_md(section_dict, md_path, year=year, doi=doi, author=author, ref=False)
+                        section_dict.extend(result['sections'])
 
-                st.toast('PDF识别完毕')
+                        md_path = os.path.join(config.get_md_path(), year, doi.replace('/', '@') + '.md')
+                        os.makedirs(os.path.dirname(md_path), exist_ok=True)
+                        save_to_md(section_dict, md_path, year=year, doi=doi, author=author, ref=False)
+
+                        st.toast('PDF识别完毕', icon='👏')
+
+                    docs = section_to_documents(section_dict, author, int(year), doi)
+                    __add_documents(docs)
+                    st.toast('PDF识别完毕', icon='👏')
+                else:
+                    st.info('向量库中已经存在此文献')
 
                 with st.spinner('Analysing reference...'):
                     ref_list = data['ref_list']
@@ -284,7 +294,10 @@ def pdf_tab():
                         st.rerun()
                     finally:
                         df_block.dataframe(st.session_state.get('ref_list'), use_container_width=True)
-                        st.success('引用处理完毕')
+                        st.toast('引用处理完毕', icon='👏')
+
+                st.success('文献添加完毕')
+                st.snow()
 
             else:
                 st.warning('请先上传PDF文件')
