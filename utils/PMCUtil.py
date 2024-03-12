@@ -42,12 +42,15 @@ def get_pmc_id(term: str, file_name: str = 'pmlist.csv') -> None:
 
     response = requests.request("GET", url, headers=headers, timeout=10)
 
-    data = json.loads(response.text)
+    if response.status_code == 200:
+        data = json.loads(response.text)
 
-    pmc_list = data['esearchresult']['idlist']
-    df = pd.DataFrame({'title': pd.NA, 'pmc_id': pmc_list, 'doi': pd.NA, 'year': pd.NA})
+        pmc_list = data['esearchresult']['idlist']
+        df = pd.DataFrame({'title': pd.NA, 'pmc_id': pmc_list, 'doi': pd.NA, 'year': pd.NA})
 
-    df.to_csv(file_name, mode='w', index=False, encoding='utf-8')
+        df.to_csv(file_name, mode='w', index=False, encoding='utf-8')
+    else:
+        raise Exception('下载请求失败')
 
 
 @retry(delay=random.uniform(2.0, 5.0))
@@ -95,11 +98,7 @@ def download_paper_data(pmc_id: str) -> Tuple[int, dict]:
             'output_path': xml_path
         }
     else:
-        return response.status_code, {
-            'year': None,
-            'doi': None,
-            'output_path': None
-        }
+        raise Exception('下载请求失败')
 
 
 def parse_paper_data(xml_text: str, year: str, doi: str) -> dict:

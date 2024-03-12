@@ -41,73 +41,76 @@ def get_paper_info(pmid: str) -> Dict:
     else:
         response = requests.request("GET", url, headers=headers, timeout=10)
 
-    soup = BeautifulSoup(response.text, 'xml')
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.text, 'xml')
 
-    title = soup.find('Article').find('ArticleTitle').text if soup.find('Article') else None
-    year = (soup.find('Article')
-            .find('JournalIssue')
-            .find('PubDate').find('Year').text)
+        title = soup.find('Article').find('ArticleTitle').text if soup.find('Article') else None
+        year = (soup.find('Article')
+                .find('JournalIssue')
+                .find('PubDate').find('Year').text)
 
-    author = ''
-    if author_block := soup.find('Author'):
-        last_name = author_block.find('LastName').text if author_block.find('LastName') else ''
-        initials = author_block.find('Initials').text if author_block.find('Initials') else ''
-        author = f'{last_name}, {initials}'
+        author = ''
+        if author_block := soup.find('Author'):
+            last_name = author_block.find('LastName').text if author_block.find('LastName') else ''
+            initials = author_block.find('Initials').text if author_block.find('Initials') else ''
+            author = f'{last_name}, {initials}'
 
-    abstract = soup.find('AbstractText').text if soup.find('AbstractText') else None
+        abstract = soup.find('AbstractText').text if soup.find('AbstractText') else None
 
-    keyword_list = soup.find('KeywordList')
-    if keyword_list:
-        keywords = [keyword.text for keyword in keyword_list.find_all('Keyword')]
+        keyword_list = soup.find('KeywordList')
+        if keyword_list:
+            keywords = [keyword.text for keyword in keyword_list.find_all('Keyword')]
+        else:
+            keywords = []
+
+        doi_block = soup.find('ArticleIdList').find('ArticleId', {'IdType': 'doi'})
+        if doi_block:
+            doi = doi_block.text
+        else:
+            doi = None
+            logger.warning('DOI not found')
+
+        pmc_block = soup.find('ArticleIdList').find('ArticleId', {'IdType': 'pmc'})
+        if pmc_block:
+            pmc = pmc_block.text.replace('PMC', '')
+        else:
+            pmc = None
+
+        ref_block = soup.find('ReferenceList')
+
+        ref_list = []
+        if ref_block:
+            for ref in ref_block.find_all('Reference'):
+                if id_list := ref.find('ArticleIdList'):
+                    if ref_pmc_block := id_list.find('ArticleId', {'IdType': 'pmc'}):
+                        ref_pmc = ref_pmc_block.text
+                    else:
+                        ref_pmc = pd.NA
+
+                    if ref_pm_block := id_list.find('ArticleId', {'IdType': 'pubmed'}):
+                        ref_pm = ref_pm_block.text
+                    else:
+                        ref_pm = pd.NA
+
+                    if ref_doi_block := id_list.find('ArticleId', {'IdType': 'doi'}):
+                        ref_doi = ref_doi_block.text
+                    else:
+                        ref_doi = pd.NA
+
+                    ref_list.append({'doi': ref_doi, 'pubmed': ref_pm, 'pmc': ref_pmc})
+
+        return {
+            'title': title,
+            'author': author,
+            'year': year,
+            'abstract': abstract,
+            'keywords': keywords,
+            'doi': doi,
+            'pmc': pmc,
+            'ref_list': pd.DataFrame(ref_list)
+        }
     else:
-        keywords = []
-
-    doi_block = soup.find('ArticleIdList').find('ArticleId', {'IdType': 'doi'})
-    if doi_block:
-        doi = doi_block.text
-    else:
-        doi = None
-        logger.warning('DOI not found')
-
-    pmc_block = soup.find('ArticleIdList').find('ArticleId', {'IdType': 'pmc'})
-    if pmc_block:
-        pmc = pmc_block.text.replace('PMC', '')
-    else:
-        pmc = None
-
-    ref_block = soup.find('ReferenceList')
-
-    ref_list = []
-    if ref_block:
-        for ref in ref_block.find_all('Reference'):
-            if id_list := ref.find('ArticleIdList'):
-                if ref_pmc_block := id_list.find('ArticleId', {'IdType': 'pmc'}):
-                    ref_pmc = ref_pmc_block.text
-                else:
-                    ref_pmc = pd.NA
-
-                if ref_pm_block := id_list.find('ArticleId', {'IdType': 'pubmed'}):
-                    ref_pm = ref_pm_block.text
-                else:
-                    ref_pm = pd.NA
-
-                if ref_doi_block := id_list.find('ArticleId', {'IdType': 'doi'}):
-                    ref_doi = ref_doi_block.text
-                else:
-                    ref_doi = pd.NA
-
-                ref_list.append({'doi': ref_doi, 'pubmed': ref_pm, 'pmc': ref_pmc})
-
-    return {
-        'title': title,
-        'author': author,
-        'year': year,
-        'abstract': abstract,
-        'keywords': keywords,
-        'doi': doi,
-        'pmc': pmc,
-        'ref_list': pd.DataFrame(ref_list)
-    }
+        raise Exception('下载请求失败')
 
 
 if __name__ == '__main__':
