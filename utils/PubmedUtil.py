@@ -1,3 +1,4 @@
+import random
 from typing import Dict
 
 import pandas as pd
@@ -7,7 +8,10 @@ from Config import config
 from bs4 import BeautifulSoup
 from loguru import logger
 
+from utils.DecoratorUtil import retry
 
+
+@retry(delay=random.uniform(2.0, 5.0))
 def get_paper_info(pmid: str) -> Dict:
     """
     :param pmid: pubmed id

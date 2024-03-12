@@ -1,5 +1,6 @@
 import json
 import os.path
+import random
 import re
 from enum import Enum
 from typing import Tuple
@@ -12,7 +13,7 @@ from requests import sessions
 
 from Config import config
 from utils.FileUtil import Section, replace_multiple_spaces
-from utils.DecoratorUtil import timer
+from utils.DecoratorUtil import timer, retry
 
 
 class RefType(Enum):
@@ -31,6 +32,7 @@ id_length = RefIdType.UNFIXED
 
 
 @timer
+@retry(delay=random.uniform(2.0, 5.0))
 def get_pmc_id(term: str, file_name: str = 'pmlist.csv') -> None:
     url = f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pmc&term={term}'
 
@@ -48,6 +50,7 @@ def get_pmc_id(term: str, file_name: str = 'pmlist.csv') -> None:
     df.to_csv(file_name, mode='w', index=False, encoding='utf-8')
 
 
+@retry(delay=random.uniform(2.0, 5.0))
 def download_paper_data(pmc_id: str) -> Tuple[int, dict]:
     url = (f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id={pmc_id}'
            f'&retmode=xml&api_key={config.pubmed_config.API_KEY}')
@@ -97,7 +100,6 @@ def download_paper_data(pmc_id: str) -> Tuple[int, dict]:
             'doi': None,
             'output_path': None
         }
-
 
 
 def parse_paper_data(xml_text: str, year: str, doi: str) -> dict:
