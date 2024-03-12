@@ -2,16 +2,18 @@ import json
 import os
 import shutil
 import sys
+from datetime import datetime
 
 import yaml
 from langchain.retrievers import ParentDocumentRetriever
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import HuggingFaceBgeEmbeddings, HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores.milvus import Milvus
+from langchain_core.documents import Document
 from loguru import logger
 from tqdm import tqdm
 
-from utils.TimeUtil import timer
+from utils.DecoratorUtil import timer
 
 logger.remove()
 handler_id = logger.add(sys.stderr, level="INFO")
@@ -35,7 +37,7 @@ def init_retriever() -> ParentDocumentRetriever:
     else:
         model = config.milvus_config.EN_MODEL
 
-        embedding = HuggingFaceBgeEmbeddings(
+        embedding = HuggingFaceEmbeddings(
             model_name=model,
             model_kwargs={'device': 'cuda'},
             encode_kwargs={'normalize_embeddings': True}
@@ -85,6 +87,16 @@ def init_retriever() -> ParentDocumentRetriever:
 @timer
 def load_md(base_path):
     retriever = init_retriever()
+    init_doc = Document(page_content=f'This is a collection about {config.milvus_config.get_collection().NAME}',
+                        metadata={
+                            'title': 'About this collection',
+                            'section': 'Abstract',
+                            'author': '',
+                            'doi': '',
+                            'year': datetime.now().year,
+                            'ref': ''
+                        })
+    retriever.add_documents([init_doc])
     logger.info('start loading file...')
 
     for root, dirs, files in os.walk(base_path):
@@ -135,6 +147,17 @@ def load_md(base_path):
 @timer
 def load_xml(base_path):
     retriever = init_retriever()
+    init_doc = Document(page_content=f'This is a collection about {config.milvus_config.get_collection().NAME}',
+                        metadata={
+                            'title': 'About this collection',
+                            'section': 'Abstract',
+                            'author': '',
+                            'doi': '',
+                            'year': datetime.now().year,
+                            'ref': ''
+                        })
+    retriever.add_documents([init_doc])
+
     logger.info('start loading file...')
 
     for root, dirs, files in os.walk(base_path):

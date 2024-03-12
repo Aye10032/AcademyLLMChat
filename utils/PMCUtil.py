@@ -12,7 +12,7 @@ from requests import sessions
 
 from Config import config
 from utils.FileUtil import Section, replace_multiple_spaces
-from utils.TimeUtil import timer
+from utils.DecoratorUtil import timer
 
 
 class RefType(Enum):

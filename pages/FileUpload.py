@@ -211,13 +211,18 @@ def pdf_tab():
 
     with col_2.container(border=True):
         st.markdown('选择知识库')
-        option = st.selectbox('选择知识库',
-                              range(len(collections)),
-                              format_func=lambda x: collections[x],
-                              key='pdf_selection',
-                              disabled=st.session_state['pdf_uploader_disable'],
-                              label_visibility='collapsed')
-        uploaded_file = st.file_uploader('选择PDF文件', type=['pdf'], disabled=st.session_state['pdf_uploader_disable'])
+        pdf_col1, pdf_col2 = st.columns([3, 1], gap='large')
+        pdf_col1.selectbox('选择知识库',
+                           range(len(collections)),
+                           format_func=lambda x: collections[x],
+                           key='pdf_selection',
+                           disabled=st.session_state['pdf_uploader_disable'],
+                           label_visibility='collapsed')
+        pdf_col2.checkbox('构建引用树', key='pdf_build_ref_tree', disabled=st.session_state['pdf_uploader_disable'])
+
+        uploaded_file = st.file_uploader('选择PDF文件',
+                                         type=['pdf'],
+                                         disabled=st.session_state['pdf_uploader_disable'])
 
         st.button('解析并添加', key='pdf_submit', type='primary', disabled=st.session_state['pdf_uploader_disable'])
 
@@ -234,7 +239,7 @@ def pdf_tab():
 
         if st.session_state.get('pdf_submit'):
             if uploaded_file is not None:
-                logger.debug(st.session_state.get('pdf_selection'))
+                option = st.session_state.get('pdf_selection')
                 config.set_collection(option)
 
                 with st.spinner('Download information from pubmed...'):

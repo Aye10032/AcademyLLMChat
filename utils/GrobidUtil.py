@@ -8,7 +8,7 @@ from Config import config
 from utils.FileUtil import *
 from loguru import logger
 
-from utils.TimeUtil import timer
+from utils.DecoratorUtil import timer
 
 
 @timer

@@ -11,7 +11,7 @@ from Config import config
 from utils.FileUtil import Section, save_to_md
 from utils.PMCUtil import download_paper_data, parse_paper_data
 from utils.PubmedUtil import get_paper_info
-from utils.TimeUtil import timer
+from utils.DecoratorUtil import timer
 
 
 @timer
