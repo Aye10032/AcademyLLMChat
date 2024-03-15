@@ -14,7 +14,7 @@ from tqdm import tqdm
 from Config import config
 from llm.storage.SqliteStore import SqliteDocStore
 from utils.FileUtil import save_to_md, section_to_documents
-from utils.PMCUtil import download_paper_data, parse_paper_data
+from utils.PMCUtil import download_paper_data, parse_paper_data, get_pmc_id
 
 logger.remove()
 handler_id = logger.add(sys.stderr, level="INFO")
@@ -50,7 +50,8 @@ def init_retriever() -> ParentDocumentRetriever:
         embedding,
         collection_name=milvus_cfg.get_collection().NAME,
         connection_args=connection_args,
-        index_params=milvus_cfg.get_collection().INDEX_PARAM
+        index_params=milvus_cfg.get_collection().INDEX_PARAM,
+        auto_id=True
     )
 
     parent_splitter = RecursiveCharacterTextSplitter(
