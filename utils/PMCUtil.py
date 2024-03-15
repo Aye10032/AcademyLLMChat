@@ -9,6 +9,7 @@ import requests
 import pandas as pd
 from bs4 import BeautifulSoup, Tag, NavigableString
 from loguru import logger
+from pandas import DataFrame
 from requests import sessions
 
 from Config import config
@@ -153,7 +154,14 @@ def parse_paper_data(xml_text: str, year: str, doi: str) -> dict:
         sections = __solve_section(abs_block, sections, 2, ref_block)
     else:
         logger.warning(f'{doi} has no Abstract')
-        norm = False
+        return {
+            'title': title,
+            'author': author,
+            'year': year,
+            'doi': doi,
+            'sections': sections,
+            'norm': False
+        }
 
     if main_sections:
         sections = __solve_section(main_sections, sections, 1, ref_block)
@@ -183,18 +191,31 @@ def __solve_section(
         title_level: int,
         ref_soup: BeautifulSoup | None
 ) -> list[Section]:
+    """
+    解析给定的BeautifulSoup对象，从中提取章节信息，并将其添加到sections列表中。
+
+    :param soup: BeautifulSoup对象，代表待解析的HTML或XML文档的一部分。
+    :param sections: Section对象列表，用于收集从文档中解析出的各个章节信息。
+    :param title_level: 当前解析标题的层级，用于组织章节结构。
+    :param ref_soup: 参考文献的BeautifulSoup对象，用于解析文档中的引用。
+    :return: 更新后的Section对象列表。
+    """
+    # 尝试找到章节标题
     title = soup.find('title', recursive=False)
     if title:
         sections.append(Section(title.text, title_level))
 
+    # 尝试找到所有的sec标签，递归解析它们
     section_list = soup.find_all('sec', recursive=False)
     if section_list:
         for sec in section_list:
             sections = __solve_section(sec, sections, title_level + 1, ref_soup)
     else:
+        # 如果没有sec标签，尝试解析段落p标签
         p_tags = soup.select('p')
         for p_tag in p_tags:
             if p_tag and not p_tag.text == '':
+                # 提取段落文本，处理换行符，并尝试找到引用信息
                 section = p_tag.text.strip().replace('\n', ' ')
                 ref_block = p_tag.find_all('xref', {'ref-type': 'bibr'})
                 ref = __solve_ref(ref_soup, ref_block) if ref_block else ''
@@ -204,29 +225,41 @@ def __solve_section(
 
 
 def __solve_ref(ref_soup: BeautifulSoup, ref_list: list[Tag]) -> str:
+    """
+    解析参考文献列表，并根据其类型提取并转换为DOI列表。
+
+    参数:
+    - ref_soup: BeautifulSoup对象，包含参考文献的HTML解析树。
+    - ref_list: Tag列表，每一个Tag代表一个参考文献的引用。
+
+    返回值:
+    - str: 通过逗号分隔的DOI字符串列表。
+    """
     global id_length
     rid_list = []
     for ref in ref_list:
-        logger.debug(ref)
-        content = ref.text
+        logger.debug(ref)  # 记录调试信息：当前处理的参考文献引用
+        content = ref.text  # 获取参考文献的文本内容
         if is_single_reference(content) == RefType.SINGLE:
+            # 单个参考文献处理
             rid_list.append(ref['rid'])
         elif is_single_reference(content) == RefType.MULTI:
+            # 处理范围引用的参考文献
             if id_length == RefIdType.UNFIXED:
-                _r_numbers = parse_range_string(content)
-                _rid = remove_last_digit(ref['rid'])
-                logger.debug(_rid)
-                rid_list.extend([f'{_rid}{i}' for i in _r_numbers])
+                _r_numbers = parse_range_string(content)  # 解析范围字符串
+                _rid = remove_last_digit(ref['rid'])  # 移除最后一个数字
+                logger.debug(_rid)  # 记录调试信息：处理后的引用ID
+                rid_list.extend([f'{_rid}{i}' for i in _r_numbers])  # 生成范围内的ID列表
             else:
-                _r_numbers = parse_range_string(content)
-                _rid, digit = remove_digit_and_return(ref['rid'])
-                logger.debug(_rid)
-                rid_list.extend([f'{_rid}{str(i).zfill(digit)}' for i in _r_numbers])
+                _r_numbers = parse_range_string(content)  # 解析范围字符串
+                _rid, digit = remove_digit_and_return(ref['rid'])  # 移除数字并返回位数
+                logger.debug(_rid)  # 记录调试信息：处理后的引用ID
+                rid_list.extend([f'{_rid}{str(i).zfill(digit)}' for i in _r_numbers])  # 生成对齐位数的范围ID列表
         else:
-            logger.error('unknown type')
+            logger.error('unknown type')  # 记录错误：未知的引用类型
 
-    rid_list = sorted(list(set(rid_list)))
-    logger.debug(rid_list)
+    rid_list = sorted(list(set(rid_list)))  # 去重并排序引用ID列表
+    logger.debug(rid_list)  # 记录调试信息：处理后的引用ID列表
 
     doi_list = []
     for ref_id in rid_list:

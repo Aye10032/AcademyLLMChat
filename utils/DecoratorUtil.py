@@ -34,7 +34,6 @@ def retry(retries: int = 3, delay: float = 1) -> Callable:
             for i in range(1, retries + 1):
 
                 try:
-                    logger.warning(f'Running ({i}): {func.__name__}()')
                     return func(*args, **kwargs)
                 except Exception as e:
                     if i == retries:
