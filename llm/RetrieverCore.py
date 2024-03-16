@@ -80,7 +80,6 @@ class MultiVectorSelfQueryRetriever(SelfQueryRetriever):
         return docs
 
 
-@st.cache_resource(show_spinner='Building base retriever...')
 def base_retriever(_vector_store: VectorStore, _doc_store: SqliteBaseStore) -> ParentDocumentRetriever:
     parent_splitter = RecursiveCharacterTextSplitter(
         chunk_size=450,
@@ -108,7 +107,6 @@ def base_retriever(_vector_store: VectorStore, _doc_store: SqliteBaseStore) -> P
     return retriever
 
 
-@st.cache_resource(show_spinner='Building retriever...')
 def multi_query_retriever(_base_retriever) -> MultiQueryRetriever:
     retriever_llm = load_gpt()
     query_prompt = PromptTemplate(
@@ -133,7 +131,6 @@ def multi_query_retriever(_base_retriever) -> MultiQueryRetriever:
     return retriever
 
 
-@st.cache_resource(show_spinner='Building retriever...')
 def self_query_retriever(_vector_store: VectorStore, _doc_store: SqliteBaseStore):
     metadata_field_info = [
         AttributeInfo(

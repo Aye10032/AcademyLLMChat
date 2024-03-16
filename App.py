@@ -5,6 +5,7 @@ import streamlit as st
 from langchain_community.chat_message_histories import ChatMessageHistory
 from loguru import logger
 
+from Config import Config
 from llm.ChatCore import chat_with_history
 from llm.RagCore import get_answer
 from uicomponent.StComponent import side_bar_links
@@ -32,7 +33,7 @@ st.set_page_config(
 os.environ["LANGCHAIN_PROJECT"] = 'AcademyLLMChat'
 setup_log()
 
-config = get_config()
+config: Config = get_config()
 milvus_cfg = config.milvus_config
 col = milvus_cfg.COLLECTIONS
 collections = []
