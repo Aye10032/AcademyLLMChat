@@ -9,11 +9,12 @@ from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
 
-from Config import config, Collection, UserRole, get_work_path
+from Config import Collection, UserRole, get_work_path
 from llm.ModelCore import load_embedding_zh, load_embedding_en
 from llm.storage.MilvusConnection import MilvusConnection
 from llm.storage.SqliteStore import SqliteDocStore
 from uicomponent.StComponent import side_bar_links, role_check
+from uicomponent.StatusBus import get_config
 from utils.FileUtil import is_en
 from llm.storage.MilvusParams import IndexType, get_index_param
 
@@ -23,6 +24,7 @@ st.set_page_config(
     layout='centered'
 )
 
+config = get_config()
 milvus_cfg = config.milvus_config
 collections = []
 for collection in milvus_cfg.COLLECTIONS:

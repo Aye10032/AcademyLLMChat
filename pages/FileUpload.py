@@ -1,5 +1,4 @@
 import os
-import time
 from datetime import datetime
 
 import pandas as pd
@@ -7,10 +6,8 @@ import streamlit as st
 from langchain_core.documents import Document
 from loguru import logger
 from pandas import DataFrame
-from pymilvus import connections
 from tqdm import tqdm
 
-import Config
 from Config import config, UserRole
 from llm.RagCore import load_vectorstore, load_doc_store
 from llm.RetrieverCore import base_retriever
@@ -22,6 +19,7 @@ from utils.MarkdownPraser import split_markdown, split_markdown_text
 from utils.PMCUtil import download_paper_data, parse_paper_data
 from utils.PubmedUtil import get_paper_info
 
+
 milvus_cfg = config.milvus_config
 collections = []
 for collection in milvus_cfg.COLLECTIONS:
@@ -31,6 +29,15 @@ st.set_page_config(page_title="学术大模型知识库", page_icon="📖", layo
 
 with st.sidebar:
     side_bar_links()
+
+    st.subheader('构建引用树功能')
+    st.markdown("""
+    目前，仅有PDF、PMC、arXiv(待实现)支持引用树构建的功能。
+    
+    若选择构建引用树，则会自动下载引用文献中拥有PMC full free text的文献，并加入知识库。     
+    
+    若因网络原因出现下载失败，请不要刷新界面，点击重试按钮，再次尝试进行引用文献的下载。      
+    """)
 
 role_check(UserRole.ADMIN, True)
 
@@ -85,12 +92,7 @@ def __download_reference(ref_list: DataFrame):
 
 def __download_from_pmc(pmc_id: str) -> int:
     with st.spinner('Downloading paper...'):
-        status_code, dl = download_paper_data(pmc_id)
-
-    if status_code == 200:
-        pass
-    else:
-        raise Exception('下载请求失败')
+        _, dl = download_paper_data(pmc_id)
 
     doi = dl['doi']
     year = dl['year']
@@ -205,7 +207,9 @@ def pdf_tab():
             1. 将PDF文件重命名为`PMxxxx.pdf`的格式          
             2. 确保grobid已经在运行     
             3. 上传PDF文件      
-            4. 等待处理完成     
+                - (可选)选择构建引用树
+            4. 解析并添加文献
+            5. 等待处理完成  
             """
         )
 
@@ -285,21 +289,22 @@ def pdf_tab():
                 else:
                     st.info('向量库中已经存在此文献')
 
-                with st.spinner('Analysing reference...'):
-                    ref_list = data['ref_list']
-                    ref_list['download'] = False
-                    ref_list = __check_exist(ref_list)
+                if st.session_state.get('pdf_build_ref_tree'):
+                    with st.spinner('Analysing reference...'):
+                        ref_list = data['ref_list']
+                        ref_list['download'] = False
+                        ref_list = __check_exist(ref_list)
 
-                    st.session_state['retry_visible'] = True
-                    try:
-                        __download_reference(ref_list)
-                    except Exception as e:
-                        logger.error(e)
-                        st.session_state['retry_disable'] = False
-                        st.rerun()
-                    finally:
-                        df_block.dataframe(st.session_state.get('ref_list'), use_container_width=True)
-                        st.toast('引用处理完毕', icon='👏')
+                        st.session_state['retry_visible'] = True
+                        try:
+                            __download_reference(ref_list)
+                        except Exception as e:
+                            logger.error(e)
+                            st.session_state['retry_disable'] = False
+                            st.rerun()
+                        finally:
+                            df_block.dataframe(st.session_state.get('ref_list'), use_container_width=True)
+                            st.toast('引用处理完毕', icon='👏')
 
                 st.success('文献添加完毕')
                 st.snow()
@@ -327,36 +332,38 @@ def pmc_tab():
 
     with col_1.container(border=True):
         st.subheader('使用说明')
+        st.warning('考虑到网络稳定性因素，目前暂时仅支持下载单个文献')
         st.markdown(
             """   
-            考虑到网络因素，目前暂时仅支持下载单个文献
             1. 输入PMC编号，如`PMC5386761`
-            2. 等待解析完成即可
-            
-            另外，若使用构建引用树功能，在没有全部下载完毕前请不要刷新页面！
+                - (可选)选择构建引用树
+            2. 下载并添加文献
+            3. 等待解析完成即可
             """
         )
 
     with col_2.container(border=True):
         st.markdown('选择知识库')
-        option = st.selectbox('选择知识库',
-                              range(len(collections)),
-                              format_func=lambda x: collections[x],
-                              disabled=st.session_state['pmc_uploader_disable'],
-                              label_visibility='collapsed')
+        pmc_col1, pmc_col2 = st.columns([3, 1], gap='large')
+        pmc_col1.selectbox('选择知识库',
+                           range(len(collections)),
+                           format_func=lambda x: collections[x],
+                           key='pmc_selection',
+                           disabled=st.session_state['pmc_uploader_disable'],
+                           label_visibility='collapsed')
+
+        pmc_col2.checkbox('构建引用树', key='build_ref_tree', disabled=st.session_state['pmc_uploader_disable'])
 
         st.markdown('PMC ID')
-        pmc_col1, pmc_col2 = st.columns([3, 1], gap='large')
-        pmc_id = pmc_col1.text_input('PMC ID',
-                                     key='pmc_id',
-                                     disabled=st.session_state['pmc_uploader_disable'],
-                                     label_visibility='collapsed')
-        pmc_col2.checkbox('构建引用树', key='build_ref_tree', disabled=st.session_state['pmc_uploader_disable'])
+        pmc_id = st.text_input('PMC ID',
+                               key='pmc_id',
+                               disabled=st.session_state['pmc_uploader_disable'],
+                               label_visibility='collapsed')
 
         st.button('下载并添加', type='primary', key='pmc_submit', disabled=st.session_state['pmc_uploader_disable'])
 
         if st.session_state.get('pmc_submit'):
-            config.set_collection(option)
+            config.set_collection(st.session_state.get('pmc_selection'))
 
             tag = __download_from_pmc(pmc_id)
 

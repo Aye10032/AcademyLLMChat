@@ -11,13 +11,14 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 
 import streamlit as st
 from langchain_core.runnables import RunnableLambda, RunnableParallel, RunnablePassthrough
-
-from Config import config
 from llm.AgentCore import translate_sentence
 from llm.ModelCore import load_gpt_16k, load_embedding_en, load_embedding_zh
 from llm.RetrieverCore import multi_query_retriever, base_retriever, self_query_retriever
 from llm.Template import TRANSLATE_TO_EN, ASK_SYSTEM, ASK_USER
 from llm.storage.SqliteStore import SqliteDocStore
+from uicomponent.StatusBus import get_config
+
+config = get_config()
 
 
 class CitedAnswer(BaseModel):

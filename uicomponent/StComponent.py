@@ -1,5 +1,7 @@
-from Config import UserRole, config
+from Config import UserRole
 from uicomponent.StatusBus import *
+
+config = get_config()
 
 
 def side_bar_links():

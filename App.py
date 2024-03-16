@@ -5,10 +5,10 @@ import streamlit as st
 from langchain_community.chat_message_histories import ChatMessageHistory
 from loguru import logger
 
-from Config import config
 from llm.ChatCore import chat_with_history
 from llm.RagCore import get_answer
 from uicomponent.StComponent import side_bar_links
+from uicomponent.StatusBus import get_config, update_config
 
 
 @st.cache_resource
@@ -32,6 +32,7 @@ st.set_page_config(
 os.environ["LANGCHAIN_PROJECT"] = 'AcademyLLMChat'
 setup_log()
 
+config = get_config()
 milvus_cfg = config.milvus_config
 col = milvus_cfg.COLLECTIONS
 collections = []
@@ -54,6 +55,7 @@ with st.sidebar:
 
     if not option == milvus_cfg.DEFAULT_COLLECTION:
         config.set_collection(option)
+        update_config(config)
         st.rerun()
 
     st.markdown('#### 选择对话模式')
@@ -102,23 +104,6 @@ with col_chat:
 
         if prompt:
             st.chat_message('user').markdown(prompt)
-
-            # if st.session_state.get('chat_type'):
-            #     logger.info(f'chat: {prompt}')
-            #     st.session_state.messages.append({'role': 'user', 'content': prompt})
-            #
-            #     chat_history = ChatMessageHistory()
-            #     for message in st.session_state.messages:
-            #         if message['role'] == 'assistant':
-            #             chat_history.add_ai_message(message['content'])
-            #         else:
-            #             chat_history.add_user_message(message['content'])
-            #
-            #     response = chat_with_history(chat_history, prompt)
-            #
-            #     st.chat_message('assistant', avatar='logo.png').markdown(response.content)
-            #     st.session_state.messages.append({'role': 'assistant', 'content': response.content})
-            #     logger.info(f'answer: {response.content}')
 
 with col_doc:
     if 'documents' not in st.session_state:

@@ -4,12 +4,15 @@ from langchain_anthropic import ChatAnthropic
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
 
-from Config import config
+from uicomponent.StatusBus import get_config
+
+config = get_config()
+milvus_cfg = config.milvus_config
 
 
-@st.cache_resource(show_spinner=f'Loading {config.milvus_config.EN_MODEL}...')
+@st.cache_resource(show_spinner=f'Loading {milvus_cfg.EN_MODEL}...')
 def load_embedding_en() -> HuggingFaceEmbeddings:
-    model = config.milvus_config.EN_MODEL
+    model = milvus_cfg.EN_MODEL
 
     embedding = HuggingFaceEmbeddings(
         model_name=model,
@@ -20,9 +23,9 @@ def load_embedding_en() -> HuggingFaceEmbeddings:
     return embedding
 
 
-@st.cache_resource(show_spinner=f'Loading {config.milvus_config.ZH_MODEL}...')
+@st.cache_resource(show_spinner=f'Loading {milvus_cfg.ZH_MODEL}...')
 def load_embedding_zh() -> HuggingFaceEmbeddings:
-    model = config.milvus_config.ZH_MODEL
+    model = milvus_cfg.ZH_MODEL
 
     embedding = HuggingFaceEmbeddings(
         model_name=model,

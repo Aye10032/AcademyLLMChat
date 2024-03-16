@@ -1,4 +1,8 @@
+from typing import Tuple
+
 import streamlit as st
+
+from Config import Config, MilvusConfig
 
 
 def set_visitor_enable():
@@ -32,3 +36,16 @@ def set_owner_enable():
     # collection manage
     st.session_state['verify_text_disable'] = False
     st.session_state['new_collection_disable'] = False
+
+
+def get_config() -> Config:
+    if 'config' not in st.session_state:
+        st.session_state['config'] = Config()
+
+    config: Config = st.session_state.get('config')
+    return config
+
+
+def update_config(config: Config) -> None:
+    st.session_state['config'] = config
+    # st.rerun()
