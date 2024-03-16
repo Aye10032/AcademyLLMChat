@@ -7,7 +7,7 @@ import pandas as pd
 from tqdm import tqdm
 from loguru import logger
 
-from Config import config
+from Config import Config
 from utils.FileUtil import Section, save_to_md
 from utils.PMCUtil import download_paper_data, parse_paper_data
 from utils.PubmedUtil import get_paper_info
@@ -97,6 +97,8 @@ if __name__ == '__main__':
     logger.remove()
     handler_id = logger.add(sys.stderr, level="INFO")
     logger.add('log/load_csv.log')
+
+    config = Config()
     config.set_collection(0)
 
     # df = pd.read_csv('nandesyn_pub_bk.csv', encoding='utf-8',

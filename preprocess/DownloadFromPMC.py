@@ -11,7 +11,7 @@ from langchain_community.vectorstores.milvus import Milvus
 from loguru import logger
 from tqdm import tqdm
 
-from Config import config
+from Config import Config
 from llm.storage.SqliteStore import SqliteDocStore
 from utils.FileUtil import save_to_md, section_to_documents
 from utils.PMCUtil import download_paper_data, parse_paper_data, get_pmc_id
@@ -130,6 +130,7 @@ def solve_xml(csv_file: str):
 
 
 if __name__ == '__main__':
+    config = Config()
     # term = 'Raman[Title] AND ("2019/02/01"[PDat] : "2024/01/30"[PDat])&retmode=json&retmax=2000'
     # get_pmc_id(term)
 

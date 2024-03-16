@@ -2,7 +2,7 @@ import os
 
 from tqdm import tqdm
 
-from Config import config
+from Config import Config
 from loguru import logger
 from utils.GrobidUtil import parse_pdf, save_to_md, parse_xml
 
@@ -41,6 +41,7 @@ def assemble_md():
 
 
 if __name__ == '__main__':
+    config = Config()
     parse_pdf(config.get_pdf_path())
     logger.info('PDF解析为xml完成，开始处理xml文件...')
     assemble_md()

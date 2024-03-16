@@ -2,7 +2,10 @@ import os
 
 import pandas as pd
 
-from Config import config
+from Config import Config
+
+config = Config()
+config.set_collection(0)
 
 df = pd.read_csv('nandesyn_pub.csv', encoding='utf-8',
                  dtype={'Title': 'str', 'PMID': 'str', 'DOI': 'str', 'PMC': 'str'})

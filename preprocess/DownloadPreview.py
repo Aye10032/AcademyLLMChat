@@ -4,7 +4,7 @@ import random
 import pandas as pd
 from tqdm import tqdm
 
-from Config import config
+from Config import Config
 from utils.PMCUtil import download_paper_data
 
 
@@ -37,6 +37,7 @@ def __init_csv(file_path: str, new_name: str):
 
 
 if __name__ == '__main__':
+    config = Config()
     config.set_collection(0)
     # __init_csv('csv-NatureJour-set.csv', 'csv-NatureJour.csv')
     __download('csv-NatureJour.csv')
