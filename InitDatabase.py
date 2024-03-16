@@ -85,7 +85,14 @@ def init_retriever() -> ParentDocumentRetriever:
 
 
 @timer
-def load_md(base_path):
+def load_md(base_path) -> None:
+    """
+    加载markdown文件到检索器中。
+
+    :param base_path: 基础路径，包含年份子目录，每个子目录下包含markdown和xml文件。
+    :return: 无返回值
+    """
+    # 初始化检索器，并添加初始文档
     retriever = init_retriever()
     init_doc = Document(page_content=f'This is a collection about {config.milvus_config.get_collection().NAME}',
                         metadata={
@@ -99,28 +106,36 @@ def load_md(base_path):
     retriever.add_documents([init_doc])
     logger.info('start loading file...')
 
+    # 遍历基础路径下的所有文件和子目录
     for root, dirs, files in os.walk(base_path):
+        # 跳过空目录
         if len(files) == 0:
             continue
 
+        # 提取年份信息
         year = os.path.basename(root)
         for _file in tqdm(files, total=len(files), desc=f'load file in ({year})'):
+            # 加载并处理markdown文件
             if _file.endswith('.grobid.tei.xml'):
                 file_path = os.path.join(config.get_md_path(), year, _file.replace('.grobid.tei.xml', '.md'))
 
+                # 如果markdown文件不存在，则跳过
                 if not os.path.exists(file_path):
                     logger.warning(f'loading <{_file}> ({year}) fail')
                     continue
                 with open(file_path, 'r', encoding='utf-8') as f:
                     md_text = f.read()
 
+                # 分割markdown文本为多个文档
                 md_docs = split_markdown_text(md_text)
 
+                # 尝试将分割得到的文档添加到检索器
                 try:
                     retriever.add_documents(md_docs)
                 except Exception as e:
                     logger.error(f'loading <{_file}> ({year}) fail')
                     logger.error(e)
+            # 处理xml文件，将其转换为文档并添加到检索器
             else:
                 file_path = os.path.join(root, _file)
                 doi = _file.replace('@', '/').replace('.xml', '')
@@ -128,13 +143,17 @@ def load_md(base_path):
                 with open(file_path, 'r', encoding='utf-8') as f:
                     xml_text = f.read()
 
+                # 解析xml文件内容
                 data = parse_paper_data(xml_text, year, doi)
 
+                # 如果数据未规范化，则跳过
                 if not data['norm']:
                     continue
 
+                # 将解析得到的数据转换为文档
                 docs = section_to_documents(data['sections'], data['author'], int(year), doi)
 
+                # 尝试将转换得到的文档添加到检索器
                 try:
                     retriever.add_documents(docs)
                 except Exception as e:
@@ -145,7 +164,14 @@ def load_md(base_path):
 
 
 @timer
-def load_xml(base_path):
+def load_xml(base_path) -> None:
+    """
+    加载XML文件并将其转换为Markdown格式，同时将相关信息添加到检索器中。
+
+    :param base_path: 基础路径，包含所有需要加载的XML文件的目录。
+    :return: 无返回值。
+    """
+    # 初始化文档检索器，并添加一个初始文档
     retriever = init_retriever()
     init_doc = Document(page_content=f'This is a collection about {config.milvus_config.get_collection().NAME}',
                         metadata={
@@ -158,37 +184,49 @@ def load_xml(base_path):
                         })
     retriever.add_documents([init_doc])
 
+    # 开始加载文件的日志记录
     logger.info('start loading file...')
 
+    # 遍历基础路径下的所有目录和文件
     for root, dirs, files in os.walk(base_path):
+        # 如果目录中没有文件，则跳过
         if len(files) == 0:
             continue
 
+        # 从目录路径中提取年份信息
         year = os.path.basename(root)
         for _file in tqdm(files, total=len(files), desc=f'load file in ({year})'):
             file_path = os.path.join(root, _file)
             doi = _file.replace('@', '/').replace('.xml', '')
 
+            # 读取XML文件内容
             with open(file_path, 'r', encoding='utf-8') as f:
                 xml_text = f.read()
 
+            # 解析XML文件数据
             data = parse_paper_data(xml_text, year, doi)
 
+            # 如果规范化的数据为空，则跳过当前文件
             if not data['norm']:
                 continue
 
+            # 将解析后的数据保存为Markdown格式
             output_path = os.path.join(config.get_md_path(), year, doi.replace('/', '@') + '.md')
             os.makedirs(os.path.join(config.get_md_path(), year), exist_ok=True)
             save_to_md(data['sections'], output_path)
 
+            # 将文章章节数据转换为文档格式，用于检索器
             docs = section_to_documents(data['sections'], data['author'], int(year), doi)
 
             try:
+                # 将文档添加到检索器中
                 retriever.add_documents(docs)
             except Exception as e:
+                # 记录添加文档失败的日志
                 logger.error(f'loading <{_file}> ({year}) fail')
                 logger.error(e)
 
+    # 完成加载的日志记录
     logger.info(f'done')
 
 
@@ -254,7 +292,9 @@ if __name__ == '__main__':
             json.dump({"collections": cols}, open(cfg_path, 'w', encoding='utf-8'))
             logger.info(f'auto create config file {cfg_path}')
 
-    from Config import config
+    from Config import Config
+
+    config = Config()
 
     from llm.storage.SqliteStore import SqliteDocStore
     from utils.FileUtil import save_to_md, section_to_documents
