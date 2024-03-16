@@ -8,8 +8,9 @@ beautifulsoup4
 requests[socks]
 pandas~=2.2.0
 
-langchain==0.1.10
-langchain_community==0.0.25
+langchain==0.1.12
+langchain-core==0.1.32
+langchain_community==0.0.28
 markdown
 pymilvus==2.3.6
 sentence_transformers
