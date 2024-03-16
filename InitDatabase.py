@@ -13,7 +13,7 @@ from langchain_core.documents import Document
 from loguru import logger
 from tqdm import tqdm
 
-from utils.DecoratorUtil import timer
+from utils.Decorator import timer
 
 logger.remove()
 handler_id = logger.add(sys.stderr, level="INFO")

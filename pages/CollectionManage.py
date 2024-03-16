@@ -9,12 +9,12 @@ from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
 
-from Config import Collection, UserRole, get_work_path
+from Config import Collection, UserRole, get_work_path, Config
 from llm.ModelCore import load_embedding_zh, load_embedding_en
 from llm.storage.MilvusConnection import MilvusConnection
 from llm.storage.SqliteStore import SqliteDocStore
 from uicomponent.StComponent import side_bar_links, role_check
-from uicomponent.StatusBus import get_config
+from uicomponent.StatusBus import get_config, update_config
 from utils.FileUtil import is_en
 from llm.storage.MilvusParams import IndexType, get_index_param
 
@@ -24,15 +24,13 @@ st.set_page_config(
     layout='centered'
 )
 
-config = get_config()
+config: Config = get_config()
 milvus_cfg = config.milvus_config
 collections = []
 for collection in milvus_cfg.COLLECTIONS:
     collections.append(collection.NAME)
 
-
 conn = MilvusConnection(**milvus_cfg.get_conn_args())
-
 
 dtype = {
     0: 'NONE',
@@ -93,6 +91,7 @@ def manage_tab():
                               label_visibility='collapsed')
         if renam_col2.button('Rename'):
             milvus_cfg.rename_collection(option, st.session_state['col_title'])
+            update_config(config)
 
         st.markdown(' ')
 
@@ -100,6 +99,8 @@ def manage_tab():
         if st.session_state.get('drop'):
             conn.drop_collection(collection_name)
             milvus_cfg.remove_collection(option)
+            update_config(config)
+
             st.session_state['verify_text'] = ''
             st.rerun()
 
@@ -243,6 +244,7 @@ def new_tab():
                                           "title": title,
                                           "description": description,
                                           "index_param": index_param}))
+                update_config(config)
             logger.info('success')
             st.success('创建成功')
             st.balloons()

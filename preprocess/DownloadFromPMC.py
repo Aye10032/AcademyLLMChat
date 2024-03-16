@@ -88,7 +88,7 @@ def download_from_pmc(csv_file: str):
             continue
 
         pmcid = row.pmc_id
-        _, data = download_paper_data(pmcid)
+        _, data = download_paper_data(pmcid, config)
 
         df_output.at[index, 'doi'] = data['doi']
         df_output.at[index, 'year'] = data['year']

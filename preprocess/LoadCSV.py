@@ -11,7 +11,7 @@ from Config import Config
 from utils.FileUtil import Section, save_to_md
 from utils.PMCUtil import download_paper_data, parse_paper_data
 from utils.PubmedUtil import get_paper_info
-from utils.DecoratorUtil import timer
+from utils.Decorator import timer
 
 
 @timer
@@ -35,10 +35,10 @@ def load_csv(year: int):
             continue
 
         time.sleep(random.uniform(2.0, 5.0))
-        pm_data = get_paper_info(row.PMID)
+        pm_data = get_paper_info(row.PMID, config)
         if pm_data['pmc']:
             time.sleep(random.uniform(1.0, 4.0))
-            _, download_info = download_paper_data(pm_data['pmc'])
+            _, download_info = download_paper_data(pm_data['pmc'], config)
             doi = download_info['doi']
             year = download_info['year']
             xml_path = download_info['output_path']

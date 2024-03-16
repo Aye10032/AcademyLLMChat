@@ -8,10 +8,9 @@ from Config import Config
 from utils.FileUtil import *
 from loguru import logger
 
-from utils.DecoratorUtil import timer
+from utils.Decorator import timer
 
 
-# TODO 传入配置文件
 
 @timer
 def parse_pdf(pdf_path: LiteralString | str, config: Config = None):

@@ -8,19 +8,20 @@ from loguru import logger
 from pandas import DataFrame
 from tqdm import tqdm
 
-from Config import config, UserRole
+from Config import UserRole, Config, MilvusConfig
 from llm.RagCore import load_vectorstore, load_doc_store
 from llm.RetrieverCore import base_retriever
 from llm.storage.MilvusConnection import MilvusConnection
 from uicomponent.StComponent import side_bar_links, role_check
+from uicomponent.StatusBus import update_config, get_config
 from utils.FileUtil import save_to_md, section_to_documents, Section
 from utils.GrobidUtil import parse_xml, parse_pdf_to_xml
 from utils.MarkdownPraser import split_markdown, split_markdown_text
 from utils.PMCUtil import download_paper_data, parse_paper_data
 from utils.PubmedUtil import get_paper_info
 
-
-milvus_cfg = config.milvus_config
+config: Config = get_config()
+milvus_cfg: MilvusConfig = config.milvus_config
 collections = []
 for collection in milvus_cfg.COLLECTIONS:
     collections.append(collection.NAME)
@@ -92,7 +93,7 @@ def __download_reference(ref_list: DataFrame):
 
 def __download_from_pmc(pmc_id: str) -> int:
     with st.spinner('Downloading paper...'):
-        _, dl = download_paper_data(pmc_id)
+        _, dl = download_paper_data(pmc_id, config)
 
     doi = dl['doi']
     year = dl['year']
@@ -179,6 +180,7 @@ def markdown_tab():
 
         if submit:
             config.set_collection(option)
+            update_config(config)
 
             file_count = len(uploaded_files)
             if file_count == 0:
@@ -245,9 +247,10 @@ def pdf_tab():
             if uploaded_file is not None:
                 option = st.session_state.get('pdf_selection')
                 config.set_collection(option)
+                update_config(config)
 
                 with st.spinner('Download information from pubmed...'):
-                    data = get_paper_info(uploaded_file.name.replace('.pdf', '').replace('PM', ''))
+                    data = get_paper_info(uploaded_file.name.replace('.pdf', '').replace('PM', ''), config)
 
                     pdf_path = os.path.join(config.get_pdf_path(), data['year'], uploaded_file.name)
                     os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
@@ -270,7 +273,7 @@ def pdf_tab():
 
                 if len(_num) == 0:
                     with st.spinner('Parsing pdf...'):
-                        _, _, xml_text = parse_pdf_to_xml(pdf_path)
+                        _, _, xml_text = parse_pdf_to_xml(pdf_path, config)
                         with open(xml_path, 'w', encoding='utf-8') as f:
                             f.write(xml_text)
                         result = parse_xml(xml_path)
@@ -363,7 +366,9 @@ def pmc_tab():
         st.button('下载并添加', type='primary', key='pmc_submit', disabled=st.session_state['pmc_uploader_disable'])
 
         if st.session_state.get('pmc_submit'):
-            config.set_collection(st.session_state.get('pmc_selection'))
+            option = st.session_state.get('pmc_selection')
+            config.set_collection(option)
+            update_config(config)
 
             tag = __download_from_pmc(pmc_id)
 

@@ -8,10 +8,9 @@ from bs4 import BeautifulSoup
 from loguru import logger
 
 from Config import Config
-from utils.DecoratorUtil import retry
+from utils.Decorator import retry
 
 
-# TODO 处理传入设置
 @retry(delay=random.uniform(2.0, 5.0))
 def get_paper_info(pmid: str, config: Config = None) -> Dict:
     """

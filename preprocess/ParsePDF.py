@@ -42,6 +42,6 @@ def assemble_md():
 
 if __name__ == '__main__':
     config = Config()
-    parse_pdf(config.get_pdf_path())
+    parse_pdf(config.get_pdf_path(), config)
     logger.info('PDF解析为xml完成，开始处理xml文件...')
     assemble_md()
