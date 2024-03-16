@@ -16,6 +16,8 @@ from utils.FileUtil import Section, replace_multiple_spaces
 from utils.DecoratorUtil import timer, retry
 
 
+# TODO 处理传入设置
+
 class RefType(Enum):
     SINGLE = 0
     MULTI = 1
