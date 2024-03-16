@@ -203,6 +203,3 @@ class Config:
 
     def get_proxy(self):
         return f'{self.PROXY_TYPE}://{self.PROXY_HOST}:{self.PROXY_PORT}'
-
-
-config = Config()
