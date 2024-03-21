@@ -4,8 +4,8 @@ from typing import List
 from langchain_community.vectorstores import milvus
 from langchain_community.vectorstores.milvus import Milvus
 from langchain_core.documents import Document
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.output_parsers.openai_tools import JsonOutputKeyToolsParser
+from langchain_core.messages import SystemMessage
+from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from langchain_core.prompts import PromptTemplate, ChatPromptTemplate
 from langchain_core.pydantic_v1 import BaseModel, Field
 
@@ -14,7 +14,7 @@ from langchain_core.runnables import RunnableLambda, RunnableParallel, RunnableP
 from llm.AgentCore import translate_sentence
 from llm.ModelCore import load_gpt_16k, load_embedding_en, load_embedding_zh
 from llm.RetrieverCore import multi_query_retriever, base_retriever, self_query_retriever
-from llm.Template import TRANSLATE_TO_EN, ASK_SYSTEM, ASK_USER
+from llm.Template import *
 from llm.storage.SqliteStore import SqliteDocStore
 from uicomponent.StatusBus import get_config
 
@@ -30,7 +30,7 @@ class CitedAnswer(BaseModel):
     )
     answer_zh: str = Field(
         ...,
-        description="The answer to the user question in Chinese, which is based only on the given fragment.",
+        description="Chinese translation of English answer",
     )
     citations: List[int] = Field(
         ...,
@@ -41,12 +41,12 @@ class CitedAnswer(BaseModel):
 def format_docs(docs: List[Document]) -> str:
     formatted = [
         f"""Fragment ID: {i}
-        Essay Title: {doc.metadata['title']}
-        Essay Author: {doc.metadata['author']}
-        Publish year: {doc.metadata['year']}
-        Essay DOI: {doc.metadata['doi']}
-        Fragment Snippet: {doc.page_content}
-        """
+Essay Title: {doc.metadata['title']}
+Essay Author: {doc.metadata['author']}
+Publish year: {doc.metadata['year']}
+Essay DOI: {doc.metadata['doi']}
+Fragment Snippet: {doc.page_content}
+"""
         for i, doc in enumerate(docs)
     ]
     return "\n\n" + "\n\n".join(formatted)
@@ -86,10 +86,6 @@ def get_answer(question: str, self_query: bool = False):
     doc_store = load_doc_store()
 
     llm = load_gpt_16k()
-    llm_tool = llm.bind_tools(
-        [CitedAnswer],
-        tool_choice="CitedAnswer",
-    )
 
     question = translate_sentence(question, TRANSLATE_TO_EN).trans
 
@@ -99,19 +95,34 @@ def get_answer(question: str, self_query: bool = False):
         b_retriever = base_retriever(vec_store, doc_store)
         retriever = multi_query_retriever(b_retriever)
 
-    prompt = ChatPromptTemplate.from_messages([('system', ASK_SYSTEM), ('human', ASK_USER)])
+    parser = JsonOutputParser(pydantic_object=CitedAnswer)
+
+    system_prompt = PromptTemplate(
+        template=ASK_SYSTEM,
+        input_variables=["format_instructions", "example_q", "example_a"],
+    )
+
+    system_str = system_prompt.format(
+        format_instructions=parser.get_format_instructions(),
+        example_q=EXAMPLE_Q,
+        example_a=EXAMPLE_A
+    )
+
+    prompt = ChatPromptTemplate.from_messages(
+        [SystemMessage(content=system_str),
+         ('human', ASK_USER)]
+    )
 
     formatter = itemgetter("docs") | RunnableLambda(format_docs)
 
-    output_parser = JsonOutputKeyToolsParser(key_name="CitedAnswer", return_single=True)
-    answer = prompt | llm_tool | output_parser
-    chain = (
+    chain = prompt | llm | parser
+    answer_chain = (
         RunnableParallel(question=RunnablePassthrough(), docs=retriever)
         .assign(context=formatter)
-        .assign(answer=answer)
+        .assign(answer=chain)
         .pick(["answer", "docs"])
     )
 
-    result = chain.invoke(question)
+    result = answer_chain.invoke(question)
 
     return result

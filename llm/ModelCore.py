@@ -4,9 +4,13 @@ from langchain_anthropic import ChatAnthropic
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
 
+from Config import Config
 from uicomponent.StatusBus import get_config
 
 config = get_config()
+if config is None:
+    config = Config()
+
 milvus_cfg = config.milvus_config
 
 
