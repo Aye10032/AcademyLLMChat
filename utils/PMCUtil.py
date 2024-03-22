@@ -3,12 +3,13 @@ import os.path
 import random
 import re
 from enum import Enum
-from typing import Tuple
+from typing import Tuple, Dict
 
 import requests
 import pandas as pd
-from bs4 import BeautifulSoup, Tag, NavigableString
+from bs4 import BeautifulSoup, Tag, NavigableString, ResultSet
 from loguru import logger
+from pandas import DataFrame
 from requests import sessions
 
 from Config import Config
@@ -183,10 +184,8 @@ def parse_paper_data(xml_text: str, year: str, doi: str) -> dict:
     norm = True
 
     # 尝试提取论文引用信息
-    ref_block = soup.select_one('back')
-    if ref_block:
-        pass
-    else:
+    ref_block = soup.find_all('ref-list')
+    if len(ref_block) == 0:
         logger.warning(f'{doi} has no reference')
         return {
             'title': title,
@@ -194,13 +193,16 @@ def parse_paper_data(xml_text: str, year: str, doi: str) -> dict:
             'year': year,
             'doi': doi,
             'sections': sections,
-            'norm': False
+            'norm': False,
+            'ref_list': None
         }
+    else:
+        ref_df = __extract_ref(ref_block[0])
 
     # 如果存在摘要，将其添加为一个章节，并处理摘要内容及引用信息
     if abs_block:
         sections.append(Section('Abstract', 2))
-        sections = __solve_section(abs_block, sections, 2, ref_block)
+        sections = __solve_section(abs_block, sections, 2, ref_block[0])
     else:
         # 如果没有摘要，记录警告并返回部分解析的结果
         logger.warning(f'{doi} has no Abstract')
@@ -210,12 +212,13 @@ def parse_paper_data(xml_text: str, year: str, doi: str) -> dict:
             'year': year,
             'doi': doi,
             'sections': sections,
-            'norm': False
+            'norm': False,
+            'ref_list': ref_df
         }
 
     # 处理正文部分的章节信息
     if main_sections:
-        sections = __solve_section(main_sections, sections, 1, ref_block)
+        sections = __solve_section(main_sections, sections, 1, ref_block[0])
 
     # 返回解析后的论文信息
     return {
@@ -224,7 +227,8 @@ def parse_paper_data(xml_text: str, year: str, doi: str) -> dict:
         'year': year,
         'doi': doi,
         'sections': sections,
-        'norm': norm
+        'norm': norm,
+        'ref_list': ref_df
     }
 
 
@@ -284,6 +288,40 @@ def __solve_section(
                 sections.append(Section(section, 0, ref))
 
     return sections
+
+
+def __extract_ref(ref_soup: BeautifulSoup) -> DataFrame:
+    ref_blocks = ref_soup.find_all('ref')
+    ref_list = []
+
+    for ref_block in ref_blocks:
+        element_blocks = ref_block.find_all('element-citation')
+        if len(element_blocks) == 1:
+            ref_list.append(__get_ref_info(ref_block))
+        else:
+            for element_block in element_blocks:
+                ref_list.append(__get_ref_info(element_block))
+
+    return pd.DataFrame(ref_list)
+
+
+def __get_ref_info(ref_block: BeautifulSoup) -> Dict:
+    if ref_rid := ref_block.get('id'):
+        rid = ref_rid
+    else:
+        rid = pd.NA
+
+    if ref_doi_block := ref_block.find('pub-id', {'pub-id-type': 'doi'}):
+        ref_doi = ref_doi_block.text
+    else:
+        ref_doi = pd.NA
+
+    if ref_pm_block := ref_block.find('ArticleId', {'IdType': 'pmid'}):
+        ref_pm = ref_pm_block.text
+    else:
+        ref_pm = pd.NA
+
+    return {'rid': rid, 'doi': ref_doi, 'pubmed': ref_pm}
 
 
 def __solve_ref(ref_soup: BeautifulSoup, ref_list: list[Tag]) -> str:

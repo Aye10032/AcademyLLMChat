@@ -111,7 +111,12 @@ def solve_xml(csv_file: str):
         with open(os.path.join(config.get_xml_path(), year, doi.replace('/', '@') + '.xml'), 'r',
                   encoding='utf-8') as f:
             xml_text = f.read()
-        data = parse_paper_data(xml_text, year, doi)
+
+        try:
+            data = parse_paper_data(xml_text, year, doi)
+        except Exception as e:
+            logger.error(f'{year} {doi} {e}')
+            break
 
         if not data['norm']:
             df_output.at[index, 'title'] = data['title']
@@ -129,11 +134,19 @@ def solve_xml(csv_file: str):
         df_output.to_csv(csv_file, index=False, encoding='utf-8')
 
 
+def reset_csv(path: str) -> None:
+    df = pd.read_csv(path, encoding='utf-8', dtype={'title': 'str', 'pmc_id': 'str', 'doi': 'str', 'year': 'str'})
+    df['title'] = pd.NA
+
+    df.to_csv(path, index=False, encoding='utf-8')
+
+
 if __name__ == '__main__':
     config = Config()
     # term = 'Raman[Title] AND ("2019/02/01"[PDat] : "2024/01/30"[PDat])&retmode=json&retmax=2000'
     # get_pmc_id(term)
 
     config.set_collection(1)
-    # download_from_pmc('pmlist.csv')
+    # reset_csv('pmlist.csv')
+    download_from_pmc('pmlist.csv')
     solve_xml('pmlist.csv')
