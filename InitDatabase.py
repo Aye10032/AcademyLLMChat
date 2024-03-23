@@ -121,7 +121,7 @@ def load_md(base_path) -> None:
 
                 # 如果markdown文件不存在，则跳过
                 if not os.path.exists(file_path):
-                    logger.warning(f'loading <{_file}> ({year}) fail')
+                    logger.error(f'loading <{_file}> ({year}) fail')
                     continue
                 with open(file_path, 'r', encoding='utf-8') as f:
                     md_text = f.read()

@@ -107,6 +107,10 @@ def download_paper_data(pmc_id: str, config: Config = None) -> Tuple[int, dict]:
             if soup.find('article-id', {'pub-id-type': 'doi'}) \
             else None
 
+        pmid = soup.find('article-id', {'pub-id-type': 'pmid'}).text \
+            if soup.find('article-id', {'pub-id-type': 'pmid'}) \
+            else None
+
         year = soup.find('pub-date').find('year').text \
             if soup.find('pub-date') \
             else None
@@ -125,6 +129,7 @@ def download_paper_data(pmc_id: str, config: Config = None) -> Tuple[int, dict]:
         return response.status_code, {
             'year': year,
             'doi': doi,
+            'pmid': pmid,
             'output_path': xml_path
         }
     else:
@@ -132,13 +137,14 @@ def download_paper_data(pmc_id: str, config: Config = None) -> Tuple[int, dict]:
         raise Exception('下载请求失败')
 
 
-def parse_paper_data(xml_text: str, year: str, doi: str) -> dict:
+def parse_paper_data(xml_text: str, year: str, doi: str, silent: bool = True) -> dict:
     """
     解析论文数据从给定的XML文本中。
 
     :param xml_text: 论文的XML格式文本。
     :param year: 论文的出版年份。
     :param doi: 论文的数字对象标识符（DOI）。
+    :param silent: 是否静默运行
     :return: 包含论文标题、作者、年份、DOI、章节和规范化状态的字典。
 
     此函数从XML文本中提取论文的相关信息，包括标题、作者、摘要、章节以及引用信息，并将这些信息组织成一个字典返回。
@@ -155,7 +161,8 @@ def parse_paper_data(xml_text: str, year: str, doi: str) -> dict:
 
         issn = issn_block.text if issn_block else None
     except Exception as e:
-        logger.warning(e)
+        if not silent:
+            logger.warning(e)
         issn = None  # 如果无法获取ISSN号，则最终设置为None
 
     # 检查ISSN号是否需要修正，并设置相应的标识
@@ -186,7 +193,8 @@ def parse_paper_data(xml_text: str, year: str, doi: str) -> dict:
     # 尝试提取论文引用信息
     ref_block = soup.find_all('ref-list')
     if len(ref_block) == 0:
-        logger.warning(f'{doi} has no reference')
+        if not silent:
+            logger.warning(f'{doi} has no reference')
         return {
             'title': title,
             'author': author,
@@ -194,18 +202,15 @@ def parse_paper_data(xml_text: str, year: str, doi: str) -> dict:
             'doi': doi,
             'sections': sections,
             'norm': False,
-            'ref_list': None
         }
-    else:
-        ref_df = __extract_ref(ref_block[0])
 
     # 如果存在摘要，将其添加为一个章节，并处理摘要内容及引用信息
     if abs_block:
         sections.append(Section('Abstract', 2))
         sections = __solve_section(abs_block, sections, 2, ref_block[0])
     else:
-        # 如果没有摘要，记录警告并返回部分解析的结果
-        logger.warning(f'{doi} has no Abstract')
+        if not silent:
+            logger.warning(f'{doi} has no Abstract')
         return {
             'title': title,
             'author': author,
@@ -213,7 +218,6 @@ def parse_paper_data(xml_text: str, year: str, doi: str) -> dict:
             'doi': doi,
             'sections': sections,
             'norm': False,
-            'ref_list': ref_df
         }
 
     # 处理正文部分的章节信息
@@ -228,7 +232,6 @@ def parse_paper_data(xml_text: str, year: str, doi: str) -> dict:
         'doi': doi,
         'sections': sections,
         'norm': norm,
-        'ref_list': ref_df
     }
 
 
@@ -291,11 +294,11 @@ def __solve_section(
 
 
 def __extract_ref(ref_soup: BeautifulSoup) -> DataFrame:
-    ref_blocks = ref_soup.find_all('ref')
+    ref_blocks = ref_soup.find_all('ref', recursive=False)
     ref_list = []
 
     for ref_block in ref_blocks:
-        element_blocks = ref_block.find_all('element-citation')
+        element_blocks = ref_block.find_all(['element-citation', 'mixed-citation'], recursive=False)
         if len(element_blocks) == 1:
             ref_list.append(__get_ref_info(ref_block))
         else:
