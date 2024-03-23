@@ -361,13 +361,12 @@ def __solve_ref(ref_soup: BeautifulSoup, ref_list: list[Tag]) -> str:
     doi_list = []
     for ref_id in rid_list:
         # 查找对应的参考文献块
-        ref_block = ref_soup.find(['ref', 'element-citation'], {'id': ref_id})
-        if ref_block is None:
-            ref_block = ref_soup.find(attrs={'id': ref_id})
+        ref_block = ref_soup.find(attrs={'id': ref_id})
 
         # 尝试获取DOI
-        doi_block = ref_block.find('pub-id', {'pub-id-type': 'doi'})
-        doi_list.append(doi_block.text) if doi_block else None
+        if ref_block:
+            doi_block = ref_block.find('pub-id', {'pub-id-type': 'doi'})
+            doi_list.append(doi_block.text) if doi_block else None
 
     return ','.join([x for x in doi_list])  # 返回DOI列表，通过逗号分隔
 
