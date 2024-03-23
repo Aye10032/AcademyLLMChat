@@ -59,6 +59,9 @@ def split_markdown_text(md_text: str, **kwargs):
         doc.metadata['doi'] = doi
         doc.metadata['year'] = int(year)
         doc.metadata['author'] = author
+
+        # TODO
+        doc.metadata['ref'] = ''
     md_docs = r_splitter.split_documents(head_split_docs)
 
     return md_docs
