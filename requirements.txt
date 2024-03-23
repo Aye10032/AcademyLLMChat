@@ -19,8 +19,8 @@ lark
 # torch==2.2.1+cu121
 
 httpx
-langchain-openai
-openai
+langchain-openai==0.0.8
+openai==1.13.3
 langchain-anthropic
 
 streamlit~=1.31.0
