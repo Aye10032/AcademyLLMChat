@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from typing import Tuple
 
 import pandas as pd
 import streamlit as st
@@ -26,7 +27,15 @@ collections = []
 for collection in milvus_cfg.COLLECTIONS:
     collections.append(collection.NAME)
 
-st.set_page_config(page_title="学术大模型知识库", page_icon="📖", layout='wide')
+st.set_page_config(
+    page_title="学术大模型知识库",
+    page_icon="📖",
+    layout='wide',
+    menu_items={
+        'Report a bug': 'https://github.com/Aye10032/AcademyLLMChat/issues',
+        'About': 'https://github.com/Aye10032/AcademyLLMChat'
+    }
+)
 
 with st.sidebar:
     side_bar_links()
@@ -77,7 +86,7 @@ def __download_reference(ref_list: DataFrame):
             continue
 
         if pd.notna(row.pmc):
-            tag = __download_from_pmc(row.pmc)
+            tag, pmid = __download_from_pmc(row.pmc)
             if tag == 0:
                 ref_list.at[index, 'exist'] = True
             else:
@@ -91,7 +100,7 @@ def __download_reference(ref_list: DataFrame):
     ref_bar.empty()
 
 
-def __download_from_pmc(pmc_id: str) -> int:
+def __download_from_pmc(pmc_id: str) -> Tuple[int, str]:
     with st.spinner('Downloading paper...'):
         _, dl = download_paper_data(pmc_id, config)
 
@@ -100,7 +109,7 @@ def __download_from_pmc(pmc_id: str) -> int:
     xml_path = dl['output_path']
 
     if xml_path is None:
-        return -1
+        return -1, ''
 
     with st.spinner('Parsing paper...'):
         with open(xml_path, 'r', encoding='utf-8') as f:
@@ -109,7 +118,7 @@ def __download_from_pmc(pmc_id: str) -> int:
         data = parse_paper_data(xml_text, year, doi)
 
         if not data['norm']:
-            return -1
+            return -1, dl['pmid']
 
         output_path = os.path.join(config.get_md_path(), year, f"{doi.replace('/', '@')}.md")
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -119,7 +128,7 @@ def __download_from_pmc(pmc_id: str) -> int:
         docs = section_to_documents(data['sections'], year=int(year), doi=doi, author=data['author'])
         __add_documents(docs)
 
-    return 0
+    return 0, dl['pmid']
 
 
 def __add_documents(docs: list[Document]) -> None:
@@ -137,7 +146,7 @@ def markdown_tab():
         st.subheader('使用说明')
         st.markdown(
             """   
-            最为推荐的方式，不需要任何网络请求。先在本地手动将文献转为markdown文件之后再导入知识库，可以批量导入，但是每次仅能导入同一年的
+            先在本地手动将文献转为markdown文件之后再导入知识库，可以批量导入，但是每次仅能导入同一年的
             1. 将markdown文件重命名为文献对应的doi号，并将doi号中的`/`替换为`@`，如`10.1007@s00018-023-04986-3.md`          
             2. 选择文献所属年份     
             3. 上传markdown文件      
@@ -355,7 +364,7 @@ def pmc_tab():
                            disabled=st.session_state['pmc_uploader_disable'],
                            label_visibility='collapsed')
 
-        pmc_col2.checkbox('构建引用树', key='build_ref_tree', disabled=st.session_state['pmc_uploader_disable'])
+        pmc_col2.checkbox('构建引用树', key='pmc_build_ref_tree', disabled=st.session_state['pmc_uploader_disable'])
 
         st.markdown('PMC ID')
         pmc_id = st.text_input('PMC ID',
@@ -365,19 +374,24 @@ def pmc_tab():
 
         st.button('下载并添加', type='primary', key='pmc_submit', disabled=st.session_state['pmc_uploader_disable'])
 
+        df_block = st.empty()
+
+        if st.session_state.get('ref_list') is not None:
+            df_block.dataframe(st.session_state.get('ref_list'), use_container_width=True)
+
         if st.session_state.get('pmc_submit'):
             option = st.session_state.get('pmc_selection')
             config.set_collection(option)
             update_config(config)
 
-            tag = __download_from_pmc(pmc_id)
+            tag, pmid = __download_from_pmc(pmc_id)
 
             if tag == -1:
                 st.error('文章结构不完整！请检查相关信息，或尝试通过PDF加载.')
 
-            if st.session_state.get('build_ref_tree'):
-                # TODO
-                pass
+            if st.session_state.get('pmc_build_ref_tree'):
+                with st.spinner('Analysing reference...'):
+                    pass
 
             st.success('添加完成')
 

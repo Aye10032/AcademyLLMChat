@@ -26,8 +26,8 @@ st.set_page_config(
     page_icon='📖',
     layout='wide',
     menu_items={
-        'Report a bug': 'https://github.com/Aye10032/AcademyKnowledgeBot/issues',
-        'About': 'https://github.com/Aye10032/AcademyKnowledgeBot'
+        'Report a bug': 'https://github.com/Aye10032/AcademyLLMChat/issues',
+        'About': 'https://github.com/Aye10032/AcademyLLMChat'
     }
 )
 

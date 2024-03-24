@@ -21,7 +21,11 @@ from llm.storage.MilvusParams import IndexType, get_index_param
 st.set_page_config(
     page_title='学术大模型知识库',
     page_icon='📖',
-    layout='centered'
+    layout='centered',
+    menu_items = {
+        'Report a bug': 'https://github.com/Aye10032/AcademyLLMChat/issues',
+        'About': 'https://github.com/Aye10032/AcademyLLMChat'
+    }
 )
 
 config: Config = get_config()
