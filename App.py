@@ -8,6 +8,7 @@ from loguru import logger
 from Config import Config
 from llm.ChatCore import chat_with_history
 from llm.RagCore import get_answer
+from llm.RetrieverCore import get_expr
 from uicomponent.StComponent import side_bar_links
 from uicomponent.StatusBus import get_config, update_config
 
@@ -59,23 +60,24 @@ with st.sidebar:
         update_config(config)
         st.rerun()
 
-    st.markdown('#### 选择对话模式')
-    st.toggle('对话模式', key='chat_type', label_visibility='collapsed')
+    st.markdown('#### Advance')
+    st.toggle('对话模式', key='chat_type')
 
     if st.session_state.get('chat_type'):
         st.caption('当前为对话模式')
     else:
         st.caption('当前为知识库查询模式')
 
-    st.markdown('#### 精准询问')
-    st.toggle('精准询问', key='self_query', label_visibility='collapsed')
+    st.toggle('精准询问', key='self_query')
 
     if st.session_state.get('self_query'):
         st.caption('精准模式：:green[开]')
         with st.expander('索引条件'):
             st.text_input('doi', key='target_doi')
             st.text_input('title', key='target_title')
+            st.text_input('year', key='target_year')
             st.text_input('author', key='target_author')
+            st.toggle('模糊匹配', key='fuzzy_mode')
     else:
         st.caption('精准模式：:red[关]')
 
@@ -134,7 +136,27 @@ if prompt:
         logger.info(f'question: {prompt}')
         st.session_state.messages = [{'role': 'user', 'content': prompt}]
 
-        response = get_answer(prompt, st.session_state.get('self_query'))
+        if st.session_state.get('self_query'):
+            kwarg: dict = {}
+            if target_doi := st.session_state.get('target_doi'):
+                kwarg['doi'] = target_doi
+
+            if target_title := st.session_state.get('target_title'):
+                kwarg['title'] = target_title
+
+            if target_year := st.session_state.get('target_year'):
+                kwarg['year'] = target_year
+
+            if target_author := st.session_state.get('target_author'):
+                kwarg['author'] = target_author
+
+            if len(kwarg) != 0:
+                expr = get_expr(st.session_state.get('fuzzy_mode'), **kwarg)
+                response = get_answer(prompt, True, expr)
+            else:
+                response = get_answer(prompt, True)
+        else:
+            response = get_answer(prompt)
 
         st.session_state.documents = response['docs']
 

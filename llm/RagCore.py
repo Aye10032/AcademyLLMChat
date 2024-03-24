@@ -13,7 +13,7 @@ import streamlit as st
 from langchain_core.runnables import RunnableLambda, RunnableParallel, RunnablePassthrough
 from llm.AgentCore import translate_sentence
 from llm.ModelCore import load_gpt_16k, load_embedding_en, load_embedding_zh
-from llm.RetrieverCore import multi_query_retriever, base_retriever, self_query_retriever
+from llm.RetrieverCore import *
 from llm.Template import *
 from llm.storage.SqliteStore import SqliteDocStore
 from uicomponent.StatusBus import get_config
@@ -81,7 +81,7 @@ def load_doc_store() -> SqliteDocStore:
 
 
 @st.cache_data(show_spinner='Asking from LLM chain...')
-def get_answer(question: str, self_query: bool = False):
+def get_answer(question: str, self_query: bool = False, expr_stmt: str = None):
     vec_store = load_vectorstore(config.milvus_config.get_collection().NAME)
     doc_store = load_doc_store()
 
@@ -90,7 +90,10 @@ def get_answer(question: str, self_query: bool = False):
     question = translate_sentence(question, TRANSLATE_TO_EN).trans
 
     if self_query:
-        retriever = self_query_retriever(vec_store, doc_store)
+        if expr_stmt is not None:
+            retriever = expr_retriever(vec_store, doc_store, expr_stmt)
+        else:
+            retriever = self_query_retriever(vec_store, doc_store)
     else:
         b_retriever = base_retriever(vec_store, doc_store)
         retriever = multi_query_retriever(b_retriever)

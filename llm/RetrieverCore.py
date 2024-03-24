@@ -44,6 +44,24 @@ class ReferenceRetriever(MultiVectorRetriever):
         return result
 
 
+class ExprRetriever(MultiVectorRetriever):
+    expr_statement: str
+
+    def _get_relevant_documents(
+            self, query: str, *, run_manager: CallbackManagerForRetrieverRun
+    ) -> List[Document]:
+        docs: list[Document] = self.vectorstore.similarity_search(query, expr=self.expr_statement)
+
+        ids = []
+        for doc in docs:
+            if self.id_key in doc.metadata and doc.metadata[self.id_key] not in ids:
+                ids.append(doc.metadata[self.id_key])
+
+        result = self.docstore.mget(ids)
+
+        return result
+
+
 class MultiVectorSelfQueryRetriever(SelfQueryRetriever):
     doc_store: BaseStore[str, Document]
     id_key: str = "doc_id"
@@ -186,3 +204,40 @@ def reference_retriever(_vector_store: Milvus, _doc_store: SqliteBaseStore) -> R
     )
 
     return retriever
+
+
+def get_expr(fuzzy: bool = False, **kwargs) -> str:
+    keys = kwargs.keys()
+    expr_list = []
+    if fuzzy:
+        if kwargs.__contains__('title'):
+            title = kwargs.pop('title')
+            expr_list.append(f'title like "{title}"')
+
+    if 'year' in keys:
+        year = kwargs.pop('year')
+        expr_list.append(f'year == {year}')
+
+    for key in keys:
+        value = kwargs.get(key)
+        expr_list.append(f'{key} == "{value}"')
+
+    return ' and '.join(f'({expr})' for expr in expr_list)
+
+
+def expr_retriever(_vector_store: Milvus, _doc_store: SqliteBaseStore, expr_stmt: str) -> ExprRetriever:
+    retriever = ExprRetriever(
+        vectorstore=_vector_store,
+        docstore=_doc_store,
+        expr_statement=expr_stmt
+    )
+
+    return retriever
+
+
+if __name__ == '__main__':
+    args: dict = {}
+    args['title'] = 'title1'
+    args['author'] = 'aye'
+    expr = get_expr(True, **args)
+    print(expr)
