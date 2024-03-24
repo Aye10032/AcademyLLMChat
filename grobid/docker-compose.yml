@@ -14,9 +14,6 @@ services:
       - "8070:8070"
     ulimits:
       core: 0
-    gpu:
-      initMemSize: 0
-      maxMemSize: 4096
     deploy:
       resources:
         reservations:

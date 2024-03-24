@@ -68,9 +68,6 @@ services:
     ports:
       - "19530:19530"
       - "9091:9091"
-    gpu:
-      initMemSize: 0
-      maxMemSize: 2048
     deploy:
       resources:
         reservations:
