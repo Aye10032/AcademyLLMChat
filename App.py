@@ -131,7 +131,7 @@ with col_doc:
                 _year = ref.metadata['year']
                 _doi = ref.metadata['doi']
                 if index in st.session_state.get('cite_list'):
-                    st.markdown(f'#### ✅{_title}')
+                    st.markdown(f'#### ✅【{index + 1}】{_title}')
                 else:
                     st.markdown(f'#### {_title}')
                 st.caption(f'{_author}({_year}) [{_doi}](https://doi.org/{_doi})')
