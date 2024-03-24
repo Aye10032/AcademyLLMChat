@@ -22,7 +22,7 @@ st.set_page_config(
     page_title='学术大模型知识库',
     page_icon='📖',
     layout='centered',
-    menu_items = {
+    menu_items={
         'Report a bug': 'https://github.com/Aye10032/AcademyLLMChat/issues',
         'About': 'https://github.com/Aye10032/AcademyLLMChat'
     }
@@ -92,8 +92,9 @@ def manage_tab():
         renam_col1.text_input('数据库查询界面标题',
                               milvus_cfg.COLLECTIONS[option].TITLE,
                               key='col_title',
+                              disabled=st.session_state['manage_collection_disable'],
                               label_visibility='collapsed')
-        if renam_col2.button('Rename'):
+        if renam_col2.button('Rename', disabled=st.session_state['manage_collection_disable']):
             milvus_cfg.rename_collection(option, st.session_state['col_title'])
             update_config(config)
 
@@ -111,7 +112,7 @@ def manage_tab():
         with st.container(border=True):
             st.markdown('**删除知识库**')
             drop_verify = st.text_input('collection name',
-                                        disabled=st.session_state['verify_text_disable'],
+                                        disabled=st.session_state['manage_collection_disable'],
                                         label_visibility='collapsed',
                                         key='verify_text')
             st.caption(f'若确定要删除知识库，请在此输入 `{collection_name}`')
@@ -205,23 +206,10 @@ def new_tab():
                     drop_old=True
                 )
 
-                if milvus_cfg.USING_REMOTE:
-                    connection_args = {
-                        'uri': milvus_cfg.REMOTE_DATABASE['url'],
-                        'user': milvus_cfg.REMOTE_DATABASE['username'],
-                        'password': milvus_cfg.REMOTE_DATABASE['password'],
-                        'secure': True,
-                    }
-                else:
-                    connection_args = {
-                        'host': milvus_cfg.MILVUS_HOST,
-                        'port': milvus_cfg.MILVUS_PORT,
-                    }
-
                 vector_db = Milvus(
                     embedding,
                     collection_name=collection_name,
-                    connection_args=connection_args,
+                    connection_args=milvus_cfg.get_conn_args(),
                     index_params=index_param,
                     drop_old=True,
                     auto_id=True
