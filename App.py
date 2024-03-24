@@ -60,6 +60,7 @@ with st.sidebar:
         update_config(config)
         st.rerun()
 
+    st.divider()
     st.markdown('#### Advance')
     st.toggle('对话模式', key='chat_type')
 
@@ -84,11 +85,11 @@ with st.sidebar:
     st.divider()
     st.subheader('使用说明')
     st.markdown("""
-    **:blue[知识库查询模式]**:  
-    为单次对话请求，回答完全来自RAG返回的参考文献
+    **:blue[对话模式]**:  
+    默认为查询模式，仅支持单次对话，根据RAG返回答案；若切换为对话模式，则根据现有聊天记录开始常规的LLM问答。
     
-    **:blue[对话模式]**  
-    会以当前对话框中内容为基础开始GPT问答
+    **:blue[精准询问]**:    
+    仅在查询模式下生效，默认情况下会使用LLM自动分析提问的自然语言，返回条件搜索结果。也可以手动指定查找文献的条件。
     """)
 
 prompt = st.chat_input('请输入问题')
