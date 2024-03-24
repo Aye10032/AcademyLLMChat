@@ -96,7 +96,8 @@ def get_answer(question: str, self_query: bool = False, expr_stmt: str = None):
 
     if self_query:
         if expr_stmt is not None:
-            retriever = expr_retriever(vec_store, doc_store, expr_stmt)
+            b_retriever = expr_retriever(vec_store, doc_store, expr_stmt)
+            retriever = multi_query_retriever(b_retriever)
         else:
             retriever = self_query_retriever(vec_store, doc_store)
     else:
