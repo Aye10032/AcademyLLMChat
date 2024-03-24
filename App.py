@@ -171,14 +171,15 @@ if prompt:
         cite_list = []
         cite_str_list = []
         for cite_id in answer['citations']:
-            cite_list.append(cite_id - 1)
-            sub_doc = response['docs'][cite_id - 1]
-            _title = sub_doc.metadata['title']
-            _author = sub_doc.metadata['author']
-            _year = sub_doc.metadata['year']
-            _doi = sub_doc.metadata['doi']
+            if 0 < cite_id <= len(response['docs']):
+                cite_list.append(cite_id - 1)
+                sub_doc = response['docs'][cite_id - 1]
+                _title = sub_doc.metadata['title']
+                _author = sub_doc.metadata['author']
+                _year = sub_doc.metadata['year']
+                _doi = sub_doc.metadata['doi']
 
-            cite_str_list.append(f"[{cite_id}] \"{_title}\" {_author} ({_year}) [{_doi}](https://doi.org/{_doi})")
+                cite_str_list.append(f"[{cite_id}] \"{_title}\" {_author} ({_year}) [{_doi}](https://doi.org/{_doi})")
 
         st.session_state.cite_list = cite_list
         cite_str = '\n\n'.join(cite_str_list)
