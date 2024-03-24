@@ -139,7 +139,7 @@ with col_doc:
                 if index in st.session_state.get('cite_list'):
                     st.markdown(f'#### ✅【{index + 1}】{_title}')
                 else:
-                    st.markdown(f'#### {_title}')
+                    st.markdown(f'#### 【{index + 1}】{_title}')
                 st.caption(f'{_author}({_year}) [{_doi}](https://doi.org/{_doi})')
                 st.markdown(ref.page_content)
                 st.divider()
