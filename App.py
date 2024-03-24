@@ -122,7 +122,7 @@ with col_doc:
         st.session_state.cite_list = []
 
     if len(st.session_state.documents) > 0:
-        st.subheader('参考文献')
+        st.subheader('文献片段')
         with st.container(height=550, border=True):
             for index, ref in enumerate(st.session_state.documents):
                 _title = ref.metadata['title']
