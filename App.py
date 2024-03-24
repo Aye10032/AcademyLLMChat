@@ -62,6 +62,11 @@ with st.sidebar:
 
     st.divider()
     st.markdown('#### Advance')
+
+    st.selectbox('选择LLM',
+                 options=['gpt3.5', 'gpt3.5-16k', 'gpt4'],
+                 key='LLM')
+
     st.toggle('对话模式', key='chat_type')
 
     if st.session_state.get('chat_type'):
@@ -166,7 +171,7 @@ if prompt:
         cite_str = ','.join(str(cit) for cit in answer['citations'])
         answer_str = f"{answer['answer_en']}\n\n{answer['answer_zh']}\n\n参考文献：[{cite_str}]"
         st.session_state.messages.append({'role': 'assistant', 'content': answer_str})
-        logger.info(f"answer: {answer['answer_zh']}")
+        logger.info(f"({st.session_state.get('LLM')}) answer: {answer['answer_zh']}")
 
         st.rerun()
     else:

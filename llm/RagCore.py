@@ -85,7 +85,12 @@ def get_answer(question: str, self_query: bool = False, expr_stmt: str = None):
     vec_store = load_vectorstore(config.milvus_config.get_collection().NAME)
     doc_store = load_doc_store()
 
-    llm = load_gpt4()
+    if st.session_state.get('LLM') == 'gpt3.5-16k':
+        llm = load_gpt_16k()
+    elif st.session_state.get('LLM') == 'gpt4':
+        llm = load_gpt4()
+    else:
+        llm = load_gpt()
 
     question = translate_sentence(question, TRANSLATE_TO_EN).trans
 
