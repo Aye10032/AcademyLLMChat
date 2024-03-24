@@ -12,7 +12,7 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 import streamlit as st
 from langchain_core.runnables import RunnableLambda, RunnableParallel, RunnablePassthrough
 from llm.AgentCore import translate_sentence
-from llm.ModelCore import load_gpt_16k, load_embedding_en, load_embedding_zh
+from llm.ModelCore import load_gpt_16k, load_embedding_en, load_embedding_zh, load_gpt4
 from llm.RetrieverCore import *
 from llm.Template import *
 from llm.storage.SqliteStore import SqliteDocStore
@@ -26,7 +26,7 @@ class CitedAnswer(BaseModel):
 
     answer_en: str = Field(
         ...,
-        description="The answer to the user question in English, which is based only on the given fragment.",
+        description='The answer to the user question in English, which is based only on the given fragment, , and use "[]" at the end of the sentence to mark the ID of the quoted fragment',
     )
     answer_zh: str = Field(
         ...,
@@ -40,7 +40,7 @@ class CitedAnswer(BaseModel):
 
 def format_docs(docs: List[Document]) -> str:
     formatted = [
-        f"""Fragment ID: {i}
+        f"""Fragment ID: {i + 1}
 Essay Title: {doc.metadata['title']}
 Essay Author: {doc.metadata['author']}
 Publish year: {doc.metadata['year']}
@@ -85,7 +85,7 @@ def get_answer(question: str, self_query: bool = False, expr_stmt: str = None):
     vec_store = load_vectorstore(config.milvus_config.get_collection().NAME)
     doc_store = load_doc_store()
 
-    llm = load_gpt_16k()
+    llm = load_gpt4()
 
     question = translate_sentence(question, TRANSLATE_TO_EN).trans
 

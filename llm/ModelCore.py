@@ -70,6 +70,21 @@ def load_gpt() -> ChatOpenAI:
     return llm
 
 
+@st.cache_resource(show_spinner='Loading GPT4...')
+def load_gpt4() -> ChatOpenAI:
+    if config.openai_config.USE_PROXY:
+        http_client = httpx.Client(proxies=config.get_proxy())
+        llm = ChatOpenAI(model_name="gpt-4",
+                         http_client=http_client,
+                         temperature=0,
+                         openai_api_key=config.openai_config.API_KEY)
+    else:
+        llm = ChatOpenAI(model_name="gpt-4",
+                         temperature=0,
+                         openai_api_key=config.openai_config.API_KEY)
+    return llm
+
+
 @st.cache_resource(show_spinner='Loading Claude3...')
 def load_claude3():
     if config.claude_config.USE_PROXY:

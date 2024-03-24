@@ -22,7 +22,8 @@ the user's input questions from Engilsh to Chinese.
 """
 
 ASK_SYSTEM = """Assuming you are a professor.
-For each question, a list of fragments is given. Your task is to answer the user question both in English and Chinese based only on the given essay fragment, and cite the fragment used.
+For each question, a list of fragments is given. Your task is to answer the user question both in English and Chinese based only on the given essay fragment.
+If a sentence in the answer cites information from a fragment, and use "[]" at the end of the sentence to mark the ID of the quoted fragment.
 If you don't know the answer, just say that you don't know, don't try to make up an answer!
 {format_instructions}
 
@@ -61,9 +62,9 @@ Question: What structural model does this article address?
 
 EXAMPLE_A = """```
 {
-"answer_en": "The article addresses the Transformer model as a structural model. The Transformer uses stacked self-attention and fully connected layers for both the encoder and the decoder. This model allows the modeling of dependencies without regard to their distance in the input or output sequences, making attention mechanisms an integral part.",
-"answer_zh": "文章论述了作为结构模型的 transformer 模型。transformer 在编码器和解码器中都使用了堆叠自注意和全连接层。该模型允许对依赖关系进行建模，而不考虑它们在输入或输出序列中的距离，使注意机制成为不可分割的一部分。",
-"citations": [0,2]
+"answer_en": "The article addresses the Transformer model as a structural model. The Transformer uses stacked self-attention and fully connected layers for both the encoder and the decoder[1,3]. This model allows the modeling of dependencies without regard to their distance in the input or output sequences, making attention mechanisms an integral part[2].",
+"answer_zh": "文章论述了作为结构模型的 transformer 模型。transformer 在编码器和解码器中都使用了堆叠自注意和全连接层[1,3]。该模型允许对依赖关系进行建模，而不考虑它们在输入或输出序列中的距离，使注意机制成为不可分割的一部分[2]。",
+"citations": [1,2,3]
 }
 ```
 """

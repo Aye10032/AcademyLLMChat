@@ -162,8 +162,8 @@ if prompt:
         st.session_state.documents = response['docs']
 
         answer = response['answer']
-        st.session_state.cite_list = answer['citations']
-        cite_str = ','.join(str(cit + 1) for cit in answer['citations'])
+        st.session_state.cite_list = [cite_id - 1 for cite_id in answer['citations']]
+        cite_str = ','.join(str(cit) for cit in answer['citations'])
         answer_str = f"{answer['answer_en']}\n\n{answer['answer_zh']}\n\n参考文献：[{cite_str}]"
         st.session_state.messages.append({'role': 'assistant', 'content': answer_str})
         logger.info(f"answer: {answer['answer_zh']}")
