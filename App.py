@@ -65,6 +65,7 @@ with st.sidebar:
 
     st.selectbox('选择LLM',
                  options=['gpt3.5', 'gpt3.5-16k', 'gpt4'],
+                 index=1,
                  key='LLM')
 
     st.toggle('对话模式', key='chat_type')
@@ -158,9 +159,9 @@ if prompt:
 
             if len(kwarg) != 0:
                 expr = get_expr(st.session_state.get('fuzzy_mode'), **kwarg)
-                response = get_answer(prompt, True, expr)
+                response = get_answer(prompt, True, expr, llm_name=st.session_state.get('LLM'))
             else:
-                response = get_answer(prompt, True)
+                response = get_answer(prompt, True, llm_name=st.session_state.get('LLM'))
         else:
             response = get_answer(prompt)
 
@@ -204,6 +205,6 @@ if prompt:
 
         st.chat_message('assistant', avatar='logo.png').markdown(response.content)
         st.session_state.messages.append({'role': 'assistant', 'content': response.content})
-        logger.info(f'answer: {response.content}')
+        logger.info(f"({st.session_state.get('LLM')}) answer: {response.content}")
 
         st.rerun()

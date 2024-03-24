@@ -81,13 +81,13 @@ def load_doc_store() -> SqliteDocStore:
 
 
 @st.cache_data(show_spinner='Asking from LLM chain...')
-def get_answer(question: str, self_query: bool = False, expr_stmt: str = None):
+def get_answer(question: str, self_query: bool = False, expr_stmt: str = None, *, llm_name: str):
     vec_store = load_vectorstore(config.milvus_config.get_collection().NAME)
     doc_store = load_doc_store()
 
-    if st.session_state.get('LLM') == 'gpt3.5-16k':
+    if llm_name == 'gpt3.5-16k':
         llm = load_gpt_16k()
-    elif st.session_state.get('LLM') == 'gpt4':
+    elif llm_name == 'gpt4':
         llm = load_gpt4()
     else:
         llm = load_gpt()
