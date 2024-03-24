@@ -1,5 +1,6 @@
 import os
 import sys
+from datetime import datetime
 
 import streamlit as st
 from langchain_community.chat_message_histories import ChatMessageHistory
@@ -15,10 +16,15 @@ from uicomponent.StatusBus import get_config, update_config
 
 @st.cache_resource
 def setup_log():
+    now = datetime.now()
+    year = now.year
+    month = now.month
+    day = now.day
+
     logger.remove()
     logger.add(sys.stderr, level="INFO")
-    logger.add('log/runtime_{time}.log', rotation='00:00', level='INFO', retention='10 days')
-    logger.add('log/error_{time}.log', rotation='00:00', level='ERROR', retention='10 days')
+    logger.add(f'log/runtime_{year}{month:02d}{day:02d}.log', rotation='00:00', level='INFO', retention='10 days')
+    logger.add(f'log/error_{year}{month:02d}{day:02d}.log', rotation='00:00', level='ERROR', retention='10 days')
 
 
 st.set_page_config(
