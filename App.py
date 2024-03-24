@@ -167,9 +167,23 @@ if prompt:
         st.session_state.documents = response['docs']
 
         answer = response['answer']
-        st.session_state.cite_list = [cite_id - 1 for cite_id in answer['citations']]
-        cite_str = ','.join(str(cit) for cit in answer['citations'])
-        answer_str = f"{answer['answer_en']}\n\n{answer['answer_zh']}\n\n参考文献：[{cite_str}]"
+
+        cite_list = []
+        cite_str_list = []
+        for cite_id in answer['citations']:
+            cite_list.append(cite_id - 1)
+            sub_doc = response['docs'][cite_id - 1]
+            _title = sub_doc.metadata['title']
+            _author = sub_doc.metadata['author']
+            _year = sub_doc.metadata['year']
+            _doi = sub_doc.metadata['doi']
+
+            cite_str_list.append(f"[{cite_id}] \"{_title}\" {_author} ({_year}) [{_doi}](https://doi.org/{_doi})")
+
+        st.session_state.cite_list = cite_list
+        cite_str = '\n\n'.join(cite_str_list)
+
+        answer_str = f"{answer['answer_en']}\n\n{answer['answer_zh']}\n\n**参考文献**：\n\n{cite_str}"
         st.session_state.messages.append({'role': 'assistant', 'content': answer_str})
         logger.info(f"({st.session_state.get('LLM')}) answer: {answer['answer_zh']}")
 
