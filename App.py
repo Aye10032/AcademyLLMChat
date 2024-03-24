@@ -169,7 +169,7 @@ if prompt:
             else:
                 response = get_answer(prompt, True, llm_name=st.session_state.get('LLM'))
         else:
-            response = get_answer(prompt)
+            response = get_answer(prompt, llm_name=st.session_state.get('LLM'))
 
         st.session_state.documents = response['docs']
 
