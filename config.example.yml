@@ -31,7 +31,7 @@ grobid:
 milvus:
   milvus_host: '127.0.0.1'
   milvus_port: 19530
-  en_model: 'WhereIsAI/UAE-Large-V1'
+  en_model: 'BAAI/bge-m3'
   zh_model: 'infgrad/stella-large-zh-v3-1792d'
   using_remote: False
   remote_database:

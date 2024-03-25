@@ -1,7 +1,7 @@
 import httpx
 import streamlit as st
 from langchain_anthropic import ChatAnthropic
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings, HuggingFaceBgeEmbeddings
 from langchain_openai import ChatOpenAI
 
 from Config import Config
@@ -15,10 +15,10 @@ milvus_cfg = config.milvus_config
 
 
 @st.cache_resource(show_spinner=f'Loading {milvus_cfg.EN_MODEL}...')
-def load_embedding_en() -> HuggingFaceEmbeddings:
+def load_embedding_en() -> HuggingFaceBgeEmbeddings:
     model = milvus_cfg.EN_MODEL
 
-    embedding = HuggingFaceEmbeddings(
+    embedding = HuggingFaceBgeEmbeddings(
         model_name=model,
         model_kwargs={'device': 'cuda'},
         encode_kwargs={'normalize_embeddings': True}
