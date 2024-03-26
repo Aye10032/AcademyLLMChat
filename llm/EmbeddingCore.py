@@ -40,6 +40,9 @@ class Bgem3Embeddings(BaseModel, Embeddings):
     """Instruction to use for embedding query."""
     query_instruction: str = DEFAULT_QUERY_BGE_INSTRUCTION_EN
 
+    """Instruction to use for embedding document."""
+    embed_instruction: str = ""
+
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
 
