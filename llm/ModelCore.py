@@ -5,6 +5,7 @@ from langchain_community.embeddings import HuggingFaceEmbeddings, HuggingFaceBge
 from langchain_openai import ChatOpenAI
 
 from Config import Config
+from llm.EmbeddingCore import Bgem3Embeddings
 from uicomponent.StatusBus import get_config
 
 config = get_config()
@@ -15,13 +16,15 @@ milvus_cfg = config.milvus_config
 
 
 @st.cache_resource(show_spinner=f'Loading {milvus_cfg.EN_MODEL}...')
-def load_embedding_en() -> HuggingFaceBgeEmbeddings:
+def load_embedding_en() -> Bgem3Embeddings:
     model = milvus_cfg.EN_MODEL
 
-    embedding = HuggingFaceBgeEmbeddings(
+    embedding = Bgem3Embeddings(
         model_name=model,
-        model_kwargs={'device': 'cuda'},
-        encode_kwargs={'normalize_embeddings': True}
+        model_kwargs={
+            'device': 'cuda',
+            'normalize_embeddings': True
+        }
     )
 
     return embedding
