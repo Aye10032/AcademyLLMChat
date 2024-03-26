@@ -6,12 +6,13 @@ from langchain_community.embeddings.huggingface import (
     DEFAULT_BGE_MODEL
 )
 from langchain_core.callbacks import Callbacks
-from langchain_core.documents import BaseDocumentCompressor, Document
+from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.pydantic_v1 import BaseModel, Field
+from langchain_core.runnables import run_in_executor
 
 
-class Bgem3Embeddings(BaseModel, Embeddings, BaseDocumentCompressor):
+class Bgem3Embeddings(BaseModel, Embeddings):
     model_name: str = DEFAULT_BGE_MODEL
 
     """
@@ -85,3 +86,14 @@ class Bgem3Embeddings(BaseModel, Embeddings, BaseDocumentCompressor):
             doc.metadata['score'] = r[0]
             final_results.append(doc)
         return final_results
+
+    async def acompress_documents(
+            self,
+            documents: Sequence[Document],
+            query: str,
+            callbacks: Optional[Callbacks] = None,
+    ) -> Sequence[Document]:
+        """Compress retrieved documents given the query context."""
+        return await run_in_executor(
+            None, self.compress_documents, documents, query, callbacks
+        )
