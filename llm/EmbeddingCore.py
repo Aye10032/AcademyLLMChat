@@ -14,6 +14,7 @@ from langchain_core.runnables import run_in_executor
 
 class Bgem3Embeddings(BaseModel, Embeddings):
     model_name: str = DEFAULT_BGE_MODEL
+    client: Any
 
     """
     Keyword arguments to pass to the model.
