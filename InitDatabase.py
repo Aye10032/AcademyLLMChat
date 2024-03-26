@@ -13,6 +13,7 @@ from langchain_core.documents import Document
 from loguru import logger
 from tqdm import tqdm
 
+from llm.EmbeddingCore import Bgem3Embeddings
 from utils.Decorator import timer
 
 logger.remove()
@@ -37,10 +38,12 @@ def init_retriever() -> ParentDocumentRetriever:
     else:
         model = config.milvus_config.EN_MODEL
 
-        embedding = HuggingFaceEmbeddings(
+        embedding = Bgem3Embeddings(
             model_name=model,
-            model_kwargs={'device': 'cuda'},
-            encode_kwargs={'normalize_embeddings': True}
+            model_kwargs={
+                'device': 'cuda',
+                'normalize_embeddings': True
+            }
         )
     logger.info(f'load collection [{collection}], using model {model}')
 
