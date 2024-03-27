@@ -39,3 +39,14 @@ def role_check(role: int, wide=False):
             st.session_state['role'] = UserRole.OWNER
             set_owner_enable()
             auth_holder.empty()
+
+
+def score_text(score: float) -> str:
+    red = int((1 - score) * 255)
+    green = int(score * 255)
+    blue = 0
+    alpha = 200
+    color_code = "#{:02x}{:02x}{:02x}{:02x}".format(red, green, blue, alpha)
+    html_str = f'<span style="display: inline-block; padding: 5px 5px; margin: 5px; background-color: {color_code}; color: white; border-radius: 10px; font-size: 10px; font-family: Arial, sans-serif;">{round(score, 4)}</span>'
+
+    return html_str
