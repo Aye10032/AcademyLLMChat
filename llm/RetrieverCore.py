@@ -22,6 +22,15 @@ from llm.Template import GENERATE_QUESTION
 from llm.storage.SqliteStore import SqliteBaseStore
 
 
+def unique_doc(docs: List[Document]) -> List[Document]:
+    result = []
+    for doc in docs:
+        if doc not in result:
+            result.append(doc)
+
+    return result
+
+
 class ScoreRetriever(MultiVectorRetriever):
     embedding: Bgem3Embeddings
 
@@ -110,21 +119,35 @@ class ReferenceRetriever(MultiVectorRetriever):
 
 
 class ExprRetriever(MultiVectorRetriever):
+    embedding: Bgem3Embeddings
     expr_statement: str
 
     def _get_relevant_documents(
             self, query: str, *, run_manager: CallbackManagerForRetrieverRun
     ) -> List[Document]:
-        docs: list[Document] = self.vectorstore.similarity_search(query, expr=self.expr_statement)
+        if self.search_type == SearchType.similarity:
+            short_doc: List[Document] = self.vectorstore.similarity_search(
+                query,
+                expr=self.expr_statement,
+                **self.search_kwargs
+            )
+        else:
+            short_doc: List[Document] = self.vectorstore.max_marginal_relevance_search(
+                query,
+                expr=self.expr_statement,
+                **self.search_kwargs
+            )
 
         ids = []
-        for doc in docs:
-            if self.id_key in doc.metadata and doc.metadata[self.id_key] not in ids:
-                ids.append(doc.metadata[self.id_key])
+        for sentence in short_doc:
+            if self.id_key in sentence.metadata and sentence.metadata[self.id_key] not in ids:
+                ids.append(sentence.metadata[self.id_key])
 
-        result = self.docstore.mget(ids)
+        docs = self.docstore.mget(ids)
 
-        return result
+        rerank_docs = self.embedding.compress_documents(docs, query)
+
+        return rerank_docs
 
 
 class MultiVectorSelfQueryRetriever(SelfQueryRetriever):
@@ -268,15 +291,6 @@ def self_query_retriever(_vector_store: VectorStore, _doc_store: SqliteBaseStore
     return retriever
 
 
-def unique_doc(docs: List[Document]) -> List[Document]:
-    result = []
-    for doc in docs:
-        if doc not in result:
-            result.append(doc)
-
-    return result
-
-
 def reference_retriever(_vector_store: Milvus, _doc_store: SqliteBaseStore) -> ReferenceRetriever:
     retriever = ReferenceRetriever(
         vectorstore=_vector_store,
@@ -305,19 +319,19 @@ def get_expr(fuzzy: bool = False, **kwargs) -> str:
     return ' and '.join(f'({expr})' for expr in expr_list)
 
 
-def expr_retriever(_vector_store: Milvus, _doc_store: SqliteBaseStore, expr_stmt: str) -> ExprRetriever:
+def expr_retriever(
+        _vector_store: Milvus,
+        _doc_store: SqliteBaseStore,
+        _embedding: Bgem3Embeddings,
+        expr_stmt: str
+) -> ExprRetriever:
     retriever = ExprRetriever(
         vectorstore=_vector_store,
         docstore=_doc_store,
-        expr_statement=expr_stmt
+        embedding=_embedding,
+        expr_statement=expr_stmt,
+        search_type=SearchType.similarity,
+        search_kwargs={'k': 8, 'fetch_k': 10}
     )
 
     return retriever
-
-
-if __name__ == '__main__':
-    args: dict = {}
-    args['title'] = 'title1'
-    args['author'] = 'aye'
-    expr = get_expr(True, **args)
-    print(expr)

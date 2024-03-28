@@ -83,6 +83,7 @@ def load_doc_store() -> SqliteDocStore:
 @st.cache_data(show_spinner='Asking from LLM chain...')
 def get_answer(question: str, self_query: bool = False, expr_stmt: str = None, *, llm_name: str):
     vec_store = load_vectorstore(config.milvus_config.get_collection().NAME)
+    embedding = load_embedding_en()
     doc_store = load_doc_store()
 
     if llm_name == 'gpt3.5-16k':
@@ -96,11 +97,11 @@ def get_answer(question: str, self_query: bool = False, expr_stmt: str = None, *
 
     if self_query:
         if expr_stmt is not None:
-            retriever = expr_retriever(vec_store, doc_store, expr_stmt)
+            retriever = expr_retriever(vec_store, doc_store, embedding, expr_stmt)
         else:
             retriever = self_query_retriever(vec_store, doc_store)
     else:
-        embedding = load_embedding_en()
+
         retriever = base_retriever(vec_store, doc_store, embedding)
 
     parser = JsonOutputParser(pydantic_object=CitedAnswer)
