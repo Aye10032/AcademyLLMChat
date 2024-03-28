@@ -100,8 +100,8 @@ def get_answer(question: str, self_query: bool = False, expr_stmt: str = None, *
         else:
             retriever = self_query_retriever(vec_store, doc_store)
     else:
-        b_retriever = base_retriever(vec_store, doc_store)
-        retriever = multi_query_retriever(b_retriever)
+        embedding = load_embedding_en()
+        retriever = base_retriever(vec_store, doc_store, embedding)
 
     parser = JsonOutputParser(pydantic_object=CitedAnswer)
 

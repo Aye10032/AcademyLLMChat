@@ -10,7 +10,7 @@ from Config import Config
 from llm.ChatCore import chat_with_history
 from llm.RagCore import get_answer
 from llm.RetrieverCore import get_expr
-from uicomponent.StComponent import side_bar_links
+from uicomponent.StComponent import side_bar_links, score_text
 from uicomponent.StatusBus import get_config, update_config
 
 
@@ -136,11 +136,15 @@ with col_doc:
                 _author = ref.metadata['author']
                 _year = ref.metadata['year']
                 _doi = ref.metadata['doi']
+                _score = ref.metadata['score']
                 if index in st.session_state.get('cite_list'):
                     st.markdown(f'#### ✅【{index + 1}】{_title}')
                 else:
                     st.markdown(f'#### 【{index + 1}】{_title}')
-                st.caption(f'{_author}({_year}) [{_doi}](https://doi.org/{_doi})')
+                st.caption(
+                    f'{_author}({_year}) [{_doi}](https://doi.org/{_doi}) {score_text(_score)}',
+                    unsafe_allow_html=True
+                )
                 st.markdown(ref.page_content)
                 st.divider()
 

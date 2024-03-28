@@ -9,16 +9,81 @@ from langchain.retrievers.multi_vector import SearchType
 from langchain.retrievers.self_query.milvus import MilvusTranslator
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores.milvus import Milvus
-from langchain_core.callbacks import CallbackManagerForRetrieverRun
+from langchain_core.callbacks import CallbackManagerForRetrieverRun, AsyncCallbackManagerForRetrieverRun
 from langchain_core.documents import Document
 from langchain_core.prompts import PromptTemplate
 from langchain_core.stores import BaseStore
 from langchain_core.vectorstores import VectorStore
 from loguru import logger
 
+from llm.EmbeddingCore import Bgem3Embeddings
 from llm.ModelCore import load_gpt
 from llm.Template import GENERATE_QUESTION
 from llm.storage.SqliteStore import SqliteBaseStore
+
+
+class ScoreRetriever(MultiVectorRetriever):
+    embedding: Bgem3Embeddings
+
+    multi_query: bool = False
+    llm_chain: LLMChain
+
+    def generate_queries(
+            self, question: str, run_manager: CallbackManagerForRetrieverRun
+    ) -> List[str]:
+        response = self.llm_chain(
+            {"question": question}, callbacks=run_manager.get_child()
+        )
+        lines = response["text"]
+        return lines
+
+    def retrieve_documents(
+            self, queries: List[str], run_manager: CallbackManagerForRetrieverRun
+    ) -> List[Document]:
+        documents = []
+        for query in queries:
+            if self.search_type == SearchType.similarity:
+                short_doc: List[Document] = self.vectorstore.similarity_search(query, **self.search_kwargs)
+            else:
+                short_doc: List[Document] = self.vectorstore.max_marginal_relevance_search(query, **self.search_kwargs)
+            documents.extend(short_doc)
+
+        return documents
+
+    def _get_relevant_documents(
+            self, query: str, *, run_manager: CallbackManagerForRetrieverRun
+    ) -> List[Document]:
+        if self.multi_query:
+            queries = self.generate_queries(query, run_manager)
+            queries.append(query)
+            short_doc = self.retrieve_documents(queries, run_manager)
+            short_doc = unique_doc(short_doc)
+        else:
+            if self.search_type == SearchType.similarity:
+                short_doc: List[Document] = self.vectorstore.similarity_search(query, **self.search_kwargs)
+            else:
+                short_doc: List[Document] = self.vectorstore.max_marginal_relevance_search(query, **self.search_kwargs)
+
+        ids = []
+        for sentence in short_doc:
+            if self.id_key in sentence.metadata and sentence.metadata[self.id_key] not in ids:
+                ids.append(sentence.metadata[self.id_key])
+
+        docs = self.docstore.mget(ids)
+
+        rerank_docs = self.embedding.compress_documents(docs, query)
+
+        return rerank_docs
+
+    async def agenerate_queries(
+            self, question: str, run_manager: AsyncCallbackManagerForRetrieverRun
+    ) -> List[str]:
+        response = await self.llm_chain.acall(
+            inputs={"question": question}, callbacks=run_manager.get_child()
+        )
+        lines = response["text"]
+
+        return lines
 
 
 class ReferenceRetriever(MultiVectorRetriever):
@@ -98,7 +163,7 @@ class MultiVectorSelfQueryRetriever(SelfQueryRetriever):
         return docs
 
 
-def base_retriever(_vector_store: VectorStore, _doc_store: SqliteBaseStore) -> ParentDocumentRetriever:
+def insert_retriever(_vector_store: VectorStore, _doc_store: SqliteBaseStore) -> ParentDocumentRetriever:
     parent_splitter = RecursiveCharacterTextSplitter(
         chunk_size=450,
         chunk_overlap=0,
@@ -118,14 +183,16 @@ def base_retriever(_vector_store: VectorStore, _doc_store: SqliteBaseStore) -> P
         docstore=_doc_store,
         child_splitter=child_splitter,
         parent_splitter=parent_splitter,
-        search_type=SearchType.mmr,
-        search_kwargs={'k': 5, 'fetch_k': 10}
     )
 
     return retriever
 
 
-def multi_query_retriever(_base_retriever) -> MultiQueryRetriever:
+def base_retriever(
+        _vector_store: VectorStore,
+        _doc_store: SqliteBaseStore,
+        _embedding: Bgem3Embeddings
+) -> ScoreRetriever:
     retriever_llm = load_gpt()
     query_prompt = PromptTemplate(
         input_variables=["question"],
@@ -140,10 +207,14 @@ def multi_query_retriever(_base_retriever) -> MultiQueryRetriever:
         output_parser=parser
     )
 
-    retriever = MultiQueryRetriever(
-        retriever=_base_retriever,
+    retriever = ScoreRetriever(
+        vectorstore=_vector_store,
+        docstore=_doc_store,
+        embedding=_embedding,
+        multi_query=True,
         llm_chain=llm_chain,
-        include_original=False
+        search_type=SearchType.similarity,
+        search_kwargs={'k': 8, 'fetch_k': 10}
     )
 
     return retriever
@@ -195,6 +266,15 @@ def self_query_retriever(_vector_store: VectorStore, _doc_store: SqliteBaseStore
     )
 
     return retriever
+
+
+def unique_doc(docs: List[Document]) -> List[Document]:
+    result = []
+    for doc in docs:
+        if doc not in result:
+            result.append(doc)
+
+    return result
 
 
 def reference_retriever(_vector_store: Milvus, _doc_store: SqliteBaseStore) -> ReferenceRetriever:

@@ -78,9 +78,13 @@ class Bgem3Embeddings(BaseModel, Embeddings):
             documents: Sequence[Document],
             query: str,
             callbacks: Optional[Callbacks] = None,
-    ) -> Sequence[Document]:
+    ) -> List[Document]:
         sentence_pairs = [(query, doc.page_content) for doc in documents]
-        rerank_scores = self.client.compute_score(sentence_pairs, weights_for_different_modes=[0, 0.8, 0.2])
+        rerank_scores = self.client.compute_score(
+            sentence_pairs,
+            weights_for_different_modes=[0.4, 0.2, 0.4]
+        ).get('colbert+sparse+dense')
+
         rerank_results = list(zip(rerank_scores, documents))
         rerank_results = sorted(rerank_results, reverse=True)
 
