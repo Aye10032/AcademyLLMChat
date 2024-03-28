@@ -38,6 +38,6 @@ def __init_csv(file_path: str, new_name: str):
 
 if __name__ == '__main__':
     config = Config()
-    config.set_collection(0)
-    # __init_csv('csv-NatureJour-set.csv', 'csv-NatureJour.csv')
-    __download('csv-NatureJour.csv')
+    config.set_collection(1)
+    # __init_csv('csv-RamanTitle-set.csv', 'csv-RamanTitle.csv')
+    __download('csv-RamanTitle.csv')

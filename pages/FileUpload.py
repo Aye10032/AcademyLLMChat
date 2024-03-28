@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from Config import UserRole, Config, MilvusConfig
 from llm.RagCore import load_vectorstore, load_doc_store
-from llm.RetrieverCore import base_retriever
+from llm.RetrieverCore import insert_retriever
 from llm.storage.MilvusConnection import MilvusConnection
 from uicomponent.StComponent import side_bar_links, role_check
 from uicomponent.StatusBus import update_config, get_config
@@ -134,7 +134,7 @@ def __download_from_pmc(pmc_id: str) -> Tuple[int, str]:
 def __add_documents(docs: list[Document]) -> None:
     vector_db = load_vectorstore(config.milvus_config.get_collection().NAME)
     doc_db = load_doc_store()
-    retriever = base_retriever(vector_db, doc_db)
+    retriever = insert_retriever(vector_db, doc_db)
 
     retriever.add_documents(docs)
 
