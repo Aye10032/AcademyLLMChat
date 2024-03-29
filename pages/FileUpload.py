@@ -154,24 +154,18 @@ def markdown_tab():
             """
         )
 
-    with col_2.form('md_form'):
-        col1, col2 = st.columns([2, 1], gap='medium')
-        with col1:
-            st.markdown('选择知识库')
-            option = st.selectbox('选择知识库',
-                                  range(len(collections)),
-                                  format_func=lambda x: collections[x],
-                                  disabled=st.session_state['md_uploader_disable'],
-                                  label_visibility='collapsed')
+    with col_2.container(border=True):
+        st.markdown('选择知识库')
 
-        with col2:
-            st.markdown('选择文献所属年份')
+        md_col1, md_col2 = st.columns([3, 1], gap='large')
+        md_col1.selectbox('选择知识库',
+                          range(len(collections)),
+                          format_func=lambda x: collections[x],
+                          key='md_selection',
+                          disabled=st.session_state['md_uploader_disable'],
+                          label_visibility='collapsed')
 
-            current_year = datetime.now().year
-            year = st.selectbox('Year',
-                                [year for year in range(1900, current_year + 1)][::-1],
-                                disabled=st.session_state['md_uploader_disable'],
-                                label_visibility='collapsed')
+        md_col2.checkbox('构建引用树', key='md_build_ref_tree', disabled=st.session_state['pdf_uploader_disable'])
 
         st.markdown(' ')
 
@@ -183,11 +177,10 @@ def markdown_tab():
             disabled=st.session_state['md_uploader_disable'],
             label_visibility='collapsed')
 
-        submit = st.form_submit_button('导入文献',
-                                       type='primary',
-                                       disabled=st.session_state['md_uploader_disable'], )
+        st.button('导入文献', key='md_submit', type='primary', disabled=st.session_state['md_uploader_disable'])
 
-        if submit:
+        if st.session_state.get('md_submit'):
+            option = st.session_state.get('md_selection')
             config.set_collection(option)
             update_config(config)
 
@@ -340,7 +333,7 @@ def pdf_tab():
 
 
 def pmc_tab():
-    col_1, col_2, col_3 = st.columns([1.2, 3, 0.8], gap='medium')
+    col_1, col_2, col_3 = st.columns([1.2, 3, 0.5], gap='medium')
 
     with col_1.container(border=True):
         st.subheader('使用说明')
