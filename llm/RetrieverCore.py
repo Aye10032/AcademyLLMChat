@@ -37,6 +37,8 @@ class ScoreRetriever(MultiVectorRetriever):
     multi_query: bool = False
     llm_chain: LLMChain
 
+    top_k: int = 5
+
     def generate_queries(
             self, question: str, run_manager: CallbackManagerForRetrieverRun
     ) -> List[str]:
@@ -82,7 +84,7 @@ class ScoreRetriever(MultiVectorRetriever):
 
         rerank_docs = self.embedding.compress_documents(docs, query)
 
-        return rerank_docs
+        return rerank_docs[:self.top_k]
 
     async def agenerate_queries(
             self, question: str, run_manager: AsyncCallbackManagerForRetrieverRun
@@ -122,6 +124,8 @@ class ExprRetriever(MultiVectorRetriever):
     embedding: Bgem3Embeddings
     expr_statement: str
 
+    top_k: int = 5
+
     def _get_relevant_documents(
             self, query: str, *, run_manager: CallbackManagerForRetrieverRun
     ) -> List[Document]:
@@ -147,12 +151,14 @@ class ExprRetriever(MultiVectorRetriever):
 
         rerank_docs = self.embedding.compress_documents(docs, query)
 
-        return rerank_docs
+        return rerank_docs[:self.top_k]
 
 
 class MultiVectorSelfQueryRetriever(SelfQueryRetriever):
+    embedding: Bgem3Embeddings
     doc_store: BaseStore[str, Document]
     id_key: str = "doc_id"
+    top_k: int = 5
 
     def _get_relevant_documents(
             self, query: str, *, run_manager: CallbackManagerForRetrieverRun
@@ -160,14 +166,10 @@ class MultiVectorSelfQueryRetriever(SelfQueryRetriever):
         structured_query = self.query_constructor.invoke(
             {"query": query}, config={"callbacks": run_manager.get_child()}
         )
-        if self.verbose:
-            logger.debug(f"Generated Query: {structured_query}")
 
         new_query, search_kwargs = self._prepare_query(query, structured_query)
         search_kwargs['k'] = 5
         search_kwargs['fetch_k'] = 10
-        logger.debug(new_query)
-        logger.debug(search_kwargs)
         sub_doc = self._get_docs_with_query(new_query, search_kwargs)
 
         ids = []
@@ -177,12 +179,14 @@ class MultiVectorSelfQueryRetriever(SelfQueryRetriever):
 
         result = self.doc_store.mget(ids)
 
-        return result
+        rerank_docs = self.embedding.compress_documents(result, query)
+
+        return rerank_docs[:self.top_k]
 
     def _get_docs_with_query(
             self, query: str, search_kwargs: Dict[str, Any]
     ) -> List[Document]:
-        docs = self.vectorstore.search(query, 'mmr', **search_kwargs)
+        docs = self.vectorstore.similarity_search(query, **search_kwargs)
         return docs
 
 
@@ -237,13 +241,18 @@ def base_retriever(
         multi_query=True,
         llm_chain=llm_chain,
         search_type=SearchType.similarity,
-        search_kwargs={'k': 8, 'fetch_k': 10}
+        search_kwargs={'k': 8, 'fetch_k': 10},
+        top_k=5
     )
 
     return retriever
 
 
-def self_query_retriever(_vector_store: VectorStore, _doc_store: SqliteBaseStore):
+def self_query_retriever(
+        _vector_store: VectorStore,
+        _doc_store: SqliteBaseStore,
+        _embedding: Bgem3Embeddings
+) -> MultiVectorSelfQueryRetriever:
     metadata_field_info = [
         AttributeInfo(
             name='title',
@@ -286,6 +295,8 @@ def self_query_retriever(_vector_store: VectorStore, _doc_store: SqliteBaseStore
         metadata_field_info=metadata_field_info,
         structured_query_translator=MilvusTranslator(),
         verbose=True,
+        embedding=_embedding,
+        top_k=5
     )
 
     return retriever
@@ -331,7 +342,8 @@ def expr_retriever(
         embedding=_embedding,
         expr_statement=expr_stmt,
         search_type=SearchType.similarity,
-        search_kwargs={'k': 8, 'fetch_k': 10}
+        search_kwargs={'k': 8, 'fetch_k': 10},
+        top_k=5
     )
 
     return retriever

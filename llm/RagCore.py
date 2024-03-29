@@ -99,7 +99,7 @@ def get_answer(question: str, self_query: bool = False, expr_stmt: str = None, *
         if expr_stmt is not None:
             retriever = expr_retriever(vec_store, doc_store, embedding, expr_stmt)
         else:
-            retriever = self_query_retriever(vec_store, doc_store)
+            retriever = self_query_retriever(vec_store, doc_store, embedding)
     else:
 
         retriever = base_retriever(vec_store, doc_store, embedding)
