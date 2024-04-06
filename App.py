@@ -64,7 +64,7 @@ with st.sidebar:
     if not option == milvus_cfg.DEFAULT_COLLECTION:
         config.set_collection(option)
         update_config(config)
-        st.rerun()
+        # st.rerun()
 
     st.divider()
     st.markdown('#### Advance')
@@ -150,7 +150,9 @@ with col_doc:
 
 if prompt:
     if not st.session_state.get('chat_type'):
-        logger.info(f'question: {prompt}')
+        collection_name = milvus_cfg.get_collection().NAME
+
+        logger.info(f'question{collection_name}: {prompt}')
         st.session_state.messages = [{'role': 'user', 'content': prompt}]
 
         if st.session_state.get('self_query'):
@@ -169,11 +171,17 @@ if prompt:
 
             if len(kwarg) != 0:
                 expr = get_expr(st.session_state.get('fuzzy_mode'), **kwarg)
-                response = get_answer(prompt, True, expr, llm_name=st.session_state.get('LLM'))
+                response = get_answer(
+                    collection_name,
+                    prompt,
+                    True,
+                    expr,
+                    llm_name=st.session_state.get('LLM')
+                )
             else:
-                response = get_answer(prompt, True, llm_name=st.session_state.get('LLM'))
+                response = get_answer(collection_name, prompt, True, llm_name=st.session_state.get('LLM'))
         else:
-            response = get_answer(prompt, llm_name=st.session_state.get('LLM'))
+            response = get_answer(collection_name, prompt, llm_name=st.session_state.get('LLM'))
 
         st.session_state.documents = response['docs']
 

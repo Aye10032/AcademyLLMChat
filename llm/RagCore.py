@@ -81,8 +81,8 @@ def load_doc_store() -> SqliteDocStore:
 
 
 @st.cache_data(show_spinner='Asking from LLM chain...')
-def get_answer(question: str, self_query: bool = False, expr_stmt: str = None, *, llm_name: str):
-    vec_store = load_vectorstore(config.milvus_config.get_collection().NAME)
+def get_answer(collection_name: str, question: str, self_query: bool = False, expr_stmt: str = None, *, llm_name: str):
+    vec_store = load_vectorstore(collection_name)
     embedding = load_embedding_en()
     doc_store = load_doc_store()
 
