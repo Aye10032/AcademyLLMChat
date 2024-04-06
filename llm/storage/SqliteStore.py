@@ -95,8 +95,9 @@ class SqliteBaseStore(BaseStore[str, V], Generic[V]):
         ordered_values = {key: None for key in keys}
         for item in items:
             v = item[0]
-            val = self.__deserialize_value(v) if v is not None else v
+            val: Optional[Document] = self.__deserialize_value(v) if v is not None else v
             k = item[1]
+            val.metadata['doc_id'] = k
             ordered_values[k] = val
 
         return [ordered_values[key] for key in keys]

@@ -137,6 +137,7 @@ with col_doc:
                 _year = ref.metadata['year']
                 _doi = ref.metadata['doi']
                 _score = ref.metadata['score']
+
                 if index in st.session_state.get('cite_list'):
                     st.markdown(f'#### ✅【{index + 1}】{_title}')
                 else:
@@ -145,10 +146,12 @@ with col_doc:
                     f'{_author}({_year}) [{_doi}](https://doi.org/{_doi}) {score_text(_score)}',
                     unsafe_allow_html=True
                 )
-                main_content: str = ref.page_content
+
+                main_content: str = str(ref.page_content)
 
                 for _sentence in ref.metadata['refer_sentence']:
-                    main_content.replace(_sentence, f':orange[{_sentence}]')
+                    main_content = main_content.replace(_sentence, f' :orange[{_sentence}]')
+
                 st.markdown(main_content)
                 st.divider()
 
