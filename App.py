@@ -196,30 +196,51 @@ if prompt:
         answer = response['answer']
 
         cite_list = []
-        cite_dict_list = []
+        # cite_dict_list = []
+        # for cite_id in answer['citations']:
+        #     if 0 < cite_id <= len(response['docs']):
+        #         cite_list.append(cite_id - 1)
+        #         sub_doc = response['docs'][cite_id - 1]
+        #         _title = sub_doc.metadata['title']
+        #         _author = sub_doc.metadata['author']
+        #         _year = sub_doc.metadata['year']
+        #         _doi = sub_doc.metadata['doi']
+        #
+        #         cite_dict_list.append(
+        #             {'cite_id': str(cite_id), 'title': _title, 'author': _author, 'year': _year, 'doi': _doi},
+        #         )
+        #
+        # cite_df = DataFrame(cite_dict_list)
+        # cite_df = cite_df.groupby(['doi', 'title', 'author', 'year'])['cite_id'].apply(','.join).reset_index()
+        # cite_df.sort_values(by=['cite_id'], inplace=True)
+        #
+        # cite_str_list = []
+        # for row in cite_df.itertuples():
+        #     cite_str_list.append(
+        #         f"[{row.cite_id}] \"{row.title}\" {row.author} ({row.year}) [{row.doi}](https://doi.org/{row.doi})"
+        #     )
+        cite_dict = {}
         for cite_id in answer['citations']:
             if 0 < cite_id <= len(response['docs']):
                 cite_list.append(cite_id - 1)
+
                 sub_doc = response['docs'][cite_id - 1]
                 _title = sub_doc.metadata['title']
                 _author = sub_doc.metadata['author']
                 _year = sub_doc.metadata['year']
                 _doi = sub_doc.metadata['doi']
 
-                cite_dict_list.append(
-                    {'cite_id': str(cite_id), 'title': _title, 'author': _author, 'year': _year, 'doi': _doi},
-                )
+                key = (_doi, _title, _author, _year)
 
-        cite_df = DataFrame(cite_dict_list)
-        cite_df = cite_df.groupby(['doi', 'title', 'author', 'year'])['cite_id'].apply(','.join).reset_index()
-        cite_df.sort_values(by=['cite_id'], inplace=True)
-        print(cite_df)
+                if key not in cite_dict:
+                    cite_dict[key] = [str(cite_id)]
+                else:
+                    cite_dict[key].append(str(cite_id))
 
         cite_str_list = []
-        for row in cite_df.itertuples():
+        for key in sorted(cite_dict, key=lambda x: cite_dict[x]):
             cite_str_list.append(
-                f"[{row.cite_id}] \"{row.title}\" {row.author} ({row.year}) [{row.doi}](https://doi.org/{row.doi})"
-            )
+                f"[{','.join(cite_dict[key])}] \"{key[1]}\" {key[2]} ({key[3]}) [{key[0]}](https://doi.org/{key[0]})")
 
         st.session_state.cite_list = cite_list
         cite_str = '\n\n'.join(cite_str_list)
