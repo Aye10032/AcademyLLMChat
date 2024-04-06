@@ -1,6 +1,6 @@
 from typing import List, Optional, Dict, Any, Tuple
 
-from langchain.chains import LLMChain
+from langchain.chains.llm import LLMChain
 from langchain.chains.query_constructor.schema import AttributeInfo
 from langchain.retrievers import ParentDocumentRetriever, MultiQueryRetriever, SelfQueryRetriever, MultiVectorRetriever
 from langchain.retrievers.multi_query import LineListOutputParser
@@ -59,7 +59,7 @@ class ScoreRetriever(MultiVectorRetriever):
     def generate_queries(
             self, question: str, run_manager: CallbackManagerForRetrieverRun
     ) -> List[str]:
-        response = self.llm_chain(
+        response = self.llm_chain.invoke(
             {"question": question}, callbacks=run_manager.get_child()
         )
         lines = response["text"]
@@ -108,7 +108,7 @@ class ScoreRetriever(MultiVectorRetriever):
     async def agenerate_queries(
             self, question: str, run_manager: AsyncCallbackManagerForRetrieverRun
     ) -> List[str]:
-        response = await self.llm_chain.acall(
+        response = await self.llm_chain.ainvoke(
             inputs={"question": question}, callbacks=run_manager.get_child()
         )
         lines = response["text"]
