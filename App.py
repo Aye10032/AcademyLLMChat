@@ -5,6 +5,7 @@ from datetime import datetime
 import streamlit as st
 from langchain_community.chat_message_histories import ChatMessageHistory
 from loguru import logger
+from pandas import DataFrame
 
 from Config import Config
 from llm.ChatCore import chat_with_history
@@ -195,7 +196,7 @@ if prompt:
         answer = response['answer']
 
         cite_list = []
-        cite_str_list = []
+        cite_dict_list = []
         for cite_id in answer['citations']:
             if 0 < cite_id <= len(response['docs']):
                 cite_list.append(cite_id - 1)
@@ -205,7 +206,20 @@ if prompt:
                 _year = sub_doc.metadata['year']
                 _doi = sub_doc.metadata['doi']
 
-                cite_str_list.append(f"[{cite_id}] \"{_title}\" {_author} ({_year}) [{_doi}](https://doi.org/{_doi})")
+                cite_dict_list.append(
+                    {'cite_id': str(cite_id), 'title': _title, 'author': _author, 'year': _year, 'doi': _doi},
+                )
+
+        cite_df = DataFrame(cite_dict_list)
+        cite_df = cite_df.groupby(['doi', 'title', 'author', 'year'])['cite_id'].apply(','.join).reset_index()
+        cite_df.sort_values(by=['cite_id'], inplace=True)
+        print(cite_df)
+
+        cite_str_list = []
+        for row in cite_df.itertuples():
+            cite_str_list.append(
+                f"[{row.cite_id}] \"{row.title}\" {row.author} ({row.year}) [{row.doi}](https://doi.org/{row.doi})"
+            )
 
         st.session_state.cite_list = cite_list
         cite_str = '\n\n'.join(cite_str_list)
