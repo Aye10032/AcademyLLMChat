@@ -41,7 +41,9 @@ def get_parent_id(docs: List[Document], id_key: str) -> Tuple[List, Dict]:
                 ids.append(_id)
                 id_map[_id] = [sentence.page_content]
             else:
-                id_map[_id] = id_map[_id].extend([sentence.page_content])
+                _temp: List = id_map.get(_id)
+                _temp.append(sentence.page_content)
+                id_map[_id] = _temp
 
     return ids, id_map
 
@@ -98,7 +100,8 @@ class ScoreRetriever(MultiVectorRetriever):
 
         for i in range(len(rerank_docs)):
             context_id = rerank_docs[i].metadata[self.id_key]
-            rerank_docs[i].metadata['refer_sentence'] = id_map.get(context_id)
+            rerank_docs[i].metadata['refer_sentence'] = id_map.get(context_id) if id_map.__contains__(
+                context_id) else []
 
         return rerank_docs
 
