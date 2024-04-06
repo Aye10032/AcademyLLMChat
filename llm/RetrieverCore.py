@@ -41,7 +41,7 @@ def get_parent_id(docs: List[Document], id_key: str) -> Tuple[List, Dict]:
                 ids.append(_id)
                 id_map[_id] = [sentence.page_content]
             else:
-                id_map[_id] = id_map[_id].extend([sentence.page_content])
+                id_map[_id] = id_map.get(_id).extend([sentence.page_content])
 
     return ids, id_map
 
