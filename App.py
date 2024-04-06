@@ -59,12 +59,12 @@ with st.sidebar:
                           format_func=lambda x: collections[x],
                           label_visibility='collapsed')
 
-    st.caption(f'当前数据库为：{milvus_cfg.get_collection().NAME}')
-
     if not option == milvus_cfg.DEFAULT_COLLECTION:
         config.set_collection(option)
         update_config(config)
-        # st.rerun()
+        st.caption(f'当前数据库为：{milvus_cfg.get_collection().NAME}')
+    else:
+        st.caption(f'当前数据库为：{milvus_cfg.get_collection().NAME}')
 
     st.divider()
     st.markdown('#### Advance')
@@ -152,7 +152,7 @@ if prompt:
     if not st.session_state.get('chat_type'):
         collection_name = milvus_cfg.get_collection().NAME
 
-        logger.info(f'question{collection_name}: {prompt}')
+        logger.info(f'question ({collection_name}): {prompt}')
         st.session_state.messages = [{'role': 'user', 'content': prompt}]
 
         if st.session_state.get('self_query'):
