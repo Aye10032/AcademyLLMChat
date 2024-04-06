@@ -1,6 +1,5 @@
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 
-import streamlit as st
 from langchain.chains import LLMChain
 from langchain.chains.query_constructor.schema import AttributeInfo
 from langchain.retrievers import ParentDocumentRetriever, MultiQueryRetriever, SelfQueryRetriever, MultiVectorRetriever
@@ -15,6 +14,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.stores import BaseStore
 from langchain_core.vectorstores import VectorStore
 from loguru import logger
+from pandas import DataFrame
 
 from llm.EmbeddingCore import Bgem3Embeddings
 from llm.ModelCore import load_gpt
@@ -29,6 +29,21 @@ def unique_doc(docs: List[Document]) -> List[Document]:
             result.append(doc)
 
     return result
+
+
+def get_parent_id(docs: List[Document], id_key: str) -> Tuple[List, Dict]:
+    ids = []
+    id_map = {}
+    for sentence in docs:
+        if id_key in sentence.metadata:
+            _id = sentence.metadata[id_key]
+            if _id not in ids:
+                ids.append(_id)
+                id_map[_id] = [sentence.page_content]
+            else:
+                id_map[_id] = id_map[_id].extend(sentence.page_content)
+
+    return ids, id_map
 
 
 class ScoreRetriever(MultiVectorRetriever):
@@ -75,16 +90,17 @@ class ScoreRetriever(MultiVectorRetriever):
             else:
                 short_doc: List[Document] = self.vectorstore.max_marginal_relevance_search(query, **self.search_kwargs)
 
-        ids = []
-        for sentence in short_doc:
-            if self.id_key in sentence.metadata and sentence.metadata[self.id_key] not in ids:
-                ids.append(sentence.metadata[self.id_key])
+        ids, id_map = get_parent_id(short_doc, self.id_key)
 
         docs = self.docstore.mget(ids)
 
-        rerank_docs = self.embedding.compress_documents(docs, query)
+        rerank_docs = self.embedding.compress_documents(docs, query)[:self.top_k]
 
-        return rerank_docs[:self.top_k]
+        for i in range(len(rerank_docs)):
+            context_id = rerank_docs[i].metadata[self.id_key]
+            rerank_docs[i].metadata['refer_sentence'] = id_map.get(context_id)
+
+        return rerank_docs
 
     async def agenerate_queries(
             self, question: str, run_manager: AsyncCallbackManagerForRetrieverRun
@@ -142,16 +158,17 @@ class ExprRetriever(MultiVectorRetriever):
                 **self.search_kwargs
             )
 
-        ids = []
-        for sentence in short_doc:
-            if self.id_key in sentence.metadata and sentence.metadata[self.id_key] not in ids:
-                ids.append(sentence.metadata[self.id_key])
+        ids, id_map = get_parent_id(short_doc, self.id_key)
 
         docs = self.docstore.mget(ids)
 
-        rerank_docs = self.embedding.compress_documents(docs, query)
+        rerank_docs = self.embedding.compress_documents(docs, query)[:self.top_k]
 
-        return rerank_docs[:self.top_k]
+        for i in range(len(rerank_docs)):
+            context_id = rerank_docs[i].metadata[self.id_key]
+            rerank_docs[i].metadata['refer_sentence'] = id_map.get(context_id)
+
+        return rerank_docs
 
 
 class MultiVectorSelfQueryRetriever(SelfQueryRetriever):
@@ -170,18 +187,19 @@ class MultiVectorSelfQueryRetriever(SelfQueryRetriever):
         new_query, search_kwargs = self._prepare_query(query, structured_query)
         search_kwargs['k'] = 5
         search_kwargs['fetch_k'] = 10
-        sub_doc = self._get_docs_with_query(new_query, search_kwargs)
+        short_doc = self._get_docs_with_query(new_query, search_kwargs)
 
-        ids = []
-        for d in sub_doc:
-            if self.id_key in d.metadata and d.metadata[self.id_key] not in ids:
-                ids.append(d.metadata[self.id_key])
+        ids, id_map = get_parent_id(short_doc, self.id_key)
 
-        result = self.doc_store.mget(ids)
+        docs = self.docstore.mget(ids)
 
-        rerank_docs = self.embedding.compress_documents(result, query)
+        rerank_docs = self.embedding.compress_documents(docs, query)[:self.top_k]
 
-        return rerank_docs[:self.top_k]
+        for i in range(len(rerank_docs)):
+            context_id = rerank_docs[i].metadata[self.id_key]
+            rerank_docs[i].metadata['refer_sentence'] = id_map.get(context_id)
+
+        return rerank_docs
 
     def _get_docs_with_query(
             self, query: str, search_kwargs: Dict[str, Any]

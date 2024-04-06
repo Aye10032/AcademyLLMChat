@@ -145,7 +145,11 @@ with col_doc:
                     f'{_author}({_year}) [{_doi}](https://doi.org/{_doi}) {score_text(_score)}',
                     unsafe_allow_html=True
                 )
-                st.markdown(ref.page_content)
+                main_content: str = ref.page_content
+
+                for _sentence in ref.metadata['refer_sentence']:
+                    main_content.replace(_sentence, f':orange[{_sentence}]')
+                st.markdown(main_content)
                 st.divider()
 
 if prompt:
