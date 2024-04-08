@@ -95,6 +95,8 @@ with st.sidebar:
     else:
         st.caption('精准模式：:red[关]')
 
+    st.toggle('双语回答', True, key='show_en')
+
     st.divider()
     st.subheader('使用说明')
     st.markdown("""
@@ -196,29 +198,6 @@ if prompt:
         answer = response['answer']
 
         cite_list = []
-        # cite_dict_list = []
-        # for cite_id in answer['citations']:
-        #     if 0 < cite_id <= len(response['docs']):
-        #         cite_list.append(cite_id - 1)
-        #         sub_doc = response['docs'][cite_id - 1]
-        #         _title = sub_doc.metadata['title']
-        #         _author = sub_doc.metadata['author']
-        #         _year = sub_doc.metadata['year']
-        #         _doi = sub_doc.metadata['doi']
-        #
-        #         cite_dict_list.append(
-        #             {'cite_id': str(cite_id), 'title': _title, 'author': _author, 'year': _year, 'doi': _doi},
-        #         )
-        #
-        # cite_df = DataFrame(cite_dict_list)
-        # cite_df = cite_df.groupby(['doi', 'title', 'author', 'year'])['cite_id'].apply(','.join).reset_index()
-        # cite_df.sort_values(by=['cite_id'], inplace=True)
-        #
-        # cite_str_list = []
-        # for row in cite_df.itertuples():
-        #     cite_str_list.append(
-        #         f"[{row.cite_id}] \"{row.title}\" {row.author} ({row.year}) [{row.doi}](https://doi.org/{row.doi})"
-        #     )
         cite_dict = {}
         for cite_id in answer['citations']:
             if 0 < cite_id <= len(response['docs']):
@@ -245,7 +224,10 @@ if prompt:
         st.session_state.cite_list = cite_list
         cite_str = '\n\n'.join(cite_str_list)
 
-        answer_str = f"{answer['answer_en']}\n\n{answer['answer_zh']}\n\n**参考文献**：\n\n{cite_str}"
+        if st.session_state.get('show_en'):
+            answer_str = f"{answer['answer_en']}\n\n{answer['answer_zh']}\n\n**参考文献**: \n\n{cite_str}"
+        else:
+            answer_str = f"{answer['answer_zh']}\n\n**参考文献**: \n\n{cite_str}"
         st.session_state.messages.append({'role': 'assistant', 'content': answer_str})
         logger.info(f"({st.session_state.get('LLM')}) answer: {answer['answer_zh']}")
 
