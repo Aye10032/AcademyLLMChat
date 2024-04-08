@@ -61,7 +61,7 @@ def save_to_md(sections: list[Section], output_path, append: bool = False, **kwa
     :param sections: 包含章节内容的列表，每个章节都由Section类型表示。
     :param output_path: 输出Markdown文件的路径。
     :param append: 是否追加模式，默认为False，即覆盖原有文件；如果为True，则追加到文件末尾。
-    :param kwargs: 可选参数，用于在文件开头写入额外的信息，如引用(ref)、作者(author)、年份(year)和DOI(doi)。
+    :param kwargs: 可选参数，用于在文件开头写入额外的信息，如是否存在引用(ref)、作者(author)、年份(year)和DOI(doi)。
     :return: 无返回值。
     """
     # 根据append参数决定文件打开模式
@@ -116,6 +116,8 @@ def section_to_documents(sections: list[Section], author: str, year: int, doi: s
             case 2:
                 __Section = section.text
             case 0:
+                if __Section == 'References':
+                    continue
 
                 docs.append(Document(
                     page_content=section.text,

@@ -1,3 +1,4 @@
+import re
 from io import StringIO
 
 import yaml
@@ -48,6 +49,7 @@ def split_markdown_text(md_text: str, **kwargs):
         year = kwargs.get('year')
         doi = kwargs.get('doi')
         author = kwargs.get('author')
+        ref = kwargs.get('ref') if 'ref' in kwargs else False
     else:
         if head_split_docs[0].page_content.startswith('---'):
             yaml_text = head_split_docs.pop(0).page_content.replace('---', '')
@@ -55,16 +57,28 @@ def split_markdown_text(md_text: str, **kwargs):
             year = data['year']
             doi = data['doi']
             author = data['author']
+            ref = data['ref'] if 'ref' in data else False
         else:
             raise Exception('Markdown miss information!')
+
+    reference_data = {}
+    if ref:
+        if head_split_docs[-1].metadata['section'] != 'References':
+            raise Exception('Missing "References" section')
+        else:
+            reference_text = head_split_docs.pop(-1).page_content
+            reference_data = yaml.load(reference_text, Loader=yaml.FullLoader)
 
     for doc in head_split_docs:
         doc.metadata['doi'] = doi
         doc.metadata['year'] = int(year)
         doc.metadata['author'] = author
 
-        # TODO
-        doc.metadata['ref'] = ''
+        if ref:
+            matches = re.findall(r'\[\^(\d+)]', doc.page_content)
+            doc.metadata['ref'] = [reference_data[int(i)] for i in matches if int(i) < len(reference_data)]
+        else:
+            doc.metadata['ref'] = ''
     md_docs = r_splitter.split_documents(head_split_docs)
 
     return md_docs
