@@ -98,17 +98,14 @@ class ScoreRetriever(MultiVectorRetriever):
 
         docs = self.docstore.mget(ids)
 
-        try:
-            rerank_docs = self.embedding.compress_documents(docs, query)[:self.top_k]
+        rerank_docs = self.embedding.compress_documents(docs, query)[:self.top_k]
 
-            for i in range(len(rerank_docs)):
-                context_id = rerank_docs[i].metadata[self.id_key]
-                rerank_docs[i].metadata['refer_sentence'] = id_map.get(context_id) if id_map.__contains__(
-                    context_id) else []
+        for i in range(len(rerank_docs)):
+            context_id = rerank_docs[i].metadata[self.id_key]
+            rerank_docs[i].metadata['refer_sentence'] = id_map.get(context_id) if id_map.__contains__(
+                context_id) else []
 
-            return rerank_docs
-        except Exception as e:
-            print(docs, e)
+        return rerank_docs
 
     async def agenerate_queries(
             self, question: str, run_manager: AsyncCallbackManagerForRetrieverRun

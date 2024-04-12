@@ -80,10 +80,19 @@ class Bgem3Embeddings(BaseModel, Embeddings):
             callbacks: Optional[Callbacks] = None,
     ) -> List[Document]:
         sentence_pairs = [(query, doc.page_content) for doc in documents]
-        rerank_scores = self.client.compute_score(
-            sentence_pairs,
-            weights_for_different_modes=[0.5, 0.2, 0.3]
-        ).get('colbert+sparse+dense')
+        rerank_scores = []
+
+        for i in range(0, len(sentence_pairs), 10):
+            if i + 10 >= len(sentence_pairs):
+                batch_pairs = sentence_pairs[i:]
+            else:
+                batch_pairs = sentence_pairs[i:i + 10]
+
+            batch_scores = self.client.compute_score(
+                batch_pairs,
+                weights_for_different_modes=[0.5, 0.2, 0.3]
+            ).get('colbert+sparse+dense')
+            rerank_scores.extend(batch_scores)
 
         rerank_results = list(zip(rerank_scores, documents))
         rerank_results = sorted(rerank_results, reverse=True)
