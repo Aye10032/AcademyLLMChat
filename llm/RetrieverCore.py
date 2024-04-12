@@ -21,6 +21,8 @@ from llm.ModelCore import load_gpt
 from llm.Template import GENERATE_QUESTION
 from llm.storage.SqliteStore import SqliteBaseStore
 
+import streamlit as st
+
 
 def unique_doc(docs: List[Document]) -> List[Document]:
     result = []
@@ -96,20 +98,23 @@ class ScoreRetriever(MultiVectorRetriever):
 
         docs = self.docstore.mget(ids)
 
-        rerank_docs = self.embedding.compress_documents(docs, query)[:self.top_k]
+        try:
+            rerank_docs = self.embedding.compress_documents(docs, query)[:self.top_k]
 
-        for i in range(len(rerank_docs)):
-            context_id = rerank_docs[i].metadata[self.id_key]
-            rerank_docs[i].metadata['refer_sentence'] = id_map.get(context_id) if id_map.__contains__(
-                context_id) else []
+            for i in range(len(rerank_docs)):
+                context_id = rerank_docs[i].metadata[self.id_key]
+                rerank_docs[i].metadata['refer_sentence'] = id_map.get(context_id) if id_map.__contains__(
+                    context_id) else []
 
-        return rerank_docs
+            return rerank_docs
+        except Exception as e:
+            print(docs, e)
 
     async def agenerate_queries(
             self, question: str, run_manager: AsyncCallbackManagerForRetrieverRun
     ) -> List[str]:
         response = await self.llm_chain.ainvoke(
-            inputs={"question": question}, callbacks=run_manager.get_child()
+            {"question": question}, callbacks=run_manager.get_child()
         )
         lines = response["text"]
 
@@ -354,13 +359,13 @@ def get_expr(fuzzy: bool = False, **kwargs) -> str:
 def expr_retriever(
         _vector_store: Milvus,
         _doc_store: SqliteBaseStore,
-        _embedding: Bgem3Embeddings,
+        embedding: Bgem3Embeddings,
         expr_stmt: str
 ) -> ExprRetriever:
     retriever = ExprRetriever(
         vectorstore=_vector_store,
         docstore=_doc_store,
-        embedding=_embedding,
+        embedding=embedding,
         expr_statement=expr_stmt,
         search_type=SearchType.similarity,
         search_kwargs={'k': 8, 'fetch_k': 10},

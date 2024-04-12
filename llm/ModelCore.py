@@ -23,7 +23,8 @@ def load_embedding_en() -> Bgem3Embeddings:
         model_name=model,
         model_kwargs={
             'device': 'cuda',
-            'normalize_embeddings': True
+            'normalize_embeddings': True,
+            'use_fp16': True
         }
     )
 

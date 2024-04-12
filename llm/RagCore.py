@@ -53,16 +53,11 @@ Fragment Snippet: {doc.page_content}
 
 
 @st.cache_resource(show_spinner='Loading Vector Database...')
-def load_vectorstore(collection_name: str) -> Milvus:
+def load_vectorstore(collection_name: str, _embedding_model) -> Milvus:
     milvus_cfg = config.milvus_config
 
-    if milvus_cfg.get_collection().LANGUAGE == 'zh':
-        embedding = load_embedding_zh()
-    else:
-        embedding = load_embedding_en()
-
     vector_db: milvus = Milvus(
-        embedding,
+        _embedding_model,
         collection_name=collection_name,
         connection_args=milvus_cfg.get_conn_args(),
         search_params={'ef': 15},
@@ -82,8 +77,13 @@ def load_doc_store() -> SqliteDocStore:
 
 @st.cache_data(show_spinner='Asking from LLM chain...')
 def get_answer(collection_name: str, question: str, self_query: bool = False, expr_stmt: str = None, *, llm_name: str):
-    vec_store = load_vectorstore(collection_name)
-    embedding = load_embedding_en()
+    milvus_cfg = config.milvus_config
+    if milvus_cfg.get_collection().LANGUAGE == 'zh':
+        embedding = load_embedding_zh()
+    else:
+        embedding = load_embedding_en()
+
+    vec_store = load_vectorstore(collection_name, embedding)
     doc_store = load_doc_store()
 
     if llm_name == 'gpt3.5-16k':
