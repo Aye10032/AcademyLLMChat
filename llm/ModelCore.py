@@ -112,7 +112,7 @@ def load_qianfan() -> QianfanChatEndpoint:
         model=config.qianfan_config.MODEL,
         qianfan_ak=config.qianfan_config.API_KEY,
         qianfan_sk=config.qianfan_config.SECRET_KEY,
-        temperature=0
+        temperature=0.05
     )
 
     return llm
