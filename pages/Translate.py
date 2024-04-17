@@ -1,6 +1,7 @@
 import streamlit as st
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate
+from loguru import logger
 
 from Config import Config
 from uicomponent.StComponent import side_bar_links
@@ -98,10 +99,11 @@ with col2:
         st.code(st.session_state.markdown_text, language='markdown')
 
 if prompt := st.chat_input():
+    logger.info(f'[translate]: {prompt}')
     st.session_state.translate_messages = []
     prompt = prompt.replace("\n", " ").replace("\r", "")
     chat_container.chat_message("human").write(prompt)
-    # st.session_state.translate_messages.append({'role': 'user', 'content': prompt})
+    st.session_state.translate_messages.append({'role': 'user', 'content': prompt})
 
     response = get_translate_and_conclude(prompt, st.session_state.get('TranslateLLM'), 0).content
     chat_container.chat_message("ai").write(response)
@@ -112,6 +114,7 @@ if prompt := st.chat_input():
     st.session_state.translate_messages.append({'role': 'user', 'content': query})
 
     conclusion = get_translate_and_conclude(prompt, st.session_state.get('TranslateLLM'), 1).content
+    logger.info(f"{st.session_state.get('TranslateLLM')}(conclude): {prompt}")
     chat_container.chat_message("ai").write(conclusion)
     st.session_state.translate_messages.append({'role': 'assistant', 'content': conclusion})
 
