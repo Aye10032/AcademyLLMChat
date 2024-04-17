@@ -2,8 +2,8 @@ import httpx
 import streamlit as st
 from langchain_anthropic import ChatAnthropic
 from langchain_community.chat_models.baidu_qianfan_endpoint import QianfanChatEndpoint
-from langchain_community.chat_models.moonshot import MoonshotChat
 from langchain_community.embeddings import HuggingFaceEmbeddings, HuggingFaceBgeEmbeddings
+from langchain_community.llms.moonshot import MoonshotCommon
 from langchain_openai import ChatOpenAI
 
 from Config import Config
@@ -120,10 +120,12 @@ def load_qianfan() -> QianfanChatEndpoint:
 
 
 @st.cache_resource(show_spinner='Loading Moonshot...')
-def load_moonshot() -> MoonshotChat:
-    llm = MoonshotChat(
+def load_moonshot() -> MoonshotCommon:
+    llm = MoonshotCommon(
         model=config.moonshot_config.MODEL,
-        moonshot_api_key=config.moonshot_config.API_KEY
+        moonshot_api_key=config.moonshot_config.API_KEY,
+        temperature=0,
+        max_tokens=4096
     )
 
     return llm
