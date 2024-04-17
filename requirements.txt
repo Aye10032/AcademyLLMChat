@@ -15,6 +15,7 @@ markdown
 pymilvus==2.3.6
 sentence_transformers
 FlagEmbedding==1.2.8
+qianfan
 pydantic
 lark
 # torch==2.2.1+cu121
