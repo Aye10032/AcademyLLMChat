@@ -1,3 +1,5 @@
+import os
+
 import streamlit as st
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate
@@ -19,6 +21,7 @@ st.set_page_config(
 )
 
 config: Config = get_config()
+os.environ["LANGCHAIN_PROJECT"] = 'AcademyLLMChat'
 
 st.title("一键生成翻译总结")
 
