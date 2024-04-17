@@ -119,6 +119,7 @@ def load_qianfan() -> QianfanChatEndpoint:
     return llm
 
 
+@st.cache_resource(show_spinner='Loading Moonshot...')
 def load_moonshot() -> MoonshotChat:
     llm = MoonshotChat(
         model=config.moonshot_config.MODEL,

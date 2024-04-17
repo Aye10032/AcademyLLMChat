@@ -69,6 +69,9 @@ def get_translate_and_conclude(question: str, llm_name: str, step: int):
         case 'qianfan':
             llm = load_qianfan()
 
+        case 'moonshot':
+            llm = load_moonshot()
+
         case _:
             llm = load_gpt()
 
