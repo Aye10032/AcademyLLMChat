@@ -66,7 +66,8 @@ def load_gpt() -> ChatOpenAI:
     if config.openai_config.USE_PROXY:
         http_client = httpx.Client(proxies=config.get_proxy())
         llm = ChatOpenAI(model_name="gpt-3.5-turbo",
-                         http_client=http_client,
+                         # http_client=http_client,
+                         openai_proxy=config.get_proxy(),
                          temperature=0,
                          openai_api_key=config.openai_config.API_KEY)
     else:
@@ -81,7 +82,8 @@ def load_gpt4() -> ChatOpenAI:
     if config.openai_config.USE_PROXY:
         http_client = httpx.Client(proxies=config.get_proxy())
         llm = ChatOpenAI(model_name="gpt-4",
-                         http_client=http_client,
+                         # http_client=http_client,
+                         openai_proxy=config.get_proxy(),
                          temperature=0,
                          openai_api_key=config.openai_config.API_KEY)
     else:
