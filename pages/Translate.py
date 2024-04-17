@@ -44,7 +44,10 @@ def get_translate_and_conclude(question: str, llm_name: str, step: int):
         _prompt = ChatPromptTemplate.from_messages(
             [
                 SystemMessage(content="You are an AI academic assistant and should answer user questions rigorously."),
-                HumanMessage(content=str(st.session_state.translate_messages[-3])),
+                HumanMessage(
+                    content=f"""首先，将这段文本**翻译为中文**，不要漏句。对于所有的特殊符号和latex代码，请保持原样不要改变:
+                    {st.session_state.translate_messages[-3]}"""
+                ),
                 AIMessage(content=str(st.session_state.translate_messages[-2])),
                 HumanMessage(content=question),
             ]
@@ -98,7 +101,7 @@ if prompt := st.chat_input():
     st.session_state.translate_messages = []
     prompt = prompt.replace("\n", " ").replace("\r", "")
     chat_container.chat_message("human").write(prompt)
-    st.session_state.translate_messages.append({'role': 'user', 'content': prompt})
+    # st.session_state.translate_messages.append({'role': 'user', 'content': prompt})
 
     response = get_translate_and_conclude(prompt, st.session_state.get('TranslateLLM'), 0).content
     chat_container.chat_message("ai").write(response)
