@@ -20,10 +20,10 @@ def get_work_path():
     return os.path.dirname(os.path.abspath(__file__))
 
 
-@dataclass
 class PubmedConfig:
-    USE_PROXY: bool = field(metadata={'key': 'use_proxy'})
-    API_KEY: str = field(metadata={'key': 'api_key'})
+    def __init__(self, use_proxy: bool, api_key: str):
+        self.USE_PROXY = use_proxy
+        self.API_KEY = api_key
 
     @classmethod
     def from_dict(cls, data: Dict[str, any]):
@@ -41,13 +41,13 @@ class GrobidConfig:
         return cls(**data)
 
 
-@dataclass
 class Collection:
-    NAME: str = field(metadata={'key': 'collection_name'})
-    LANGUAGE: str = field(metadata={'key': 'language'})
-    TITLE: str = field(metadata={'key': 'title'})
-    DESCRIPTION: str = field(metadata={'key': 'description'})
-    INDEX_PARAM: str = field(metadata={'key': 'index_param'})
+    def __init__(self, collection_name: str, language: str, title: str, description: str, index_param: str):
+        self.NAME = collection_name
+        self.LANGUAGE = language
+        self.TITLE = title
+        self.DESCRIPTION = description
+        self.INDEX_PARAM = index_param
 
     @classmethod
     def from_dict(cls, data: Dict[str, any]):
@@ -125,32 +125,32 @@ class MilvusConfig:
         logger.info('update collection index file')
 
 
-@dataclass
 class OpenaiConfig:
-    USE_PROXY: bool = field(metadata={'key': 'use_proxy'})
-    API_KEY: str = field(metadata={'key': 'api_key'})
+    def __init__(self, use_proxy: bool, api_key: str):
+        self.USE_PROXY = use_proxy
+        self.API_KEY = api_key
 
     @classmethod
     def from_dict(cls, data: Dict[str, any]):
         return cls(**data)
 
 
-@dataclass
 class ClaudeConfig:
-    USE_PROXY: bool = field(metadata={'key': 'use_proxy'})
-    MODEL: str = field(metadata={'key': 'model'})
-    API_KEY: str = field(metadata={'key': 'api_key'})
+    def __init__(self, use_proxy: bool, model: str, api_key: str):
+        self.USE_PROXY = use_proxy
+        self.MODEL = model
+        self.API_KEY = api_key
 
     @classmethod
     def from_dict(cls, data: Dict[str, any]):
         return cls(**data)
 
 
-@dataclass
 class QianfanConfig:
-    API_KEY: str = field(metadata={'key': 'api_key'})
-    SECRET_KEY: str = field(metadata={'key': 'secret_key'})
-    MODEL: str = field(metadata={'key': 'model'})
+    def __init__(self, api_key: str, secret_key: str, model: str):
+        self.API_KEY = api_key
+        self.SECRET_KEY = secret_key
+        self.MODEL = model
 
     @classmethod
     def from_dict(cls, data: Dict[str, any]):
