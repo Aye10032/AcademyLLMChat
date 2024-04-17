@@ -50,5 +50,10 @@ llm:
     api_key: ''
 
   qianfan:
+    model: 'ERNIE-Bot'
     api_key: ''
     secret_key: ''
+
+  moonshot:
+    model: 'moonshot-v1-8k'
+    api_key: ''

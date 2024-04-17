@@ -157,6 +157,16 @@ class QianfanConfig:
         return cls(**data)
 
 
+class MoonshotConfig:
+    def __init__(self, api_key: str, model: str):
+        self.API_KEY = api_key
+        self.MODEL = model
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, any]):
+        return cls(**data)
+
+
 class Config:
     def __init__(self):
         yml_path = os.path.join(get_work_path(), 'config.yml')
@@ -186,6 +196,7 @@ class Config:
             self.openai_config: OpenaiConfig = OpenaiConfig.from_dict(self.yml['llm']['openai'])
             self.claude_config: ClaudeConfig = ClaudeConfig.from_dict(self.yml['llm']['claude3'])
             self.qianfan_config: QianfanConfig = QianfanConfig.from_dict(self.yml['llm']['qianfan'])
+            self.moonshot_config: MoonshotConfig = MoonshotConfig.from_dict(self.yml['llm']['moonshot'])
 
     def set_collection(self, collection: int):
         if collection >= len(self.milvus_config.COLLECTIONS):

@@ -29,8 +29,8 @@ with st.sidebar:
     side_bar_links()
 
     st.selectbox('选择LLM',
-                 options=['gpt3.5', 'gpt4', 'qianfan'],
-                 index=1,
+                 options=['gpt3.5', 'gpt4', 'qianfan', 'moonshot'],
+                 index=0,
                  key='TranslateLLM')
 
 
