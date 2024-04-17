@@ -48,3 +48,7 @@ llm:
     use_proxy: True
     model: 'claude-3-opus-20240229'
     api_key: ''
+
+  qianfan:
+    api_key: ''
+    secret_key: ''
