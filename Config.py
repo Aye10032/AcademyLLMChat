@@ -185,7 +185,7 @@ class Config:
             self.milvus_config: MilvusConfig = MilvusConfig.from_dict(self.DATA_ROOT, self.yml['milvus'])
             self.openai_config: OpenaiConfig = OpenaiConfig.from_dict(self.yml['llm']['openai'])
             self.claude_config: ClaudeConfig = ClaudeConfig.from_dict(self.yml['llm']['claude3'])
-            self.claude_config: ClaudeConfig = ClaudeConfig.from_dict(self.yml['llm']['qianfan'])
+            self.qianfan_config: QianfanConfig = QianfanConfig.from_dict(self.yml['llm']['qianfan'])
 
     def set_collection(self, collection: int):
         if collection >= len(self.milvus_config.COLLECTIONS):

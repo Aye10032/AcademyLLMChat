@@ -1,6 +1,7 @@
 import httpx
 import streamlit as st
 from langchain_anthropic import ChatAnthropic
+from langchain_community.chat_models.baidu_qianfan_endpoint import QianfanChatEndpoint
 from langchain_community.embeddings import HuggingFaceEmbeddings, HuggingFaceBgeEmbeddings
 from langchain_openai import ChatOpenAI
 
@@ -90,7 +91,7 @@ def load_gpt4() -> ChatOpenAI:
 
 
 @st.cache_resource(show_spinner='Loading Claude3...')
-def load_claude3():
+def load_claude3() -> ChatAnthropic:
     if config.claude_config.USE_PROXY:
         http_client = httpx.Client(proxies=config.get_proxy())
         llm = ChatAnthropic(temperature=0,
@@ -101,5 +102,17 @@ def load_claude3():
         llm = ChatAnthropic(temperature=0,
                             anthropic_api_key=config.claude_config.API_KEY,
                             model_name=config.claude_config.MODEL)
+
+    return llm
+
+
+@st.cache_resource(show_spinner='Loading Qianfan...')
+def load_qianfan() -> QianfanChatEndpoint:
+    llm = QianfanChatEndpoint(
+        model=config.qianfan_config.MODEL,
+        qianfan_ak=config.qianfan_config.API_KEY,
+        qianfan_sk=config.qianfan_config.SECRET_KEY,
+        temperature=0
+    )
 
     return llm
