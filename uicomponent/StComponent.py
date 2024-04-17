@@ -8,7 +8,7 @@ def side_bar_links():
     st.header('欢迎使用学术LLM知识库')
 
     st.page_link('App.py', label='知识库问答', icon='💬')
-    st.page_link('pages/Translate.py', label='一键翻译总结', icon='🗎')
+    st.page_link('pages/Translate.py', label='一键翻译总结', icon='📄')
     st.page_link('pages/FileUpload.py', label='上传文件', icon='📂')
     st.page_link('pages/CollectionManage.py', label='知识库管理', icon='🖥️')
 
