@@ -111,7 +111,12 @@ if prompt := st.chat_input():
     chat_container.chat_message("human").write(prompt)
     st.session_state.translate_messages.append({'role': 'user', 'content': prompt})
 
-    response = get_translate_and_conclude(prompt, st.session_state.get('TranslateLLM'), 0).content
+    llm_name = st.session_state.get('TranslateLLM')
+
+    if llm_name == 'moonshot':
+        response = get_translate_and_conclude(prompt, llm_name, 0)
+    else:
+        response = get_translate_and_conclude(prompt, llm_name, 0).content
     chat_container.chat_message("ai").write(response)
     st.session_state.translate_messages.append({'role': 'assistant', 'content': response})
 
@@ -119,7 +124,10 @@ if prompt := st.chat_input():
     chat_container.chat_message("human").write(query)
     st.session_state.translate_messages.append({'role': 'user', 'content': query})
 
-    conclusion = get_translate_and_conclude(query, st.session_state.get('TranslateLLM'), 1).content
+    if llm_name == 'moonshot':
+        conclusion = get_translate_and_conclude(query, st.session_state.get('TranslateLLM'), 1)
+    else:
+        conclusion = get_translate_and_conclude(query, st.session_state.get('TranslateLLM'), 1).content
     logger.info(f"{st.session_state.get('TranslateLLM')}(conclude): {prompt}")
     chat_container.chat_message("ai").write(conclusion)
     st.session_state.translate_messages.append({'role': 'assistant', 'content': conclusion})
