@@ -135,7 +135,7 @@ if prompt := st.chat_input():
         conclusion = get_translate_and_conclude(query, _llm_name, 1)
     else:
         conclusion = get_translate_and_conclude(query, _llm_name, 1).content
-    logger.info(f"{_llm_name}(conclude): {prompt}")
+    logger.info(f"{_llm_name}(conclude): {conclusion}")
     chat_container.chat_message("ai").write(conclusion)
     st.session_state.translate_messages.append({'role': 'assistant', 'content': conclusion})
 
