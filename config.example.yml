@@ -57,3 +57,7 @@ llm:
   moonshot:
     model: 'moonshot-v1-8k'
     api_key: ''
+
+  zhipu:
+    model: 'glm-4'
+    api_key: ''

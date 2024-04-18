@@ -1,6 +1,7 @@
 import httpx
 import streamlit as st
 from langchain_anthropic import ChatAnthropic
+from langchain_community.chat_models import ChatZhipuAI
 from langchain_community.chat_models.baidu_qianfan_endpoint import QianfanChatEndpoint
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.llms.moonshot import Moonshot
@@ -128,6 +129,17 @@ def load_moonshot() -> Moonshot:
         moonshot_api_key=config.moonshot_config.API_KEY,
         temperature=0,
         max_tokens=4096
+    )
+
+    return llm
+
+
+@st.cache_resource(show_spinner='Loading GLM...')
+def load_glm() -> ChatZhipuAI:
+    llm = ChatZhipuAI(
+        api_key=config.zhipu_config.API_KEY,
+        model=config.zhipu_config.MODEL,
+        temperature=0.05,
     )
 
     return llm

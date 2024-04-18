@@ -29,7 +29,7 @@ with st.sidebar:
     side_bar_links()
 
     st.selectbox('选择LLM',
-                 options=['gpt3.5', 'gpt4', 'qianfan', 'moonshot'],
+                 options=['gpt3.5', 'gpt4', 'qianfan', 'moonshot', 'chat_glm'],
                  index=0,
                  key='TranslateLLM')
 
@@ -71,6 +71,9 @@ def get_translate_and_conclude(question: str, llm_name: str, step: int):
 
         case 'moonshot':
             llm = load_moonshot()
+
+        case 'chat_glm':
+            llm = load_glm()
 
         case _:
             llm = load_gpt()
