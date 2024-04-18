@@ -34,7 +34,6 @@ with st.sidebar:
                  key='TranslateLLM')
 
 
-@st.cache_data(show_spinner="LLM answering...")
 def get_translate_and_conclude(question: str, llm_name: str, step: int):
     if step == 0:
         _prompt = ChatPromptTemplate.from_messages(
@@ -80,7 +79,12 @@ def get_translate_and_conclude(question: str, llm_name: str, step: int):
 
     chain = _prompt | llm
 
-    result = chain.invoke({"question": question})
+    if step == 0:
+        with st.spinner('正在翻译...'):
+            result = chain.invoke({"question": question})
+    else:
+        with st.spinner('正在总结文本...'):
+            result = chain.invoke({"question": question})
 
     return result
 
@@ -114,12 +118,12 @@ if prompt := st.chat_input():
     chat_container.chat_message("human").write(prompt)
     st.session_state.translate_messages.append({'role': 'user', 'content': prompt})
 
-    llm_name = st.session_state.get('TranslateLLM')
+    _llm_name = st.session_state.get('TranslateLLM')
 
-    if llm_name == 'moonshot':
-        response = get_translate_and_conclude(prompt, llm_name, 0)
+    if _llm_name == 'moonshot':
+        response = get_translate_and_conclude(prompt, _llm_name, 0)
     else:
-        response = get_translate_and_conclude(prompt, llm_name, 0).content
+        response = get_translate_and_conclude(prompt, _llm_name, 0).content
     chat_container.chat_message("ai").write(response)
     st.session_state.translate_messages.append({'role': 'assistant', 'content': response})
 
@@ -127,11 +131,11 @@ if prompt := st.chat_input():
     chat_container.chat_message("human").write(query)
     st.session_state.translate_messages.append({'role': 'user', 'content': query})
 
-    if llm_name == 'moonshot':
-        conclusion = get_translate_and_conclude(query, st.session_state.get('TranslateLLM'), 1)
+    if _llm_name == 'moonshot':
+        conclusion = get_translate_and_conclude(query, _llm_name, 1)
     else:
-        conclusion = get_translate_and_conclude(query, st.session_state.get('TranslateLLM'), 1).content
-    logger.info(f"{st.session_state.get('TranslateLLM')}(conclude): {prompt}")
+        conclusion = get_translate_and_conclude(query, _llm_name, 1).content
+    logger.info(f"{_llm_name}(conclude): {prompt}")
     chat_container.chat_message("ai").write(conclusion)
     st.session_state.translate_messages.append({'role': 'assistant', 'content': conclusion})
 
