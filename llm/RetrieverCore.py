@@ -97,6 +97,7 @@ class ScoreRetriever(MultiVectorRetriever):
         ids, id_map = get_parent_id(short_doc, self.id_key)
 
         docs = self.docstore.mget(ids)
+        logger.info(f'retrieve {len(docs)} documents, reranking...')
 
         rerank_docs = self.embedding.compress_documents(docs, query)[:self.top_k]
 
@@ -166,6 +167,7 @@ class ExprRetriever(MultiVectorRetriever):
         ids, id_map = get_parent_id(short_doc, self.id_key)
 
         docs = self.docstore.mget(ids)
+        logger.info(f'retrieve {len(docs)} documents, reranking...')
 
         rerank_docs = self.embedding.compress_documents(docs, query)[:self.top_k]
 
@@ -197,6 +199,7 @@ class MultiVectorSelfQueryRetriever(SelfQueryRetriever):
         ids, id_map = get_parent_id(short_doc, self.id_key)
 
         docs = self.docstore.mget(ids)
+        logger.info(f'retrieve {len(docs)} documents, reranking...')
 
         rerank_docs = self.embedding.compress_documents(docs, query)[:self.top_k]
 
