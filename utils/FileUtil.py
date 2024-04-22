@@ -22,6 +22,7 @@ class PaperInfo:
     author: str
     year: int
     type: int = PaperType.PAPER
+    keywords: str = ''
     ref: bool = False
     doi: str = ''
 
@@ -31,6 +32,7 @@ class PaperInfo:
             f'author: {self.author}\t\n'
             f'year: {self.year}\t\n'
             f'type: {self.type}\t\n'
+            f'keywords: {self.keywords}\t\n'
             f'ref: {self.ref}\t\n'
             f'doi: {self.doi}\t\n'
             f'---\t\n'

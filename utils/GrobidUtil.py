@@ -1,6 +1,7 @@
 import os
 from typing import LiteralString, Any, Dict
 
+import yaml
 from grobid_client.grobid_client import GrobidClient
 from bs4 import BeautifulSoup
 
@@ -9,7 +10,6 @@ from utils.FileUtil import *
 from loguru import logger
 
 from utils.Decorator import timer
-
 
 
 @timer
@@ -63,82 +63,98 @@ def parse_pdf_to_xml(pdf_path: LiteralString | str | bytes, config: Config = Non
     return client.process_pdf(grobid_cfg.SERVICE, pdf_path, False, True, False, False, False, False, False)
 
 
-def parse_xml(xml_path: LiteralString | str | bytes) -> Dict:
+def parse_xml(xml_path: LiteralString | str | bytes) -> list[Section]:
     """
     解析XML文件，提取相关信息。
 
     :param xml_path: XML文件的路径，可以是字符串路径、字节序列或LiteralString。
-    :return: 包含标题、作者、出版年份、摘要、关键词和章节信息的字典。
-
-    提取的信息包括：
-    - 标题：从XML中找到的主要标题。
-    - 作者：从XML中提取的所有作者信息。
-    - 出版年份：从XML中找到的出版年份。
-    - 摘要：从XML中提取的摘要内容。
-    - 关键词：从XML中提取的关键词列表。
-    - 章节信息：从XML中提取的各章节标题及其级别。
+    :return: 格式化后的段落信息
     """
 
+    sections: list[Section] = []
     with open(xml_path, 'r', encoding='utf-8') as f:
         xml_data = f.read()
         soup = BeautifulSoup(xml_data, 'xml')
 
-        # 提取XML中的标题
-        title = soup.find('titleStmt').find('title', {'type': 'main'})
-        title = format_filename(title.text.strip()) if title is not None else ''
+    # 提取XML中的标题
+    title = soup.find('titleStmt').find('title', {'type': 'main'})
+    title = format_filename(title.text.strip()) if title is not None else ''
 
-        # 提取作者信息
-        authors = []
-        for author in soup.find('sourceDesc').find_all('persName'):
-            first_name = author.find('forename', {'type': 'first'})
-            first_name = first_name.text.strip() if first_name is not None else ''
-            middle_name = author.find('forename', {'type': 'middle'})
-            middle_name = middle_name.text.strip() if middle_name is not None else ''
-            last_name = author.find('surname')
-            last_name = last_name.text.strip() if last_name is not None else ''
+    # 提取作者信息
+    authors = []
+    for author in soup.find('sourceDesc').find_all('persName'):
+        first_name = author.find('forename', {'type': 'first'})
+        first_name = first_name.text.strip() if first_name is not None else ''
+        middle_name = author.find('forename', {'type': 'middle'})
+        middle_name = middle_name.text.strip() if middle_name is not None else ''
+        last_name = author.find('surname')
+        last_name = last_name.text.strip() if last_name is not None else ''
 
-            if middle_name != '':
-                authors.append(__extract_author_name(last_name, f'{first_name} {middle_name}'))
-            else:
-                authors.append(__extract_author_name(last_name, first_name))
+        if middle_name != '':
+            authors.append(__extract_author_name(last_name, f'{first_name} {middle_name}'))
+        else:
+            authors.append(__extract_author_name(last_name, first_name))
 
-        # 提取出版年份
-        pub_date = soup.find('publicationStmt')
-        year = pub_date.find('date')
-        year = year.attrs.get('when') if year is not None else ''
+    # 提取出版年份
+    pub_date = soup.find('publicationStmt')
+    year = pub_date.find('date')
+    year = year.attrs.get('when') if year is not None else ''
+    match len(year):
+        case 4:
+            year = int(year)
+        case 1:
+            year = None
+        case _:
+            year = int(year[:4])
 
-        # 提取摘要
-        abstract = ''
-        abstract_list = soup.find('profileDesc').select('abstract p')
+    doi = soup.find('sourceDesc').find('idno', {'type': 'DOI'})
+    doi = doi.text if doi else ''
+
+    # 提取关键词
+    key_div = soup.find('profileDesc').select('keywords')
+    keywords = split_words(key_div[0].get_text()) if len(key_div) != 0 else []
+
+    sections.append(PaperInfo(authors[0], year, PaperType.PAPER, ','.join(keywords), True, doi).get_section())
+    sections.append(Section(title, 1))
+
+    # 提取摘要
+    abstract_list = soup.find('profileDesc').select('abstract p')
+    if len(abstract_list) > 0:
+        sections.append(Section('Abstract', 2))
         for p in abstract_list:
-            abstract += p.text.strip() + ' '
+            sections.append(Section(p.text.strip(), 0))
 
-        # 提取关键词
-        key_div = soup.find('profileDesc').select('keywords')
-        keywords = split_words(key_div[0].get_text()) if len(key_div) != 0 else []
+    # 提取章节信息
+    for section in soup.find('body').find_all('div'):
+        if section.find('head') is None:
+            continue
+        section_title = section.find('head').text.strip()
+        title_level = section.find('head').attrs.get('n')
+        level = title_level.count('.') + 1 if title_level else 2
 
-        # 提取章节信息
-        sections: list[Section] = []
-        for section in soup.find('body').find_all('div'):
-            if section.find('head') is None:
-                continue
-            section_title = section.find('head').text.strip()
-            title_level = section.find('head').attrs.get('n')
-            level = title_level.count('.') + 1 if title_level else 2
+        sections.append(Section(section_title, level))
 
-            sections.append(Section(section_title, level))
+        for p in section.find_all('p'):
+            ref_tags = p.find_all('ref', {'type': 'bibr'})
 
-            for p in section.find_all('p'):
-                text = replace_multiple_spaces(p.text.strip())
-                if text:
-                    sections.append(Section(text, 0))
+            for ref_tag in ref_tags:
+                target_info = ref_tag['target'][2:]
+                ref_tag.insert_after(f'[^{target_info}]')
 
-    return {'title': title,
-            'authors': authors,
-            'year': year,
-            'abstract': abstract,
-            'keywords': keywords,
-            'sections': sections}
+            text = replace_multiple_spaces(p.text.strip())
+            if text:
+                sections.append(Section(text, 0))
+
+    # 提取引用信息
+    ref_list = []
+    for reference in soup.find('back').find_all('biblStruct'):
+        ref_title = reference.find('title').text
+        ref_list.append({'title': {ref_title}, 'pmid': '', 'pmc': '', 'doi': ''})
+
+    sections.append(Section('Reference', 2))
+    sections.append(Section(yaml.dump(ref_list), 0))
+
+    return sections
 
 
 def __extract_author_name(surname, given_names) -> str:
