@@ -1,8 +1,13 @@
 import re
 import string
 from dataclasses import dataclass, field
+from enum import IntEnum
 
 from langchain_core.documents import Document
+
+
+class PaperType(IntEnum):
+    PAPER = 0
 
 
 @dataclass
@@ -10,6 +15,27 @@ class Section:
     text: str
     level: int
     ref: str = ''
+
+
+@dataclass
+class PaperInfo:
+    author: str
+    year: int
+    type: int = PaperType.PAPER
+    ref: bool = False
+    doi: str = ''
+
+    def get_section(self) -> Section:
+        block_str = (
+            f'---\t\n'
+            f'author: {self.author}\t\n'
+            f'year: {self.year}\t\n'
+            f'type: {self.type}\t\n'
+            f'ref: {self.ref}\t\n'
+            f'doi: {self.doi}\t\n'
+            f'---\t\n'
+        )
+        return Section(block_str, 0)
 
 
 def format_filename(filename):
