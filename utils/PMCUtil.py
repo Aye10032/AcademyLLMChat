@@ -18,19 +18,16 @@ from utils.FileUtil import Section, replace_multiple_spaces, PaperInfo, PaperTyp
 from utils.Decorator import timer, retry
 
 
-class RefType(Enum):
-    SINGLE = 0
-    MULTI = 1
-
-
 class RefIdType(Enum):
-    FIXED = 0
-    UNFIXED = 1
+    NORMAL = 0
+    SB = 1
+    GOOD = 2
 
 
-fix_journal = {'1176-9114'}
+fuck_journal = {'0377-0486', '0947-6539', '2156-7085', '1422-0067', '2578-9430'}
+good_journal = {'1305-7456', '0148-639X', '2155-384X', '1838-7640'}
 
-id_length = RefIdType.UNFIXED
+reference_type = RefIdType.NORMAL
 
 
 @timer
@@ -163,9 +160,13 @@ def parse_paper_data(xml_text: str, silent: bool = True) -> Tuple[bool, List[Sec
         issn = None  # 如果无法获取ISSN号，则最终设置为None
 
     # 检查ISSN号是否需要修正，并设置相应的标识
-    if issn in fix_journal:
-        global id_length
-        id_length = RefIdType.FIXED
+    global reference_type
+    if issn and issn in fuck_journal:
+        reference_type = RefIdType.SB
+    elif issn and issn in good_journal:
+        reference_type = RefIdType.GOOD
+    else:
+        reference_type = RefIdType.NORMAL
 
     # 初始化论文章节列表
     sections: list[Section] = []
@@ -184,9 +185,10 @@ def parse_paper_data(xml_text: str, silent: bool = True) -> Tuple[bool, List[Sec
         else ''
 
     # 关键词
-    keyword_list = soup.find('keywords').find_all('term')
     keywords = []
-    if keyword_list:
+    if soup.find(['keywords', 'kwd-group']):
+        keyword_list = soup.find(['keywords', 'kwd-group']).find_all(['term', 'kwd'])
+
         for kw in keyword_list:
             keywords.append(kw.text)
 
@@ -205,7 +207,7 @@ def parse_paper_data(xml_text: str, silent: bool = True) -> Tuple[bool, List[Sec
 
     # 尝试提取论文引用信息
     ref_block = soup.find('ref-list')
-    if len(ref_block) == 0:
+    if ref_block is None or len(ref_block) == 0:
         if not silent:
             logger.warning(f'{doi} has no reference')
         return False, sections
@@ -213,7 +215,7 @@ def parse_paper_data(xml_text: str, silent: bool = True) -> Tuple[bool, List[Sec
     # 如果存在摘要，将其添加为一个章节，并处理摘要内容及引用信息
     if abs_block:
         sections.append(Section('Abstract', 2))
-        sections = __solve_section(abs_block, sections, 2, ref_block)
+        sections = __solve_section(abs_block, sections, 2)
     else:
         if not silent:
             logger.warning(f'{doi} has no Abstract')
@@ -221,7 +223,7 @@ def parse_paper_data(xml_text: str, silent: bool = True) -> Tuple[bool, List[Sec
 
     # 处理正文部分的章节信息
     if main_sections:
-        sections = __solve_section(main_sections, sections, 1, ref_block)
+        sections = __solve_section(main_sections, sections, 1)
 
     # 添加参考文献
     sections.append(Section('Reference', 2))
@@ -253,8 +255,7 @@ def __extract_author_name(xml_block: BeautifulSoup | NavigableString | None) -> 
 def __solve_section(
         soup: BeautifulSoup,
         sections: list[Section],
-        title_level: int,
-        ref_soup: BeautifulSoup | None
+        title_level: int
 ) -> list[Section]:
     """
     解析给定的BeautifulSoup对象，从中提取章节信息，并将其添加到sections列表中。
@@ -262,7 +263,6 @@ def __solve_section(
     :param soup: BeautifulSoup对象，代表待解析的HTML或XML文档的一部分。
     :param sections: Section对象列表，用于收集从文档中解析出的各个章节信息。
     :param title_level: 当前解析标题的层级，用于组织章节结构。
-    :param ref_soup: 参考文献的BeautifulSoup对象，用于解析文档中的引用。
     :return: 更新后的Section对象列表。
     """
     # 尝试找到章节标题
@@ -274,27 +274,71 @@ def __solve_section(
     section_list = soup.find_all('sec', recursive=False)
     if section_list:
         for sec in section_list:
-            sections = __solve_section(sec, sections, title_level + 1, ref_soup)
+            sections = __solve_section(sec, sections, title_level + 1)
     else:
         # 如果没有sec标签，尝试解析段落p标签
-        p_tags = soup.find_all('p')
+        p_tags = soup.find_all('p', recursive=False)
         for p_tag in p_tags:
             if p_tag and not p_tag.text == '':
-                # 提取段落文本，处理换行符，并尝试找到引用信息
-                sup_block = p_tag.find_all('sup', recursive=False)
-                for sup in sup_block:
-                    tag = sup.find('xref', {'ref-type': 'bibr'})
-                    if tag:
-                        target_info = parse_range_string(sup.text)
+                matches = re.findall(r'\[\s*\d+\s*(?:,\s*\d+\s*)*]', p_tag.text)
+                if matches:
+                    # 处理傻逼格式
+                    section_text = p_tag.text.strip().replace('\n', ' ')
+                    section_text = deal_sb_paper(section_text)
+                else:
+                    # 提取段落文本，处理换行符，并尝试找到引用信息
+                    sup_block = p_tag.find_all('sup', recursive=False)
+                    found = False
+                    for sup in sup_block:
+                        tag = sup.find('xref', {'ref-type': 'bibr'})
+                        if tag:
+                            target_info = parse_range_string(sup.text)
+                            found = True
+                        else:
+                            continue
+
+                        sup.insert_after(''.join([f'[^{ref_id}]' for ref_id in target_info]))
+                        sup.extract()
+
+                    if p_tag.find('xref', {'ref-type': 'bibr'}) and not found:
+                        ref_block = p_tag.find_all('xref', {'ref-type': 'bibr'}, recursive=False)
+                        for ref_tag in ref_block:
+                            target_info = ref_tag.text
+                            ref_tag.insert_after(f'[^{target_info}]')
+                            ref_tag.extract()
+
+                        section_text = p_tag.text.strip().replace('\n', ' ')
                     else:
-                        continue
+                        section_text = p_tag.text.strip().replace('\n', ' ')
 
-                    sup.insert_after(''.join([f'[^{ref_id}]' for ref_id in target_info]))
-
-                section = replace_multiple_spaces(p_tag.text.strip().replace('\n', ' '))
+                section = replace_multiple_spaces(section_text)
                 sections.append(Section(section, 0))
 
     return sections
+
+
+def deal_sb_paper(origin_str: str) -> str:
+    matches = re.findall(r'\[\s*\d+\s*(?:,\s*\d+\s*)*]', origin_str)
+
+    for match in matches:
+        match_str: str = match
+        new_ref = ''.join([
+            f"[^{ind.replace(' ', '')}]"
+            for ind in match_str.replace('[', '').replace(']', '').split(',')
+        ])
+        origin_str = origin_str.replace(match, new_ref)
+
+    matches = re.findall(r'\[\s*\d+\s*–\s*\d+\s*]', origin_str)
+
+    for match in matches:
+        match_str: str = match
+        new_ref = ''.join([
+            f'[^{ind}]'
+            for ind in parse_range_string(match_str.replace('[', '').replace(']', ''))
+        ])
+        origin_str = origin_str.replace(match, new_ref)
+
+    return origin_str
 
 
 def __extract_ref(ref_soup: BeautifulSoup) -> str:
@@ -314,7 +358,7 @@ def __extract_ref(ref_soup: BeautifulSoup) -> str:
 
 def __get_ref_info(ref_block: BeautifulSoup) -> Dict:
     if ref_title_block := ref_block.find('article-title'):
-        ref_title = ref_title_block.text
+        ref_title = ref_title_block.text.replace('\n', '')
     else:
         ref_title = ''
 
@@ -323,65 +367,12 @@ def __get_ref_info(ref_block: BeautifulSoup) -> Dict:
     else:
         ref_doi = ''
 
-    if ref_pm_block := ref_block.find('ArticleId', {'IdType': 'pmid'}):
+    if ref_pm_block := ref_block.find('pub-id', {'pub-id-type': 'pmid'}):
         ref_pm = ref_pm_block.text
     else:
         ref_pm = ''
 
     return {'title': ref_title, 'pmid': ref_pm, 'pmc': '', 'doi': ref_doi}
-
-
-def __solve_ref(ref_soup: BeautifulSoup, ref_list: list[Tag]) -> str:
-    """
-    处理参考文献引用，根据不同的引用类型生成对应的DOI列表。
-
-    :param ref_soup: BeautifulSoup对象，包含参考文献的HTML文档片段
-    :param ref_list: Tag列表，每一个Tag代表一个参考文献引用
-    :return: 字符串，包含所有参考文献的DOI，通过逗号分隔
-    """
-    global id_length
-    rid_list = []
-    for ref in ref_list:
-        content = ref.text
-        if is_single_reference(content) == RefType.SINGLE:
-            # 处理单个参考文献引用
-            rid_list.append(ref['rid'])
-        elif is_single_reference(content) == RefType.MULTI:
-            # 处理范围引用的参考文献
-            if id_length == RefIdType.UNFIXED:
-                _r_numbers = parse_range_string(content)  # 解析范围字符串
-                _rid = remove_last_digit(ref['rid'])  # 移除最后一个数字
-                rid_list.extend([f'{_rid}{i}' for i in _r_numbers])  # 生成范围内的ID列表
-            else:
-                _r_numbers = parse_range_string(content)  # 解析范围字符串
-                _rid, digit = remove_digit_and_return(ref['rid'])  # 移除数字并返回位数
-                rid_list.extend([f'{_rid}{str(i).zfill(digit)}' for i in _r_numbers])  # 生成对齐位数的范围ID列表
-        else:
-            logger.error('unknown type')  # 记录未知的引用类型错误
-
-    rid_list = sorted(list(set(rid_list)))  # 去重并排序引用ID列表
-    logger.debug(rid_list)  # 记录处理后的引用ID列表
-
-    doi_list = []
-    for ref_id in rid_list:
-        # 查找对应的参考文献块
-        ref_block = ref_soup.find(attrs={'id': ref_id})
-
-        # 尝试获取DOI
-        if ref_block:
-            doi_block = ref_block.find('pub-id', {'pub-id-type': 'doi'})
-            doi_list.append(doi_block.text) if doi_block else None
-
-    return ','.join([x for x in doi_list])  # 返回DOI列表，通过逗号分隔
-
-
-def is_single_reference(text: str) -> RefType:
-    if re.match(r'^\d+$', text):
-        return RefType.SINGLE
-    elif re.match(r'[0-9]+[,-][0-9]+', text):
-        return RefType.MULTI
-    else:
-        return RefType.SINGLE
 
 
 def remove_last_digit(input_string: str) -> str:
@@ -396,10 +387,13 @@ def remove_digit_and_return(input_string: str) -> (str, int):
 
 def parse_range_string(input_str: str) -> list[int]:
     result = []
-    parts = input_str.split(',')
+    parts = input_str.strip().split(',')
     for part in parts:
         if '–' in part:
             start, end = map(int, part.split('–'))
+            result.extend(range(start, end + 1))
+        elif '−' in part:
+            start, end = map(int, part.split('−'))
             result.extend(range(start, end + 1))
         else:
             result.append(int(part))

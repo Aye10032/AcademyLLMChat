@@ -101,12 +101,12 @@ def save_to_md(sections: list[Section], output_path, append: bool = False, **kwa
 
     with open(output_path, open_type, encoding='utf-8') as f:
         # 如果非追加模式，写入额外信息（如引用、作者、年份和DOI）
-        if not append:
-            ref: bool = kwargs.get('ref')
-            year: str = kwargs.get('year')
-            author: str = kwargs.get('author')
-            doi: str = kwargs.get('doi')
-            f.write(f'---\nref: {ref}\t\nauthor: {author}\t\nyear: {year}\t\ndoi: {doi}\t\n---\n\n')
+        # if not append:
+        #     ref: bool = kwargs.get('ref')
+        #     year: str = kwargs.get('year')
+        #     author: str = kwargs.get('author')
+        #     doi: str = kwargs.get('doi')
+        #     f.write(f'---\nref: {ref}\t\nauthor: {author}\t\nyear: {year}\t\ndoi: {doi}\t\n---\n\n')
         # 遍历章节列表，根据章节级别写入相应格式的文本
         for sec in sections:
             text = sec.text
