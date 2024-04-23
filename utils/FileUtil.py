@@ -16,7 +16,6 @@ class PaperType(IntEnum):
 class Section:
     text: str
     level: int
-    ref: str = ''
 
 
 @dataclass

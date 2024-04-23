@@ -3,17 +3,18 @@ import os.path
 import random
 import re
 from enum import Enum
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List
 
 import requests
 import pandas as pd
+import yaml
 from bs4 import BeautifulSoup, Tag, NavigableString, ResultSet
 from loguru import logger
 from pandas import DataFrame
 from requests import sessions
 
 from Config import Config
-from utils.FileUtil import Section, replace_multiple_spaces
+from utils.FileUtil import Section, replace_multiple_spaces, PaperInfo, PaperType
 from utils.Decorator import timer, retry
 
 
@@ -137,17 +138,13 @@ def download_paper_data(pmc_id: str, config: Config = None) -> Tuple[int, dict]:
         raise Exception('下载请求失败')
 
 
-def parse_paper_data(xml_text: str, year: str, doi: str, silent: bool = True) -> dict:
+def parse_paper_data(xml_text: str, silent: bool = True) -> Tuple[bool, List[Section]]:
     """
-    解析论文数据从给定的XML文本中。
+    从给定的XML文本中解析论文数据。
 
     :param xml_text: 论文的XML格式文本。
-    :param year: 论文的出版年份。
-    :param doi: 论文的数字对象标识符（DOI）。
     :param silent: 是否静默运行
-    :return: 包含论文标题、作者、年份、DOI、章节和规范化状态的字典。
-
-    此函数从XML文本中提取论文的相关信息，包括标题、作者、摘要、章节以及引用信息，并将这些信息组织成一个字典返回。
+    :return: 格式化后的section列表
     """
 
     # 使用BeautifulSoup解析XML文本
@@ -173,6 +170,28 @@ def parse_paper_data(xml_text: str, year: str, doi: str, silent: bool = True) ->
     # 初始化论文章节列表
     sections: list[Section] = []
 
+    # 提取论文作者信息
+    author_block = soup.find('contrib-group').find('name')
+    author = __extract_author_name(author_block) if author_block else None
+
+    # 提取文章的DOI和发表年份
+    year = soup.find('pub-date').find('year').text \
+        if soup.find('pub-date') \
+        else ''
+
+    doi = soup.find('article-id', {'pub-id-type': 'doi'}).text \
+        if soup.find('article-id', {'pub-id-type': 'doi'}) \
+        else ''
+
+    # 关键词
+    keyword_list = soup.find('keywords').find_all('term')
+    keywords = []
+    if keyword_list:
+        for kw in keyword_list:
+            keywords.append(kw.text)
+
+    sections.append(PaperInfo(author, int(year), PaperType.PMC_PAPER, ','.join(keywords), True, doi).get_section())
+
     # 提取并处理论文标题
     title = soup.find('article-title').text.replace('\n', ' ') \
         if soup.find('article-title') \
@@ -180,59 +199,36 @@ def parse_paper_data(xml_text: str, year: str, doi: str, silent: bool = True) ->
     title = replace_multiple_spaces(title)
     sections.append(Section(title, 1))
 
-    # 提取论文作者信息
-    author_block = soup.find('contrib-group').find('name')
-    author = __extract_author_name(author_block) if author_block else None
-
     # 提取论文摘要和正文部分
     abs_block = soup.find('abstract')
     main_sections = soup.select_one('body')
 
-    norm = True
-
     # 尝试提取论文引用信息
-    ref_block = soup.find_all('ref-list')
+    ref_block = soup.find('ref-list')
     if len(ref_block) == 0:
         if not silent:
             logger.warning(f'{doi} has no reference')
-        return {
-            'title': title,
-            'author': author,
-            'year': year,
-            'doi': doi,
-            'sections': sections,
-            'norm': False,
-        }
+        return False, sections
 
     # 如果存在摘要，将其添加为一个章节，并处理摘要内容及引用信息
     if abs_block:
         sections.append(Section('Abstract', 2))
-        sections = __solve_section(abs_block, sections, 2, ref_block[0])
+        sections = __solve_section(abs_block, sections, 2, ref_block)
     else:
         if not silent:
             logger.warning(f'{doi} has no Abstract')
-        return {
-            'title': title,
-            'author': author,
-            'year': year,
-            'doi': doi,
-            'sections': sections,
-            'norm': False,
-        }
+        return False, sections
 
     # 处理正文部分的章节信息
     if main_sections:
-        sections = __solve_section(main_sections, sections, 1, ref_block[0])
+        sections = __solve_section(main_sections, sections, 1, ref_block)
+
+    # 添加参考文献
+    sections.append(Section('Reference', 2))
+    sections.append(Section(__extract_ref(ref_block), 0))
 
     # 返回解析后的论文信息
-    return {
-        'title': title,
-        'author': author,
-        'year': year,
-        'doi': doi,
-        'sections': sections,
-        'norm': norm,
-    }
+    return True, sections
 
 
 def __extract_author_name(xml_block: BeautifulSoup | NavigableString | None) -> str:
@@ -281,19 +277,27 @@ def __solve_section(
             sections = __solve_section(sec, sections, title_level + 1, ref_soup)
     else:
         # 如果没有sec标签，尝试解析段落p标签
-        p_tags = soup.select('p')
+        p_tags = soup.find_all('p')
         for p_tag in p_tags:
             if p_tag and not p_tag.text == '':
                 # 提取段落文本，处理换行符，并尝试找到引用信息
-                section = p_tag.text.strip().replace('\n', ' ')
-                ref_block = p_tag.find_all('xref', {'ref-type': 'bibr'})
-                ref = __solve_ref(ref_soup, ref_block) if ref_block else ''
-                sections.append(Section(section, 0, ref))
+                sup_block = p_tag.find_all('sup', recursive=False)
+                for sup in sup_block:
+                    tag = sup.find('xref', {'ref-type': 'bibr'})
+                    if tag:
+                        target_info = parse_range_string(sup.text)
+                    else:
+                        continue
+
+                    sup.insert_after(''.join([f'[^{ref_id}]' for ref_id in target_info]))
+
+                section = replace_multiple_spaces(p_tag.text.strip().replace('\n', ' '))
+                sections.append(Section(section, 0))
 
     return sections
 
 
-def __extract_ref(ref_soup: BeautifulSoup) -> DataFrame:
+def __extract_ref(ref_soup: BeautifulSoup) -> str:
     ref_blocks = ref_soup.find_all('ref', recursive=False)
     ref_list = []
 
@@ -305,26 +309,26 @@ def __extract_ref(ref_soup: BeautifulSoup) -> DataFrame:
             for element_block in element_blocks:
                 ref_list.append(__get_ref_info(element_block))
 
-    return pd.DataFrame(ref_list)
+    return yaml.dump(ref_list)
 
 
 def __get_ref_info(ref_block: BeautifulSoup) -> Dict:
-    if ref_rid := ref_block.get('id'):
-        rid = ref_rid
+    if ref_title_block := ref_block.find('article-title'):
+        ref_title = ref_title_block.text
     else:
-        rid = pd.NA
+        ref_title = ''
 
     if ref_doi_block := ref_block.find('pub-id', {'pub-id-type': 'doi'}):
         ref_doi = ref_doi_block.text
     else:
-        ref_doi = pd.NA
+        ref_doi = ''
 
     if ref_pm_block := ref_block.find('ArticleId', {'IdType': 'pmid'}):
         ref_pm = ref_pm_block.text
     else:
-        ref_pm = pd.NA
+        ref_pm = ''
 
-    return {'rid': rid, 'doi': ref_doi, 'pubmed': ref_pm}
+    return {'title': ref_title, 'pmid': ref_pm, 'pmc': '', 'doi': ref_doi}
 
 
 def __solve_ref(ref_soup: BeautifulSoup, ref_list: list[Tag]) -> str:
