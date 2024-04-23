@@ -1,8 +1,10 @@
 import re
 from io import StringIO
+from typing import List, Tuple, Any
 
 import yaml
 from langchain.text_splitter import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
+from langchain_core.documents import Document
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 
@@ -20,7 +22,7 @@ def split_markdown(document: UploadedFile):
     return md_docs
 
 
-def split_markdown_text(md_text: str, **kwargs):
+def split_markdown_text(md_text: str) -> Tuple[list[Document], dict[str, Any]]:
     """
     分割Markdown文本。
 
@@ -29,8 +31,7 @@ def split_markdown_text(md_text: str, **kwargs):
     每个拆分后的文档的元数据中；如果没有提供这些参数，则从Markdown文本的元数据部分自动提取。
 
     :param md_text: 要分割的Markdown文本字符串。
-    :param kwargs: 可选参数字典，可以包含`year`、`doi`和`author`字段来手动指定元数据信息。
-    :return: 返回一个包含多个拆分后Markdown文档的列表，每个文档都带有相关的元数据。
+    :return: 返回一个元组，包含解析后的 Document列表和包含引用信息的一个字典
     """
 
     md_splitter = MarkdownHeaderTextSplitter(
@@ -45,40 +46,35 @@ def split_markdown_text(md_text: str, **kwargs):
 
     head_split_docs = md_splitter.split_text(md_text)
 
-    if kwargs.get('year'):
-        year = kwargs.get('year')
-        doi = kwargs.get('doi')
-        author = kwargs.get('author')
-        ref = kwargs.get('ref') if 'ref' in kwargs else False
+    if head_split_docs[0].page_content.startswith('---'):
+        yaml_text = head_split_docs.pop(0).page_content.replace('---', '')
+        data = yaml.load(yaml_text, Loader=yaml.FullLoader)
+        author = data['author']
+        year = data['year']
+        _type = data['type']
+        keywords = data['keywords']
+        ref = data['ref'] if 'ref' in data else False
+        doi = data['doi']
     else:
-        if head_split_docs[0].page_content.startswith('---'):
-            yaml_text = head_split_docs.pop(0).page_content.replace('---', '')
-            data = yaml.load(yaml_text, Loader=yaml.FullLoader)
-            year = data['year']
-            doi = data['doi']
-            author = data['author']
-            ref = data['ref'] if 'ref' in data else False
-        else:
-            raise Exception('Markdown miss information!')
+        raise Exception('Markdown miss information!')
 
     reference_data = {}
     if ref:
-        if head_split_docs[-1].metadata['section'] != 'References':
-            raise Exception('Missing "References" section')
+        if head_split_docs[-1].metadata['section'] != 'Reference':
+            raise Exception('Missing "Reference" section')
         else:
-            reference_text = head_split_docs.pop(-1).page_content
+            head_split_docs.pop(-1)
+            reference_text = md_text.split('## Reference\t\n')[-1].rstrip('\t\n')
+            print(reference_text)
             reference_data = yaml.load(reference_text, Loader=yaml.FullLoader)
 
     for doc in head_split_docs:
-        doc.metadata['doi'] = doi
-        doc.metadata['year'] = int(year)
         doc.metadata['author'] = author
+        doc.metadata['year'] = int(year)
+        doc.metadata['type'] = _type
+        doc.metadata['keywords'] = keywords
+        doc.metadata['doi'] = doi
 
-        if ref:
-            matches = re.findall(r'\[\^(\d+)]', doc.page_content)
-            doc.metadata['ref'] = [reference_data[int(i)] for i in matches if int(i) < len(reference_data)]
-        else:
-            doc.metadata['ref'] = ''
     md_docs = r_splitter.split_documents(head_split_docs)
 
-    return md_docs
+    return md_docs, reference_data

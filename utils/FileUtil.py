@@ -83,31 +83,16 @@ def is_en(text: str):
         return False
 
 
-def save_to_md(sections: list[Section], output_path, append: bool = False, **kwargs):
+def save_to_md(sections: list[Section], output_path):
     """
     将章节列表保存为Markdown格式的文件。
 
     :param sections: 包含章节内容的列表，每个章节都由Section类型表示。
     :param output_path: 输出Markdown文件的路径。
-    :param append: 是否追加模式，默认为False，即覆盖原有文件；如果为True，则追加到文件末尾。
-    :param kwargs: 可选参数，用于在文件开头写入额外的信息，如是否存在引用(ref)、作者(author)、年份(year)和DOI(doi)。
     :return: 无返回值。
     """
-    # 根据append参数决定文件打开模式
-    if append:
-        open_type = 'a'
-    else:
-        open_type = 'w'
 
-    with open(output_path, open_type, encoding='utf-8') as f:
-        # 如果非追加模式，写入额外信息（如引用、作者、年份和DOI）
-        # if not append:
-        #     ref: bool = kwargs.get('ref')
-        #     year: str = kwargs.get('year')
-        #     author: str = kwargs.get('author')
-        #     doi: str = kwargs.get('doi')
-        #     f.write(f'---\nref: {ref}\t\nauthor: {author}\t\nyear: {year}\t\ndoi: {doi}\t\n---\n\n')
-        # 遍历章节列表，根据章节级别写入相应格式的文本
+    with open(output_path, 'w', encoding='utf-8') as f:
         for sec in sections:
             text = sec.text
             level = sec.level
