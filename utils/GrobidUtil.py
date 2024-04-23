@@ -114,7 +114,7 @@ def parse_xml(xml_path: LiteralString | str | bytes) -> list[Section]:
     key_div = soup.find('profileDesc').select('keywords')
     keywords = split_words(key_div[0].get_text()) if len(key_div) != 0 else []
 
-    sections.append(PaperInfo(authors[0], year, PaperType.PAPER, ','.join(keywords), True, doi).get_section())
+    sections.append(PaperInfo(authors[0], year, PaperType.GROBID_PAPER, ','.join(keywords), True, doi).get_section())
     sections.append(Section(title, 1))
 
     # 提取摘要
@@ -138,8 +138,10 @@ def parse_xml(xml_path: LiteralString | str | bytes) -> list[Section]:
             ref_tags = p.find_all('ref', {'type': 'bibr'})
 
             for ref_tag in ref_tags:
-                target_info = ref_tag['target'][2:]
-                ref_tag.insert_after(f'[^{target_info}]')
+                target_info: str = ref_tag['target']
+                if target_info:
+                    target_info = target_info.replace('#b', '')
+                    ref_tag.insert_after(f'[^{target_info}]')
 
             text = replace_multiple_spaces(p.text.strip())
             if text:

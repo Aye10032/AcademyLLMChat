@@ -7,7 +7,9 @@ from langchain_core.documents import Document
 
 
 class PaperType(IntEnum):
-    PAPER = 0
+    PURE_MARKDOWN = 0
+    GROBID_PAPER = 1
+    PMC_PAPER = 2
 
 
 @dataclass
@@ -21,7 +23,7 @@ class Section:
 class PaperInfo:
     author: str
     year: int
-    type: int = PaperType.PAPER
+    type: int = PaperType.PURE_MARKDOWN
     keywords: str = ''
     ref: bool = False
     doi: str = ''
