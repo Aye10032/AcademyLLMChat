@@ -10,6 +10,7 @@ class PaperType(IntEnum):
     PURE_MARKDOWN = 0
     GROBID_PAPER = 1
     PMC_PAPER = 2
+    NSFC = 3
 
 
 @dataclass
