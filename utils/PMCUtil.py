@@ -28,6 +28,7 @@ fuck_journal = {'0377-0486', '0947-6539', '2156-7085', '1422-0067', '2578-9430'}
 good_journal = {'1305-7456', '0148-639X', '2155-384X', '1838-7640'}
 
 reference_type = RefIdType.NORMAL
+mix_ref = False
 
 
 @timer
@@ -226,8 +227,9 @@ def parse_paper_data(xml_text: str, silent: bool = True) -> Tuple[bool, List[Sec
         sections = __solve_section(main_sections, sections, 1)
 
     # 添加参考文献
+    global mix_ref
     sections.append(Section('Reference', 2))
-    sections.append(Section(__extract_ref(ref_block), 0))
+    sections.append(Section(__extract_ref(ref_block, mix_ref), 0))
 
     # 返回解析后的论文信息
     return True, sections
@@ -341,7 +343,7 @@ def deal_sb_paper(origin_str: str) -> str:
     return origin_str
 
 
-def __extract_ref(ref_soup: BeautifulSoup) -> str:
+def __extract_ref(ref_soup: BeautifulSoup, check_mix: bool = False) -> str:
     ref_blocks = ref_soup.find_all('ref', recursive=False)
     ref_list = []
 
@@ -350,15 +352,21 @@ def __extract_ref(ref_soup: BeautifulSoup) -> str:
         if len(element_blocks) == 1:
             ref_list.append(__get_ref_info(ref_block))
         else:
-            for element_block in element_blocks:
-                ref_list.append(__get_ref_info(element_block))
+            if check_mix:
+                temp = []
+                for element_block in element_blocks:
+                    temp.append(__get_ref_info(element_block))
+                ref_list.append(temp)
+            else:
+                for element_block in element_blocks:
+                    ref_list.append(__get_ref_info(element_block))
 
     return yaml.dump(ref_list)
 
 
 def __get_ref_info(ref_block: BeautifulSoup) -> Dict:
     if ref_title_block := ref_block.find('article-title'):
-        ref_title = ref_title_block.text.replace('\n', '')
+        ref_title = ref_title_block.text.replace('\n', '').replace('\r', ' ')
     else:
         ref_title = ''
 
@@ -385,9 +393,10 @@ def remove_digit_and_return(input_string: str) -> (str, int):
     return result, num_removed
 
 
-def parse_range_string(input_str: str) -> list[int]:
+def parse_range_string(input_str: str) -> list[int | str]:
     result = []
     parts = input_str.strip().split(',')
+    # print(parts)
     for part in parts:
         if '–' in part:
             start, end = map(int, part.split('–'))
@@ -396,5 +405,11 @@ def parse_range_string(input_str: str) -> list[int]:
             start, end = map(int, part.split('−'))
             result.extend(range(start, end + 1))
         else:
-            result.append(int(part))
+            try:
+                result.append(int(part))
+            except ValueError:
+                global mix_ref
+                mix_ref = True
+                result.append(part)
+
     return result
