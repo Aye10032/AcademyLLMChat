@@ -54,7 +54,7 @@ def split_markdown_text(md_text: str) -> Tuple[list[Document], dict[str, Any]]:
         _type = data['type']
         keywords = data['keywords']
         ref = data['ref'] if 'ref' in data else False
-        doi = data['doi']
+        doi = data['doi'] if 'doi' in data else ''
     else:
         raise Exception('Markdown miss information!')
 
@@ -64,8 +64,9 @@ def split_markdown_text(md_text: str) -> Tuple[list[Document], dict[str, Any]]:
             raise Exception('Missing "Reference" section')
         else:
             head_split_docs.pop(-1)
-            reference_text = md_text.split('## Reference\t\n')[-1].rstrip('\t\n')
-            print(reference_text)
+            reference_text = md_text.split('## Reference')[-1].rstrip('\t\n').lstrip('\t\n')
+            # print('---------------')
+            # print(reference_text)
             reference_data = yaml.load(reference_text, Loader=yaml.FullLoader)
 
     for doc in head_split_docs:
