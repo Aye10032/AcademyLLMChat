@@ -102,10 +102,14 @@ def parse_xml(xml_path: LiteralString | str | bytes) -> list[Section]:
     match len(year):
         case 4:
             year = int(year)
-        case 1:
+        case 0:
             year = None
         case _:
-            year = int(year[:4])
+            try:
+                year = int(year[:4])
+            except ValueError:
+                print(len(year))
+                exit()
 
     doi = soup.find('sourceDesc').find('idno', {'type': 'DOI'})
     doi = doi.text if doi else ''
@@ -138,8 +142,8 @@ def parse_xml(xml_path: LiteralString | str | bytes) -> list[Section]:
             ref_tags = p.find_all('ref', {'type': 'bibr'})
 
             for ref_tag in ref_tags:
-                target_info: str = ref_tag['target']
-                if target_info:
+                if 'target' in ref_tag:
+                    target_info: str = ref_tag['target']
                     target_info = target_info.replace('#b', '')
                     ref_tag.insert_after(f'[^{target_info}]')
 
@@ -151,7 +155,7 @@ def parse_xml(xml_path: LiteralString | str | bytes) -> list[Section]:
     ref_list = []
     for reference in soup.find('back').find_all('biblStruct'):
         ref_title = reference.find('title').text
-        ref_list.append({'title': {ref_title}, 'pmid': '', 'pmc': '', 'doi': ''})
+        ref_list.append({'title': ref_title, 'pmid': '', 'pmc': '', 'doi': ''})
 
     sections.append(Section('Reference', 2))
     sections.append(Section(yaml.dump(ref_list), 0))
