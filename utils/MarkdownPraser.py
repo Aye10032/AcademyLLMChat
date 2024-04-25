@@ -160,7 +160,7 @@ def load_from_md(path: str) -> Tuple[list[Document], Dict[str, Any]]:
         logger.error('This is not a markdown file!')
         return [], {}
 
-    with open(path, 'r') as f:
+    with open(path, 'r', encoding='utf-8') as f:
         md_text = f.read()
 
     return split_markdown_text(md_text)

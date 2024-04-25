@@ -26,17 +26,23 @@ def split_words(kw_block: Tag) -> List[str]:
 
     此函数使用正则表达式来识别并分割文本中的单词，包括那些被括号包围的单词。分割后的单词会移除括号。
 
-    :param text: 要分割的文本字符串。
+    :param kw_block:
     :return: 包含分割出的单词的列表，其中括号已被移除。
     """
 
     kw_list = kw_block.find_all('term')
     if len(kw_list) > 0:
-        clean_words = [kw.text for kw in kw_list]
+        clean_words = [
+            kw.text.replace('\n', '').replace('\r', ' ').strip()
+            for kw in kw_list
+        ]
     else:
         pattern = re.compile(r'\([^()]*\)|\S+')
         words = pattern.findall(kw_block.text)
-        clean_words = [word.replace('(', '').replace(')', '') for word in words]
+        clean_words = [
+            word.replace('(', '').replace(')', '').replace('\n', '').replace('\r', ' ').strip()
+            for word in words
+        ]
 
     return clean_words
 

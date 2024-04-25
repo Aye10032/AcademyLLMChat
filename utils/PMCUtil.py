@@ -191,9 +191,18 @@ def parse_paper_data(xml_text: str, silent: bool = True) -> Tuple[bool, List[Sec
         keyword_list = soup.find(['keywords', 'kwd-group']).find_all(['term', 'kwd'])
 
         for kw in keyword_list:
-            keywords.append(kw.text)
+            keywords.append(kw.text.replace('\n', '').replace('\r', ' ').strip())
+    if len(keywords) == 0:
+        keywords.append('')
 
-    sections.append(PaperInfo(author, int(year), PaperType.PMC_PAPER, ','.join(keywords), True, doi).get_section())
+    sections.append(PaperInfo(
+        author.replace('\n', '').replace('\r', ' ').strip(),
+        int(year),
+        PaperType.PMC_PAPER,
+        ','.join(keywords),
+        True,
+        doi.replace('\n', '').replace('\r', '').strip()
+    ).get_section())
 
     # 提取并处理论文标题
     title = soup.find('article-title').text.replace('\n', ' ') \

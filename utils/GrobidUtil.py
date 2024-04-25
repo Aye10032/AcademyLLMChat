@@ -115,7 +115,7 @@ def parse_xml(xml_path: LiteralString | str | bytes) -> list[Section]:
 
     # 提取关键词
     key_div = soup.find('profileDesc').find('keywords')
-    keywords = split_words(key_div) if key_div is not None else []
+    keywords = split_words(key_div) if key_div is not None else ['']
 
     sections.append(PaperInfo(authors[0], year, PaperType.GROBID_PAPER, ','.join(keywords), True, doi).get_section())
     sections.append(Section(title, 1))
