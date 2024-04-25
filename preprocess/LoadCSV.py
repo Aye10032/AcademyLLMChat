@@ -8,7 +8,7 @@ from tqdm import tqdm
 from loguru import logger
 
 from Config import Config
-from utils.FileUtil import Section, save_to_md
+from utils.FileUtil import *
 from utils.PMCUtil import download_paper_data, parse_paper_data
 from utils.PubmedUtil import get_paper_info
 from utils.Decorator import timer
@@ -45,12 +45,10 @@ def load_csv(year: int):
 
             with open(xml_path, 'r', encoding='utf-8') as f:
                 xml_text = f.read()
-            xml_data = parse_paper_data(xml_text, year, doi)
-            title = xml_data['title']
-            author = xml_data['author']
+            flag, xml_data = parse_paper_data(xml_text)
 
-            if not xml_data['norm']:
-                out_put_df.at[index, 'Title'] = title
+            if not flag:
+                out_put_df.at[index, 'Title'] = 'skip'
                 out_put_df.at[index, 'DOI'] = doi
                 out_put_df.at[index, 'PMC'] = pm_data['pmc']
                 out_put_df.to_csv('nandesyn_pub.csv', index=False, encoding='utf-8')
@@ -58,16 +56,14 @@ def load_csv(year: int):
 
             output_path = os.path.join(config.get_md_path(), year, doi.replace('/', '@') + '.md')
             os.makedirs(os.path.join(config.get_md_path(), year), exist_ok=True)
-            save_to_md(xml_data['sections'], output_path, ref=True, year=year, doi=doi, author=author)
+            save_to_md(xml_data, output_path)
 
-            out_put_df.at[index, 'Title'] = title
+            out_put_df.at[index, 'Title'] = 'done'
             out_put_df.at[index, 'DOI'] = doi
             out_put_df.at[index, 'PMC'] = pm_data['pmc']
         else:
             title = pm_data['title']
-            author = pm_data['author']
             year = pm_data['year']
-            abstract = pm_data['abstract']
             doi = pm_data['doi']
 
             if doi is None:
@@ -75,22 +71,19 @@ def load_csv(year: int):
                 out_put_df.to_csv('nandesyn_pub.csv', index=False, encoding='utf-8')
                 continue
 
-            if abstract is None:
-                out_put_df.at[index, 'Title'] = title
-                out_put_df.at[index, 'DOI'] = doi
-                out_put_df.to_csv('nandesyn_pub.csv', index=False, encoding='utf-8')
-                continue
-
-            sections = [Section(title, 1), Section('Abstract', 2), Section(abstract, 0)]
-
-            output_path = os.path.join(config.get_md_path(), year, doi.replace('/', '@') + '.md')
-            os.makedirs(os.path.join(config.get_md_path(), year), exist_ok=True)
-            save_to_md(sections, output_path, ref=False, year=year, doi=doi, author=author)
-
             out_put_df.at[index, 'Title'] = title
             out_put_df.at[index, 'DOI'] = doi
 
         out_put_df.to_csv('nandesyn_pub.csv', index=False, encoding='utf-8')
+
+
+def init_csv():
+    df = pd.read_csv('nandesyn_pub_bk.csv', encoding='utf-8',
+                     dtype={'Title': 'str', 'PMID': 'str', 'DOI': 'str', 'PMC': 'str'})
+    df.sort_values(by=['Year', 'PMID'], inplace=True)
+    out_put_df = df.copy().drop('Journal', axis=1)
+    out_put_df['Title'] = pd.NA
+    out_put_df.to_csv('nandesyn_pub.csv', index=False, encoding='utf-8')
 
 
 if __name__ == '__main__':
@@ -101,11 +94,7 @@ if __name__ == '__main__':
     config = Config()
     config.set_collection(0)
 
-    # df = pd.read_csv('nandesyn_pub_bk.csv', encoding='utf-8',
-    #                  dtype={'Title': 'str', 'PMID': 'str', 'DOI': 'str', 'PMC': 'str'})
-    # df.sort_values(by=['Year', 'PMID'], inplace=True)
-    # out_put_df = df.copy().drop('Journal', axis=1)
-    # out_put_df['Title'] = pd.NA
-    # out_put_df.to_csv('nandesyn_pub.csv', index=False, encoding='utf-8')
+    # init_csv()
+
     for i in range(2010, 2024):
         load_csv(i)
