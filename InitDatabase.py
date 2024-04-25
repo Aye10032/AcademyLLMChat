@@ -109,6 +109,9 @@ def load_md(base_path: str) -> None:
     # retriever.add_documents([init_doc])
     logger.info('start loading file...')
 
+    with ReferenceStore(config.get_reference_path()) as ref_store:
+        ref_store.drop_old()
+
     # 遍历基础路径下的所有文件和子目录
     for root, dirs, files in os.walk(base_path):
         # 跳过空目录

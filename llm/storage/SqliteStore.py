@@ -166,6 +166,7 @@ class ReferenceStore:
 
     def __post_init__(self):
         cur = self._conn.cursor()
+
         res = cur.execute(f"SELECT name FROM sqlite_master WHERE name='{self.table_name}'")
         if res.fetchone() is None:
             stmt = f"""CREATE TABLE {self.table_name}
@@ -181,6 +182,16 @@ class ReferenceStore:
             cur.execute(stmt)
             self._conn.commit()
             logger.info(f'Create table {self.table_name}')
+
+        cur.close()
+
+    def drop_old(self):
+        cur = self._conn.cursor()
+        res = cur.execute(f"SELECT name FROM sqlite_master WHERE name='{self.table_name}'")
+        if res.fetchone() is not None:
+            stmt = f"DROP table {self.table_name}"
+            cur.execute(stmt)
+            self._conn.commit()
 
         cur.close()
 
