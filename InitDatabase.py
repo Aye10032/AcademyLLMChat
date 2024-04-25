@@ -110,9 +110,6 @@ def load_md(base_path: str) -> None:
     retriever.add_documents([init_doc])
     logger.info('start loading file...')
 
-    with ReferenceStore(config.get_reference_path()) as ref_store:
-        ref_store.drop_old()
-
     # 遍历基础路径下的所有文件和子目录
     for root, dirs, files in os.walk(base_path):
         # 跳过空目录
@@ -165,10 +162,10 @@ if __name__ == '__main__':
         help='Force override of existing configurations'
     )
     parser.add_argument(
-        '--build_reference',
-        '-R',
+        '--drop_old',
+        '-D',
         action='store_true',
-        help='Building a reference tree when creating a document'
+        help='Whether to delete the original reference database'
     )
     args = parser.parse_args()
 
@@ -208,6 +205,10 @@ if __name__ == '__main__':
 
     from llm.storage.SqliteStore import SqliteDocStore, ReferenceStore
     from utils.MarkdownPraser import load_from_md
+
+    if args.drop_old:
+        with ReferenceStore(config.get_reference_path()) as ref_store:
+            ref_store.drop_old()
 
     if args.collection is not None:
         if args.collection == -1:
