@@ -35,9 +35,24 @@ class PaperInfo:
     doi: str = ''
 
     def get_section(self) -> Section:
-        info_dict = asdict(self)
-        info_dict['type'] = int(self.type)
-        block_str = f'---\t\n{info_dict}\t\n---\t\n'
+        if "'" in self.keywords:
+            block_str = (f"---\t\n"
+                         f"author: {self.author}\n"
+                         f"year: {self.year}\n"
+                         f"type: {self.type}\n"
+                         f'keywords: "{self.keywords}"\n'
+                         f"ref: {self.ref}\n"
+                         f"doi: {self.doi}\n"
+                         f"---\t\n")
+        else:
+            block_str = (f"---\t\n"
+                         f"author: {self.author}\n"
+                         f"year: {self.year}\n"
+                         f"type: {self.type}\n"
+                         f"keywords: '{self.keywords}'\n"
+                         f"ref: {self.ref}\n"
+                         f"doi: {self.doi}\n"
+                         f"---\t\n")
         return Section(block_str, 0)
 
     @classmethod
