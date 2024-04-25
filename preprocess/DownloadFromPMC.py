@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 from Config import Config
 from llm.storage.SqliteStore import SqliteDocStore
-from utils.FileUtil import save_to_md, section_to_documents
+from utils.MarkdownPraser import save_to_md
 from utils.PMCUtil import download_paper_data, parse_paper_data, get_pmc_id
 
 logger.remove()
@@ -97,7 +97,7 @@ def download_from_pmc(csv_file: str):
 
 
 def solve_xml(csv_file: str):
-    retriever = init_retriever()
+    # retriever = init_retriever()
     df = pd.read_csv(csv_file, encoding='utf-8', dtype={'title': 'str', 'pmc_id': 'str', 'doi': 'str', 'year': 'str'})
 
     df_output = df.copy()
@@ -112,25 +112,26 @@ def solve_xml(csv_file: str):
                   encoding='utf-8') as f:
             xml_text = f.read()
 
-        try:
-            data = parse_paper_data(xml_text, year, doi)
-        except Exception as e:
-            logger.error(f'{year} {doi} {e}')
-            break
+        flag, data = parse_paper_data(xml_text)
+        # try:
+        #     flag, data = parse_paper_data(xml_text)
+        # except Exception as e:
+        #     logger.error(f'{year} {doi} {e}')
+        #     break
 
-        if not data['norm']:
-            df_output.at[index, 'title'] = data['title']
+        if not flag:
+            df_output.at[index, 'title'] = 'skip'
             df_output.to_csv(csv_file, index=False, encoding='utf-8')
             continue
 
         output_path = os.path.join(config.get_md_path(), year, doi.replace('/', '@') + '.md')
         os.makedirs(os.path.join(config.get_md_path(), year), exist_ok=True)
-        save_to_md(data['sections'], output_path)
+        save_to_md(data, output_path)
 
-        docs = section_to_documents(data['sections'], data['author'], int(year), doi)
-        retriever.add_documents(docs)
+        # docs = section_to_documents(data['sections'], data['author'], int(year), doi)
+        # retriever.add_documents(docs)
 
-        df_output.at[index, 'title'] = data['title']
+        df_output.at[index, 'title'] = 'done'
         df_output.to_csv(csv_file, index=False, encoding='utf-8')
 
 
@@ -143,10 +144,10 @@ def reset_csv(path: str) -> None:
 
 if __name__ == '__main__':
     config = Config()
-    # term = 'Raman[Title] AND ("2019/02/01"[PDat] : "2024/01/30"[PDat])&retmode=json&retmax=2000'
+    # term = 'Raman[Title] AND ("2019/04/26"[PDat] : "2024/04/23"[PDat])&retmode=json&retmax=2000'
     # get_pmc_id(term)
 
     config.set_collection(1)
     # reset_csv('pmlist.csv')
-    download_from_pmc('pmlist.csv')
+    # download_from_pmc('pmlist.csv')
     solve_xml('pmlist.csv')

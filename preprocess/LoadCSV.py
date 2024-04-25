@@ -8,7 +8,7 @@ from tqdm import tqdm
 from loguru import logger
 
 from Config import Config
-from utils.FileUtil import *
+from utils.MarkdownPraser import save_to_md
 from utils.PMCUtil import download_paper_data, parse_paper_data
 from utils.PubmedUtil import get_paper_info
 from utils.Decorator import timer

@@ -8,14 +8,14 @@ from typing import Tuple, Dict, List
 import requests
 import pandas as pd
 import yaml
-from bs4 import BeautifulSoup, Tag, NavigableString, ResultSet
+from bs4 import BeautifulSoup, NavigableString
 from loguru import logger
-from pandas import DataFrame
 from requests import sessions
 
 from Config import Config
-from utils.FileUtil import Section, replace_multiple_spaces, PaperInfo, PaperType
+from utils.FileUtil import replace_multiple_spaces
 from utils.Decorator import timer, retry
+from utils.MarkdownPraser import Section, PaperInfo, PaperType
 
 
 class RefIdType(Enum):

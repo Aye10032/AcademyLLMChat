@@ -4,7 +4,8 @@ from tqdm import tqdm
 
 from Config import Config
 from loguru import logger
-from utils.GrobidUtil import parse_pdf, save_to_md, parse_xml
+from utils.GrobidUtil import parse_xml
+from utils.MarkdownPraser import save_to_md
 
 logger.add('log/pdf2md.log')
 

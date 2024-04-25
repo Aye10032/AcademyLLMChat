@@ -1,13 +1,55 @@
+import os
 import re
+from dataclasses import dataclass
+from enum import IntEnum
 from io import StringIO
-from typing import List, Tuple, Any
+from typing import List, Tuple, Any, Dict
 
 import yaml
 from langchain.text_splitter import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from streamlit.runtime.uploaded_file_manager import UploadedFile
+from loguru import logger
 
-from utils.FileUtil import PaperInfo
+
+class PaperType(IntEnum):
+    PURE_MARKDOWN = 0
+    GROBID_PAPER = 1
+    PMC_PAPER = 2
+    NSFC = 3
+
+
+@dataclass
+class Section:
+    text: str
+    level: int
+
+
+@dataclass
+class PaperInfo:
+    author: str
+    year: int
+    type: int = PaperType.PURE_MARKDOWN
+    keywords: str = ''
+    ref: bool = False
+    doi: str = ''
+
+    def get_section(self) -> Section:
+        block_str = (
+            f'---\t\n'
+            f'author: {self.author}\t\n'
+            f'year: {self.year}\t\n'
+            f'type: {self.type}\t\n'
+            f'keywords: {self.keywords}\t\n'
+            f'ref: {self.ref}\t\n'
+            f'doi: {self.doi}\t\n'
+            f'---\t\n'
+        )
+        return Section(block_str, 0)
+
+    @classmethod
+    def from_yaml(cls, data: Dict[str, any]):
+        return cls(**data)
 
 
 def split_markdown(document: UploadedFile) -> Tuple[list[Document], dict[str, Any]]:
@@ -74,3 +116,51 @@ def split_markdown_text(md_text: str) -> Tuple[list[Document], dict[str, Any]]:
     md_docs = r_splitter.split_documents(head_split_docs)
 
     return md_docs, reference_data
+
+
+def save_to_md(sections: list[Section], output_path) -> None:
+    """
+    将章节列表保存为Markdown格式的文件。
+
+    :param sections: 包含章节内容的列表，每个章节都由Section类型表示。
+    :param output_path: 输出Markdown文件的路径。
+    :return: 无返回值。
+    """
+
+    with open(output_path, 'w', encoding='utf-8') as f:
+        for sec in sections:
+            text = sec.text
+            level = sec.level
+            if level == 0:
+                f.write(f'{text}\t\n')
+            elif level == 1:
+                f.write(f'# {text}\t\n')
+            elif level == 2:
+                f.write(f'## {text}\t\n')
+            elif level == 3:
+                f.write(f'### {text}\t\n')
+            else:
+                f.write(f'#### {text}\t\n')
+
+
+def load_from_md(path: str) -> Tuple[list[Document], dict[str, Any]]:
+    """
+    从给定的Markdown文件路径加载内容，并将其分割为文档列表和元数据字典。
+
+    :param path: 指向Markdown文件的路径。
+    :return: 一个元组，包含一个文档列表和一个元数据字典。
+    """
+    # 检查路径是否指向一个文件
+    if not os.path.isfile(path):
+        logger.error('This is not a file path!')
+        return [], {}
+
+    # 检查文件扩展名是否为.md
+    if not path.endswith('.md'):
+        logger.error('This is not a markdown file!')
+        return [], {}
+
+    with open(path, 'r') as f:
+        md_text = f.read()
+
+    return split_markdown_text(md_text)
