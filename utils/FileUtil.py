@@ -2,6 +2,8 @@ import re
 import string
 from typing import List
 
+from bs4 import ResultSet, Tag
+
 
 def format_filename(filename: str) -> str:
     """
@@ -18,7 +20,7 @@ def format_filename(filename: str) -> str:
     return filename
 
 
-def split_words(text: str) -> List[str]:
+def split_words(kw_block: Tag) -> List[str]:
     """
     分割文本中的单词。
 
@@ -28,9 +30,13 @@ def split_words(text: str) -> List[str]:
     :return: 包含分割出的单词的列表，其中括号已被移除。
     """
 
-    pattern = re.compile(r'\([^()]*\)|\S+')
-    words = pattern.findall(text)
-    clean_words = [word.replace('(', '').replace(')', '') for word in words]
+    kw_list = kw_block.find_all('term')
+    if len(kw_list) > 0:
+        clean_words = [kw.text for kw in kw_list]
+    else:
+        pattern = re.compile(r'\([^()]*\)|\S+')
+        words = pattern.findall(kw_block.text)
+        clean_words = [word.replace('(', '').replace(')', '') for word in words]
 
     return clean_words
 

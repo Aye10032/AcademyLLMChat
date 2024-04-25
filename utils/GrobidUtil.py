@@ -102,7 +102,7 @@ def parse_xml(xml_path: LiteralString | str | bytes) -> list[Section]:
         case 4:
             year = int(year)
         case 0:
-            year = None
+            year = -1
         case _:
             try:
                 year = int(year[:4])
@@ -114,8 +114,8 @@ def parse_xml(xml_path: LiteralString | str | bytes) -> list[Section]:
     doi = doi.text if doi else ''
 
     # 提取关键词
-    key_div = soup.find('profileDesc').select('keywords')
-    keywords = split_words(key_div[0].get_text()) if len(key_div) != 0 else []
+    key_div = soup.find('profileDesc').find('keywords')
+    keywords = split_words(key_div) if key_div is not None else []
 
     sections.append(PaperInfo(authors[0], year, PaperType.GROBID_PAPER, ','.join(keywords), True, doi).get_section())
     sections.append(Section(title, 1))
