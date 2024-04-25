@@ -97,16 +97,16 @@ def load_md(base_path: str) -> None:
     """
     # 初始化检索器，并添加初始文档
     retriever = init_retriever()
-    init_doc = Document(page_content=f'This is a collection about {config.milvus_config.get_collection().NAME}',
-                        metadata={
-                            'title': 'About this collection',
-                            'section': 'Abstract',
-                            'author': '',
-                            'doi': '',
-                            'year': datetime.now().year,
-                            'ref': ''
-                        })
-    retriever.add_documents([init_doc])
+    # init_doc = Document(page_content=f'This is a collection about {config.milvus_config.get_collection().NAME}',
+    #                     metadata={
+    #                         'title': 'About this collection',
+    #                         'section': 'Abstract',
+    #                         'author': '',
+    #                         'doi': '',
+    #                         'year': datetime.now().year,
+    #                         'ref': ''
+    #                     })
+    # retriever.add_documents([init_doc])
     logger.info('start loading file...')
 
     # 遍历基础路径下的所有文件和子目录
@@ -127,6 +127,8 @@ def load_md(base_path: str) -> None:
             # 尝试将分割得到的文档添加到检索器
             try:
                 retriever.add_documents(md_docs)
+                with ReferenceStore(config.get_reference_path()) as ref_store:
+                    ref_store.add_reference(reference_data.get('source_doi'), reference_data.get('ref_data'))
             except Exception as e:
                 logger.error(f'loading <{_file}> ({year}) fail')
                 logger.error(e)
@@ -200,7 +202,7 @@ if __name__ == '__main__':
 
     config = Config()
 
-    from llm.storage.SqliteStore import SqliteDocStore
+    from llm.storage.SqliteStore import SqliteDocStore, ReferenceStore
     from utils.MarkdownPraser import load_from_md
 
     if args.collection is not None:

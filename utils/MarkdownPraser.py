@@ -52,7 +52,7 @@ class PaperInfo:
         return cls(**data)
 
 
-def split_markdown(document: UploadedFile) -> Tuple[list[Document], dict[str, Any]]:
+def split_markdown(document: UploadedFile) -> Tuple[list[Document], Dict[str, Any]]:
     """
     分割Markdown文档为多个部分。
 
@@ -66,7 +66,7 @@ def split_markdown(document: UploadedFile) -> Tuple[list[Document], dict[str, An
     return md_docs, reference_data
 
 
-def split_markdown_text(md_text: str) -> Tuple[list[Document], dict[str, Any]]:
+def split_markdown_text(md_text: str) -> Tuple[list[Document], Dict[str, Any]]:
     """
     分割Markdown文本。
 
@@ -97,7 +97,7 @@ def split_markdown_text(md_text: str) -> Tuple[list[Document], dict[str, Any]]:
     else:
         raise Exception('Markdown miss information!')
 
-    reference_data = {}
+    reference_data = []
     if paper_info.ref:
         if head_split_docs[-1].metadata['section'] != 'Reference':
             raise Exception('Missing "Reference" section')
@@ -115,7 +115,7 @@ def split_markdown_text(md_text: str) -> Tuple[list[Document], dict[str, Any]]:
 
     md_docs = r_splitter.split_documents(head_split_docs)
 
-    return md_docs, reference_data
+    return md_docs, {'source_doi': paper_info.doi, 'ref_data': reference_data}
 
 
 def save_to_md(sections: list[Section], output_path) -> None:
@@ -143,7 +143,7 @@ def save_to_md(sections: list[Section], output_path) -> None:
                 f.write(f'#### {text}\t\n')
 
 
-def load_from_md(path: str) -> Tuple[list[Document], dict[str, Any]]:
+def load_from_md(path: str) -> Tuple[list[Document], Dict[str, Any]]:
     """
     从给定的Markdown文件路径加载内容，并将其分割为文档列表和元数据字典。
 

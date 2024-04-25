@@ -236,5 +236,10 @@ class Config:
         os.makedirs(os.path.dirname(sqlite_path), exist_ok=True)
         return sqlite_path
 
+    def get_reference_path(self):
+        reference_path = os.path.join(get_work_path(), self.DATA_ROOT, 'reference.db')
+        os.makedirs(os.path.dirname(reference_path), exist_ok=True)
+        return reference_path
+
     def get_proxy(self):
         return f'{self.PROXY_TYPE}://{self.PROXY_HOST}:{self.PROXY_PORT}'
