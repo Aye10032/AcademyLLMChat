@@ -221,4 +221,4 @@ if __name__ == '__main__':
             else:
                 config.set_collection(args.collection)
                 logger.info(f'Only init collection {args.collection}')
-                load_md(config.get_xml_path())
+                load_md(config.get_md_path())
