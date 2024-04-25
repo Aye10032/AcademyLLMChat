@@ -174,7 +174,7 @@ def parse_paper_data(xml_text: str, silent: bool = True) -> Tuple[bool, List[Sec
 
     # 提取论文作者信息
     author_block = soup.find('contrib-group').find('name')
-    author = __extract_author_name(author_block) if author_block else None
+    author = __extract_author_name(author_block) if author_block else ''
 
     # 提取文章的DOI和发表年份
     year = soup.find('pub-date').find('year').text \

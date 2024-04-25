@@ -1,6 +1,6 @@
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from enum import IntEnum
 from io import StringIO
 from typing import List, Tuple, Any, Dict
@@ -35,16 +35,9 @@ class PaperInfo:
     doi: str = ''
 
     def get_section(self) -> Section:
-        block_str = (
-            f'---\t\n'
-            f'author: {self.author}\t\n'
-            f'year: {self.year}\t\n'
-            f'type: {self.type}\t\n'
-            f'keywords: {self.keywords}\t\n'
-            f'ref: {self.ref}\t\n'
-            f'doi: {self.doi}\t\n'
-            f'---\t\n'
-        )
+        info_dict = asdict(self)
+        info_dict['type'] = int(self.type)
+        block_str = f'---\t\n{info_dict}\t\n---\t\n'
         return Section(block_str, 0)
 
     @classmethod
