@@ -7,8 +7,10 @@ from langchain.text_splitter import MarkdownHeaderTextSplitter, RecursiveCharact
 from langchain_core.documents import Document
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
+from utils.FileUtil import PaperInfo
 
-def split_markdown(document: UploadedFile):
+
+def split_markdown(document: UploadedFile) -> Tuple[list[Document], dict[str, Any]]:
     """
     分割Markdown文档为多个部分。
 
@@ -18,8 +20,8 @@ def split_markdown(document: UploadedFile):
 
     stringio = StringIO(document.getvalue().decode("utf-8"))
     string_data = stringio.read()
-    md_docs = split_markdown_text(string_data)
-    return md_docs
+    md_docs, reference_data = split_markdown_text(string_data)
+    return md_docs, reference_data
 
 
 def split_markdown_text(md_text: str) -> Tuple[list[Document], dict[str, Any]]:
@@ -49,32 +51,25 @@ def split_markdown_text(md_text: str) -> Tuple[list[Document], dict[str, Any]]:
     if head_split_docs[0].page_content.startswith('---'):
         yaml_text = head_split_docs.pop(0).page_content.replace('---', '')
         data = yaml.load(yaml_text, Loader=yaml.FullLoader)
-        author = data['author']
-        year = data['year']
-        _type = data['type']
-        keywords = data['keywords']
-        ref = data['ref'] if 'ref' in data else False
-        doi = data['doi'] if 'doi' in data else ''
+        paper_info = PaperInfo.from_yaml(data)
     else:
         raise Exception('Markdown miss information!')
 
     reference_data = {}
-    if ref:
+    if paper_info.ref:
         if head_split_docs[-1].metadata['section'] != 'Reference':
             raise Exception('Missing "Reference" section')
         else:
             head_split_docs.pop(-1)
             reference_text = md_text.split('## Reference')[-1].rstrip('\t\n').lstrip('\t\n')
-            # print('---------------')
-            # print(reference_text)
             reference_data = yaml.load(reference_text, Loader=yaml.FullLoader)
 
     for doc in head_split_docs:
-        doc.metadata['author'] = author
-        doc.metadata['year'] = int(year)
-        doc.metadata['type'] = _type
-        doc.metadata['keywords'] = keywords
-        doc.metadata['doi'] = doi
+        doc.metadata['author'] = paper_info.author
+        doc.metadata['year'] = paper_info.year
+        doc.metadata['type'] = paper_info.type
+        doc.metadata['keywords'] = paper_info.keywords
+        doc.metadata['doi'] = paper_info.doi
 
     md_docs = r_splitter.split_documents(head_split_docs)
 

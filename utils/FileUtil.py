@@ -2,6 +2,7 @@ import re
 import string
 from dataclasses import dataclass, field
 from enum import IntEnum
+from typing import Dict
 
 from langchain_core.documents import Document
 
@@ -40,6 +41,10 @@ class PaperInfo:
             f'---\t\n'
         )
         return Section(block_str, 0)
+
+    @classmethod
+    def from_yaml(cls, data: Dict[str, any]):
+        return cls(**data)
 
 
 def format_filename(filename):
@@ -108,43 +113,41 @@ def save_to_md(sections: list[Section], output_path):
             else:
                 f.write(f'#### {text}\t\n')
 
-
-def section_to_documents(sections: list[Section], author: str, year: int, doi: str) -> list[Document]:
-    """
-    将章节列表转换为文档列表。
-
-    :param sections: 一个Section类型的列表，表示文档的各个章节。
-    :param author: 文档的作者。
-    :param year: 文档发表的年份。
-    :param doi: 文档的数字对象标识符。
-
-    :return: 一个Document类型的列表，每个元素代表一个章节的内容及其元数据。
-    """
-    __Title = ''
-    __Section = ''
-    docs: list[Document] = []
-
-    for section in sections:
-        match section.level:
-            case 1:
-                __Title = section.text
-            case 2:
-                __Section = section.text
-            case 0:
-                if __Section == 'References':
-                    continue
-
-                docs.append(Document(
-                    page_content=section.text,
-                    metadata={
-                        'title': __Title,
-                        'section': __Section,
-                        'author': author,
-                        'year': int(year),
-                        'doi': doi,
-                        'ref': section.ref})
-                )
-            case _:
-                pass
-
-    return docs
+# def section_to_documents(sections: list[Section], author: str, year: int, doi: str) -> list[Document]:
+#     """
+#     将章节列表转换为文档列表。
+#
+#     :param sections: 一个Section类型的列表，表示文档的各个章节。
+#     :param author: 文档的作者。
+#     :param year: 文档发表的年份。
+#     :param doi: 文档的数字对象标识符。
+#
+#     :return: 一个Document类型的列表，每个元素代表一个章节的内容及其元数据。
+#     """
+#     __Title = ''
+#     __Section = ''
+#     docs: list[Document] = []
+#
+#     for section in sections:
+#         match section.level:
+#             case 1:
+#                 __Title = section.text
+#             case 2:
+#                 __Section = section.text
+#             case 0:
+#                 if __Section == 'References':
+#                     continue
+#
+#                 docs.append(Document(
+#                     page_content=section.text,
+#                     metadata={
+#                         'title': __Title,
+#                         'section': __Section,
+#                         'author': author,
+#                         'year': int(year),
+#                         'doi': doi})
+#                 )
+#             case _:
+#                 pass
+#
+#     return docs
