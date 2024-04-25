@@ -12,7 +12,7 @@ from utils.Decorator import retry
 
 
 @retry(delay=random.uniform(2.0, 5.0))
-def get_paper_info(pmid: str, config: Config = None) -> Dict:
+def get_paper_info(pmid: str, config: Config = None, silent: bool = True) -> Dict:
     """
     获取指定PMID的论文信息。
 
@@ -20,6 +20,7 @@ def get_paper_info(pmid: str, config: Config = None) -> Dict:
 
     :param pmid: 论文的PubMed标识符。
     :param config: 包含API密钥和代理配置的配置对象。如果未提供，则使用默认配置。
+    :param silent:
     :return: 包含论文信息的字典。
     """
 
@@ -28,7 +29,8 @@ def get_paper_info(pmid: str, config: Config = None) -> Dict:
         config = Config()
 
     # 记录请求信息
-    logger.info(f'request PMID:{pmid}')
+    if not silent:
+        logger.info(f'request PMID:{pmid}')
     # 构建请求URL，包含API密钥
     url = (f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id={pmid}'
            f'&retmode=xml&api_key={config.pubmed_config.API_KEY}')
