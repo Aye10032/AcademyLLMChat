@@ -97,16 +97,17 @@ def load_md(base_path: str) -> None:
     """
     # 初始化检索器，并添加初始文档
     retriever = init_retriever()
-    # init_doc = Document(page_content=f'This is a collection about {config.milvus_config.get_collection().NAME}',
-    #                     metadata={
-    #                         'title': 'About this collection',
-    #                         'section': 'Abstract',
-    #                         'author': '',
-    #                         'doi': '',
-    #                         'year': datetime.now().year,
-    #                         'ref': ''
-    #                     })
-    # retriever.add_documents([init_doc])
+    init_doc = Document(page_content=f'This is a collection about {config.milvus_config.get_collection().NAME}',
+                        metadata={
+                            'title': 'About this collection',
+                            'section': 'Abstract',
+                            'author': 'administrator',
+                            'year': datetime.now().year,
+                            'type': -1,
+                            'keywords': 'collection',
+                            'doi': ''
+                        })
+    retriever.add_documents([init_doc])
     logger.info('start loading file...')
 
     with ReferenceStore(config.get_reference_path()) as ref_store:
