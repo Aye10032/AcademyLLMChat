@@ -10,14 +10,15 @@ V = TypeVar("V")
 
 ITERATOR_WINDOW_SIZE = 500
 
-_LANGCHAIN_DEFAULT_TABLE_NAME = "langchain"
+LANGCHAIN_DEFAULT_TABLE_NAME = "langchain"
+REFERENCE_DEFAULT_TABLE_NAME = "reference"
 
 
 class SqliteBaseStore(BaseStore[str, V], Generic[V]):
     def __init__(
             self,
             connection_string: str,
-            table_name: str = _LANGCHAIN_DEFAULT_TABLE_NAME,
+            table_name: str = LANGCHAIN_DEFAULT_TABLE_NAME,
             drop_old: bool = False,
             connection: Optional[sqlite3.connect] = None,
             engine_args: Optional[dict[str, Any]] = None,
@@ -69,15 +70,18 @@ class SqliteBaseStore(BaseStore[str, V], Generic[V]):
         if self._conn:
             self._conn.close()
 
-    def __serialize_value(self, obj: V) -> str:
+    @staticmethod
+    def __serialize_value(obj: V) -> str:
         if isinstance(obj, Serializable):
             return dumps(obj)
         return obj
 
-    def __deserialize_value(self, obj: V) -> str:
+    @staticmethod
+    def __deserialize_value(obj: V) -> Any:
         try:
             return loads(obj)
-        except Exception:
+        except Exception as e:
+            logger.error(e)
             return obj
 
     def mget(self, keys: Sequence[str]) -> List[Optional[V]]:
@@ -144,5 +148,80 @@ class SqliteBaseStore(BaseStore[str, V], Generic[V]):
         cur.close()
 
 
+class ReferenceStore:
+    def __init__(
+            self,
+            connection_string: str,
+            table_name: str = REFERENCE_DEFAULT_TABLE_NAME,
+    ) -> None:
+        self.connection_string = connection_string
+        self.table_name = table_name
+
+        self._conn = self.__connect()
+        self.__post_init__()
+
+    def __connect(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.connection_string, check_same_thread=False)
+        return conn
+
+    def __post_init__(self):
+        cur = self._conn.cursor()
+        res = cur.execute(f"SELECT name FROM sqlite_master WHERE name='{self.table_name}'")
+        if res.fetchone() is None:
+            stmt = f"""CREATE TABLE {self.table_name}
+                            (
+                                source_doi TEXT,
+                                ref_id TEXT,
+                                ref_doi TEXT,
+                                ref_title TEXT,
+                                ref_pmid TEXT,
+                                ref_pmc TEXT
+                            );
+                            """
+            cur.execute(stmt)
+            self._conn.commit()
+            logger.info(f'Create table {self.table_name}')
+
+        cur.close()
+
+    def __del__(self):
+        if self._conn:
+            self._conn.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self._conn:
+            self._conn.close()
+
+    def add_reference(self, source_doi: str, ref_data: list) -> None:
+        cur = self._conn.cursor()
+        data = []
+        for index, reference in enumerate(ref_data):
+            if isinstance(reference, list):
+                for sub_index, sub_ref in enumerate(reference):
+                    data.append((
+                        source_doi,
+                        f'{index + 1}{chr(sub_index + 96)}',
+                        sub_ref.get('doi'),
+                        sub_ref.get('title'),
+                        sub_ref.get('pmid'),
+                        sub_ref.get('pmc'),
+                    ))
+            else:
+                data.append((
+                    source_doi,
+                    str(index + 1),
+                    reference.get('doi'),
+                    reference.get('title'),
+                    reference.get('pmid'),
+                    reference.get('pmc'),
+                ))
+
+        cur.executemany(f"INSERT INTO {self.table_name} VALUES(?, ?, ?, ?, ?, ?)", data)
+        self._conn.commit()
+        cur.close()
+
+
 SqliteDocStore = SqliteBaseStore[Document]
-SqliteStrStore = SqliteBaseStore[str]
