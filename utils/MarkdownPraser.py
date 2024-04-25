@@ -27,8 +27,8 @@ class Section:
 
 @dataclass
 class PaperInfo:
-    author: str
-    year: int
+    author: str = ''
+    year: int = -1
     type: int = PaperType.PURE_MARKDOWN
     keywords: str = ''
     ref: bool = False
