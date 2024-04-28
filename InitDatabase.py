@@ -207,8 +207,8 @@ if __name__ == '__main__':
     from utils.MarkdownPraser import load_from_md
 
     if args.drop_old:
-        with ReferenceStore(config.get_reference_path()) as ref_store:
-            ref_store.drop_old()
+        with ReferenceStore(config.get_reference_path()) as _store:
+            _store.drop_old()
 
     if args.collection is not None:
         if args.collection == -1:
