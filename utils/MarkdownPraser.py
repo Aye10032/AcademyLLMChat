@@ -42,7 +42,7 @@ class PaperInfo:
                          f"type: {self.type}\n"
                          f'keywords: "{self.keywords}"\n'
                          f"ref: {self.ref}\n"
-                         f"doi: {self.doi}\n"
+                         f"doi: '{self.doi}'\n"
                          f"---\t\n")
         else:
             block_str = (f"---\t\n"
@@ -51,7 +51,7 @@ class PaperInfo:
                          f"type: {self.type}\n"
                          f"keywords: '{self.keywords}'\n"
                          f"ref: {self.ref}\n"
-                         f"doi: {self.doi}\n"
+                         f"doi: '{self.doi}'\n"
                          f"---\t\n")
         return Section(block_str, 0)
 

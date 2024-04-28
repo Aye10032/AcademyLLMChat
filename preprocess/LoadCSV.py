@@ -107,7 +107,7 @@ def load_csv(year: int):
         save_to_md(xml_data, output_path)
 
         out_put_df['Title'] = 'done'
-        out_put_df.to_csv('nandesyn_pub.csv', index=False, encoding='utf-8')
+        out_put_df.to_csv('nandesyn_pmc.csv', index=False, encoding='utf-8')
 
 
 def init_csv():
@@ -138,7 +138,7 @@ if __name__ == '__main__':
 
     # init_csv()
 
-    # get_pmc_list()
+    get_pmc_list()
 
     for i in range(2010, 2024):
         # download_from_csv(i)

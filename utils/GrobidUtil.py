@@ -1,5 +1,4 @@
-import os
-from typing import LiteralString, Any, Dict
+from typing import LiteralString
 
 from grobid_client.grobid_client import GrobidClient
 from bs4 import BeautifulSoup
@@ -133,7 +132,11 @@ def parse_xml(xml_path: LiteralString | str | bytes) -> list[Section]:
             continue
         section_title = section.find('head').text.strip()
         title_level = section.find('head').attrs.get('n')
-        level = title_level.count('.') + 1 if title_level else 2
+        if title_level:
+            matches = re.findall(r'\d', title_level)
+            level = len(matches) + 1
+        else:
+            level = 2
 
         sections.append(Section(section_title, level))
 
