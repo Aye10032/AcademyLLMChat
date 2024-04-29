@@ -229,7 +229,7 @@ class Config:
         if collection >= len(self.milvus_config.collections):
             logger.error('collection index out of range')
             return
-        self.milvus_config.DEFAULT_COLLECTION = collection
+        self.milvus_config.default_collection = collection
         collection_name: str = self.milvus_config.get_collection().collection_name
 
         logger.info(f'set default collection to {collection_name}')
