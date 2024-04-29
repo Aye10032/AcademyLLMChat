@@ -60,11 +60,17 @@ class Bgem3Embeddings(BaseModel, Embeddings):
                 "Please install it with `pip install FlagEmbedding`."
             ) from exc
 
-        self.client: BGEM3FlagModel = BGEM3FlagModel(self.local_path, **self.model_kwargs)
-
         if self.local_load:
-            self.client.model.save(self.local_path)
-            self.client.tokenizer.save_pretrained(self.local_path)
+            try:
+                self.client: BGEM3FlagModel = BGEM3FlagModel(self.local_path, **self.model_kwargs)
+            except EnvironmentError:
+                logger.error('Load model from local fail. Download from huggingface...')
+
+                self.client: BGEM3FlagModel = BGEM3FlagModel(self.model_name, **self.model_kwargs)
+                self.client.model.save(self.local_path)
+                self.client.tokenizer.save_pretrained(self.local_path)
+        else:
+            self.client: BGEM3FlagModel = BGEM3FlagModel(self.model_name, **self.model_kwargs)
 
         if "-zh" in self.model_name:
             self.query_instruction = DEFAULT_QUERY_BGE_INSTRUCTION_ZH
