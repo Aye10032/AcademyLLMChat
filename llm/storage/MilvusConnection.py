@@ -1,5 +1,3 @@
-from streamlit.connections import BaseConnection
-
 from pymilvus import connections, utility, Collection, MilvusClient
 
 
@@ -15,8 +13,8 @@ class MilvusConnection:
         connections.connect('default', uri=uri, **kwargs)
         self.client = MilvusClient(uri=uri, **kwargs)
 
-    def __enter__(self) -> MilvusClient:
-        return self.client
+    def __enter__(self):
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         connections.disconnect('default')

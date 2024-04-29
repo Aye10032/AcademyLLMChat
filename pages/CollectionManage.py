@@ -33,8 +33,6 @@ collections = []
 for collection in milvus_cfg.collections:
     collections.append(collection.collection_name)
 
-conn = MilvusConnection(**milvus_cfg.get_conn_args())
-
 dtype = {
     0: 'NONE',
     1: 'BOOL',
@@ -73,9 +71,10 @@ def create_collection(
         st.error('知识库名称必须是不为空的英文')
         st.stop()
 
-    if conn.has_collection(collection_name):
-        st.error('知识库已存在')
-        st.stop()
+    with MilvusConnection(**milvus_cfg.get_conn_args()) as conn:
+        if conn.has_collection(collection_name):
+            st.error('知识库已存在')
+            st.stop()
 
     if not title:
         title = collection_name
@@ -146,7 +145,9 @@ def create_collection(
 
 
 def del_collection(collection_name: str, option: int) -> None:
-    conn.drop_collection(collection_name)
+    with MilvusConnection(**milvus_cfg.get_conn_args()) as conn:
+        conn.drop_collection(collection_name)
+
     milvus_cfg.remove_collection(option)
     update_config(config)
     st.session_state['verify_text'] = ''
@@ -159,23 +160,24 @@ def manage_tab():
                           format_func=lambda x: collections[x])
 
     if option is not None:
-        collection_name = milvus_cfg.collections[option].collection_name
-        st.write(f'知识库 {collection_name} 中共有', conn.get_entity_num(collection_name), '条向量数据')
-        field_df = pd.DataFrame()
-        for index, field in enumerate(conn.get_collection(collection_name).schema.fields):
-            df = pd.DataFrame(
-                {
-                    '字段': field.name,
-                    '类型': dtype[field.dtype],
-                    'max_length': field.max_length,
-                    'dim': field.dim,
-                    'is_primary': field.is_primary,
-                    'auto_id': field.auto_id,
-                },
-                index=[index]
-            )
+        with MilvusConnection(**milvus_cfg.get_conn_args()) as conn:
+            collection_name = milvus_cfg.collections[option].collection_name
+            st.write(f'知识库 {collection_name} 中共有', conn.get_entity_num(collection_name), '条向量数据')
+            field_df = pd.DataFrame()
+            for index, field in enumerate(conn.get_collection(collection_name).schema.fields):
+                df = pd.DataFrame(
+                    {
+                        '字段': field.name,
+                        '类型': dtype[field.dtype],
+                        'max_length': field.max_length,
+                        'dim': field.dim,
+                        'is_primary': field.is_primary,
+                        'auto_id': field.auto_id,
+                    },
+                    index=[index]
+                )
 
-            field_df = pd.concat([field_df, df], ignore_index=True)
+                field_df = pd.concat([field_df, df], ignore_index=True)
 
         st.dataframe(field_df, hide_index=True)
 
