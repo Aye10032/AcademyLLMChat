@@ -57,94 +57,6 @@ with st.sidebar:
 role_check(UserRole.OWNER)
 
 
-def create_collection(
-        collection_name: str,
-        language: str,
-        title: str,
-        description: str,
-        metric_type: str,
-        index_types: list,
-        index_type: int,
-        param: str,
-        container: st.container
-) -> None:
-    if not (collection_name and is_en(collection_name)):
-        container.error('知识库名称必须是不为空的英文')
-        st.stop()
-
-    with MilvusConnection(**milvus_cfg.get_conn_args()) as conn:
-        if conn.has_collection(collection_name):
-            container.error('知识库已存在')
-            st.stop()
-
-    if not title:
-        title = collection_name
-
-    if not description:
-        description = f'This is a collection about {collection_name}'
-
-    index_param = {
-        "metric_type": metric_type,
-        "index_type": index_types[index_type],
-        "params": eval(param),
-    }
-
-    embedding = load_embedding()
-
-    with container.spinner('Creating collection...'):
-        init_doc = Document(page_content=f'This is a collection about {config.milvus_config.get_collection().collection_name}',
-                            metadata={
-                                'title': 'About this collection',
-                                'section': 'Abstract',
-                                'author': 'administrator',
-                                'year': datetime.now().year,
-                                'type': -1,
-                                'keywords': 'collection',
-                                'doi': ''
-                            })
-
-        sqlite_path = config.get_sqlite_path()
-        doc_store = SqliteDocStore(
-            connection_string=sqlite_path,
-            drop_old=True
-        )
-
-        vector_db = Milvus(
-            embedding,
-            collection_name=collection_name,
-            connection_args=milvus_cfg.get_conn_args(),
-            index_params=index_param,
-            drop_old=True,
-            auto_id=True
-        )
-
-        child_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=100,
-            chunk_overlap=0,
-            separators=['.', '\n\n', '\n'],
-            keep_separator=False
-        )
-
-        retriever = ParentDocumentRetriever(
-            vectorstore=vector_db,
-            docstore=doc_store,
-            child_splitter=child_splitter
-        )
-
-        retriever.add_documents([init_doc])
-
-        milvus_cfg.add_collection(
-            Collection.from_dict({"collection_name": collection_name,
-                                  "language": language,
-                                  "title": title,
-                                  "description": description,
-                                  "index_param": index_param}))
-        update_config(config)
-    logger.info('success')
-    container.success('创建成功')
-    st.balloons()
-
-
 def del_collection(collection_name: str, option: int) -> None:
     with MilvusConnection(**milvus_cfg.get_conn_args()) as conn:
         conn.drop_collection(collection_name)
@@ -261,23 +173,86 @@ def new_tab():
                 param = st.text_area('params', value=get_index_param(index_type),
                                      disabled=st.session_state['new_collection_disable'])
 
-        st.button(
-            '新建知识库',
-            type='primary',
-            disabled=st.session_state['new_collection_disable'],
-            on_click=create_collection,
-            kwargs={
-                'collection_name': collection_name,
-                'language': language,
-                'title': title,
-                'description': description,
-                'metric_type': metric_type,
-                'index_types': index_types,
-                'index_type': index_type,
-                'param': param,
-                'container': info_container
+        if st.button(
+                '新建知识库',
+                type='primary',
+                disabled=st.session_state['new_collection_disable'],
+        ):
+            if not (collection_name and is_en(collection_name)):
+                st.error('知识库名称必须是不为空的英文')
+                st.stop()
+
+            with MilvusConnection(**milvus_cfg.get_conn_args()) as conn:
+                if conn.has_collection(collection_name):
+                    st.error('知识库已存在')
+                    st.stop()
+
+            if not title:
+                title = collection_name
+
+            if not description:
+                description = f'This is a collection about {collection_name}'
+
+            index_param = {
+                "metric_type": metric_type,
+                "index_type": index_types[index_type],
+                "params": eval(param),
             }
-        )
+
+            embedding = load_embedding()
+
+            with st.spinner('Creating collection...'):
+                init_doc = Document(page_content=f'This is a collection about {config.milvus_config.get_collection().collection_name}',
+                                    metadata={
+                                        'title': 'About this collection',
+                                        'section': 'Abstract',
+                                        'author': 'administrator',
+                                        'year': datetime.now().year,
+                                        'type': -1,
+                                        'keywords': 'collection',
+                                        'doi': ''
+                                    })
+
+                sqlite_path = config.get_sqlite_path()
+                doc_store = SqliteDocStore(
+                    connection_string=sqlite_path,
+                    drop_old=True
+                )
+
+                vector_db = Milvus(
+                    embedding,
+                    collection_name=collection_name,
+                    connection_args=milvus_cfg.get_conn_args(),
+                    index_params=index_param,
+                    drop_old=True,
+                    auto_id=True
+                )
+
+                child_splitter = RecursiveCharacterTextSplitter(
+                    chunk_size=100,
+                    chunk_overlap=0,
+                    separators=['.', '\n\n', '\n'],
+                    keep_separator=False
+                )
+
+                retriever = ParentDocumentRetriever(
+                    vectorstore=vector_db,
+                    docstore=doc_store,
+                    child_splitter=child_splitter
+                )
+
+                retriever.add_documents([init_doc])
+
+                milvus_cfg.add_collection(
+                    Collection.from_dict({"collection_name": collection_name,
+                                          "language": language,
+                                          "title": title,
+                                          "description": description,
+                                          "index_param": index_param}))
+                update_config(config)
+            logger.info('success')
+            st.success('创建成功')
+            st.balloons()
 
 
 tab1, tab2 = st.tabs(['知识库管理', '新建知识库'])
