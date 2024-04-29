@@ -48,7 +48,7 @@ collections = []
 for collection in col:
     collections.append(collection.collection_name)
 
-title = milvus_cfg.get_collection().TITLE
+title = milvus_cfg.get_collection().title
 st.title(title)
 
 with st.sidebar:
@@ -63,9 +63,9 @@ with st.sidebar:
     if not option == milvus_cfg.default_collection:
         config.set_collection(option)
         update_config(config)
-        st.caption(f'当前数据库为：{milvus_cfg.get_collection().NAME}')
+        st.caption(f'当前数据库为：{milvus_cfg.get_collection().collection_name}')
     else:
-        st.caption(f'当前数据库为：{milvus_cfg.get_collection().NAME}')
+        st.caption(f'当前数据库为：{milvus_cfg.get_collection().collection_name}')
 
     st.divider()
     st.markdown('#### Advance')
@@ -160,7 +160,7 @@ with col_doc:
 
 if prompt:
     if not st.session_state.get('chat_type'):
-        collection_name = milvus_cfg.get_collection().NAME
+        collection_name = milvus_cfg.get_collection().collection_name
 
         logger.info(f'question ({collection_name}): {prompt}')
         st.session_state.messages = [{'role': 'user', 'content': prompt}]
