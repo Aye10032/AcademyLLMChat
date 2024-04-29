@@ -33,7 +33,8 @@ def init_retriever() -> ParentDocumentRetriever:
             'normalize_embeddings': embed_cfg.normalize_embeddings,
             'use_fp16': embed_cfg.fp16
         },
-        local_kwargs=embed_cfg
+        local_load=embed_cfg.save_local,
+        local_path=embed_cfg.local_path
     )
     logger.info(f'load collection [{collection}], using model {embed_cfg.model}')
 

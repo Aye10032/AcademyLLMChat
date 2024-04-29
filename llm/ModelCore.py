@@ -30,7 +30,8 @@ def load_embedding_en() -> Bgem3Embeddings:
             'normalize_embeddings': embd_cfg.normalize_embeddings,
             'use_fp16': embd_cfg.fp16
         },
-        local_kwargs=embd_cfg
+        local_load=embd_cfg.save_local,
+        local_path=embd_cfg.local_path
     )
 
     return embedding

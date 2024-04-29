@@ -45,10 +45,8 @@ class Bgem3Embeddings(BaseModel, Embeddings):
     """Instruction to use for embedding document."""
     embed_instruction: str = ""
 
-    """
-    
-    """
-    local_kwargs: Dict[str, Any] = Field(default_factory=dict)
+    local_load: bool = False
+    local_path: str = ''
 
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
@@ -64,9 +62,9 @@ class Bgem3Embeddings(BaseModel, Embeddings):
 
         self.client: BGEM3FlagModel = BGEM3FlagModel(self.model_name, **self.model_kwargs)
 
-        if self.local_kwargs.get('save_local'):
-            self.client.model.save(self.local_kwargs.get('local_path'))
-            self.client.tokenizer.save_pretrained(self.local_kwargs.get('local_path'))
+        if self.local_load:
+            self.client.model.save(self.local_path)
+            self.client.tokenizer.save_pretrained(self.local_path)
 
         if "-zh" in self.model_name:
             self.query_instruction = DEFAULT_QUERY_BGE_INSTRUCTION_ZH
