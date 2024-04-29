@@ -72,7 +72,7 @@ class MilvusConfig:
         self.config_path = os.path.join(get_work_path(), self.data_root, 'collections.json')
 
         if os.path.exists(self.config_path):
-            logger.error('no collection config file find')
+            logger.error(f'no collection config file find at {self.config_path}')
             exit()
 
         with open(file=self.config_path, mode='r', encoding='utf-8') as file:
