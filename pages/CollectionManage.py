@@ -65,15 +65,16 @@ def create_collection(
         metric_type: str,
         index_types: list,
         index_type: int,
-        param: str
+        param: str,
+        container: st.container
 ) -> None:
     if not (collection_name and is_en(collection_name)):
-        st.error('知识库名称必须是不为空的英文')
+        container.error('知识库名称必须是不为空的英文')
         st.stop()
 
     with MilvusConnection(**milvus_cfg.get_conn_args()) as conn:
         if conn.has_collection(collection_name):
-            st.error('知识库已存在')
+            container.error('知识库已存在')
             st.stop()
 
     if not title:
@@ -90,7 +91,7 @@ def create_collection(
 
     embedding = load_embedding()
 
-    with st.spinner('Creating collection...'):
+    with container.spinner('Creating collection...'):
         init_doc = Document(page_content=f'This is a collection about {config.milvus_config.get_collection().collection_name}',
                             metadata={
                                 'title': 'About this collection',
@@ -140,7 +141,7 @@ def create_collection(
                                   "index_param": index_param}))
         update_config(config)
     logger.info('success')
-    st.success('创建成功')
+    container.success('创建成功')
     st.balloons()
 
 
@@ -223,7 +224,10 @@ def manage_tab():
 
 def new_tab():
     st.header('新建知识库')
-    with st.container(border=True):
+    main_container = st.container(border=True)
+    info_container = st.container(border=False)
+
+    with main_container:
         col1_1, col1_2 = st.columns([3, 1], gap='medium')
         collection_name = col1_1.text_input('知识库名称 :red[*]', disabled=st.session_state['new_collection_disable'])
         language = col1_2.selectbox('语言', ['en', 'zh'], disabled=st.session_state['new_collection_disable'])
@@ -270,7 +274,8 @@ def new_tab():
                 'metric_type': metric_type,
                 'index_types': index_types,
                 'index_type': index_type,
-                'param': param
+                'param': param,
+                'container': info_container
             }
         )
 
