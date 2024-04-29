@@ -132,7 +132,7 @@ class EmbeddingConfig:
     local_path: str = field(init=False)
 
     def __post_init__(self):
-        self.local_path = os.path.join(get_work_path(), 'model')
+        self.local_path = os.path.join(get_work_path(), 'model', self.model)
         os.makedirs(self.local_path, exist_ok=True)
 
     @classmethod

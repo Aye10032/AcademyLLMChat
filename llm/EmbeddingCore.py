@@ -60,7 +60,7 @@ class Bgem3Embeddings(BaseModel, Embeddings):
                 "Please install it with `pip install FlagEmbedding`."
             ) from exc
 
-        self.client: BGEM3FlagModel = BGEM3FlagModel(self.model_name, **self.model_kwargs)
+        self.client: BGEM3FlagModel = BGEM3FlagModel(self.local_path, **self.model_kwargs)
 
         if self.local_load:
             self.client.model.save(self.local_path)
