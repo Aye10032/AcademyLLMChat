@@ -32,7 +32,8 @@ def init_retriever() -> ParentDocumentRetriever:
             'device': 'cuda',
             'normalize_embeddings': embed_cfg.normalize_embeddings,
             'use_fp16': embed_cfg.fp16
-        }
+        },
+        local_kwargs=embed_cfg
     )
     logger.info(f'load collection [{collection}], using model {embed_cfg.model}')
 

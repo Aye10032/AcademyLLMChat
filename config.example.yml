@@ -41,7 +41,6 @@ milvus:
 embedding:
   model: 'BAAI/bge-m3'
   save_local: True
-  local_path: 'model'
   fp16: True
   normalize_embeddings: True
 

@@ -127,19 +127,17 @@ class MilvusConfig:
 class EmbeddingConfig:
     model: str
     save_local: bool
-    local_path: str
     fp16: bool
     normalize_embeddings: bool
+    local_path: str = field(init=False)
+
+    def __post_init__(self):
+        self.local_path = os.path.join(get_work_path(), 'model')
+        os.makedirs(self.local_path, exist_ok=True)
 
     @classmethod
     def from_dict(cls, data: Dict[str, any]):
         return cls(**data)
-
-    def get_model_path(self):
-        model_path = os.path.join(get_work_path(), self.local_path)
-        os.makedirs(model_path, exist_ok=True)
-
-        return model_path
 
 
 @dataclass

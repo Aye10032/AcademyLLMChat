@@ -1,3 +1,4 @@
+import os.path
 from typing import List, Any, Dict, Sequence, Optional
 
 from langchain_community.embeddings.huggingface import (
@@ -10,6 +11,7 @@ from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_core.runnables import run_in_executor
+from loguru import logger
 
 
 class Bgem3Embeddings(BaseModel, Embeddings):
@@ -43,6 +45,11 @@ class Bgem3Embeddings(BaseModel, Embeddings):
     """Instruction to use for embedding document."""
     embed_instruction: str = ""
 
+    """
+    
+    """
+    local_kwargs: Dict[str, Any] = Field(default_factory=dict)
+
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
 
@@ -56,10 +63,16 @@ class Bgem3Embeddings(BaseModel, Embeddings):
             ) from exc
 
         self.client: BGEM3FlagModel = BGEM3FlagModel(self.model_name, **self.model_kwargs)
-        self.client.model.save()
+
+        if self.local_kwargs.get('save_local'):
+            self.client.model.save(self.local_kwargs.get('local_path'))
+            self.client.tokenizer.save_pretrained(self.local_kwargs.get('local_path'))
 
         if "-zh" in self.model_name:
             self.query_instruction = DEFAULT_QUERY_BGE_INSTRUCTION_ZH
+
+    def load_model(self, model_name, **kwargs):
+        return
 
     def embed_query(self, text: str) -> List[float]:
         text = text.replace("\n", " ")

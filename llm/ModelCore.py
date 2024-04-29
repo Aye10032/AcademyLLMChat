@@ -29,7 +29,8 @@ def load_embedding_en() -> Bgem3Embeddings:
             'device': 'cuda',
             'normalize_embeddings': embd_cfg.normalize_embeddings,
             'use_fp16': embd_cfg.fp16
-        }
+        },
+        local_kwargs=embd_cfg
     )
 
     return embedding
