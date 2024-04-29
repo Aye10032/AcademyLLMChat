@@ -9,7 +9,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
 
 from Config import Collection, UserRole, Config
-from llm.ModelCore import load_embedding_zh, load_embedding_en
+from llm.ModelCore import load_embedding
 from llm.storage.MilvusConnection import MilvusConnection
 from llm.storage.SqliteStore import SqliteDocStore
 from uicomponent.StComponent import side_bar_links, role_check
@@ -59,6 +59,99 @@ with st.sidebar:
 role_check(UserRole.OWNER)
 
 
+def create_collection(
+        collection_name: str,
+        language: str,
+        title: str,
+        description: str,
+        metric_type: str,
+        index_types: list,
+        index_type: int,
+        param: str
+) -> None:
+    if not (collection_name and is_en(collection_name)):
+        st.error('知识库名称必须是不为空的英文')
+        st.stop()
+
+    if conn.has_collection(collection_name):
+        st.error('知识库已存在')
+        st.stop()
+
+    if not title:
+        title = collection_name
+
+    if not description:
+        description = f'This is a collection about {collection_name}'
+
+    index_param = {
+        "metric_type": metric_type,
+        "index_type": index_types[index_type],
+        "params": eval(param),
+    }
+
+    embedding = load_embedding()
+
+    with st.spinner('Creating collection...'):
+        init_doc = Document(page_content=f'This is a collection about {config.milvus_config.get_collection().collection_name}',
+                            metadata={
+                                'title': 'About this collection',
+                                'section': 'Abstract',
+                                'author': 'administrator',
+                                'year': datetime.now().year,
+                                'type': -1,
+                                'keywords': 'collection',
+                                'doi': ''
+                            })
+
+        sqlite_path = config.get_sqlite_path()
+        doc_store = SqliteDocStore(
+            connection_string=sqlite_path,
+            drop_old=True
+        )
+
+        vector_db = Milvus(
+            embedding,
+            collection_name=collection_name,
+            connection_args=milvus_cfg.get_conn_args(),
+            index_params=index_param,
+            drop_old=True,
+            auto_id=True
+        )
+
+        child_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=100,
+            chunk_overlap=0,
+            separators=['.', '\n\n', '\n'],
+            keep_separator=False
+        )
+
+        retriever = ParentDocumentRetriever(
+            vectorstore=vector_db,
+            docstore=doc_store,
+            child_splitter=child_splitter
+        )
+
+        retriever.add_documents([init_doc])
+
+        milvus_cfg.add_collection(
+            Collection.from_dict({"collection_name": collection_name,
+                                  "language": language,
+                                  "title": title,
+                                  "description": description,
+                                  "index_param": index_param}))
+        update_config(config)
+    logger.info('success')
+    st.success('创建成功')
+    st.balloons()
+
+
+def del_collection(collection_name: str, option: int) -> None:
+    conn.drop_collection(collection_name)
+    milvus_cfg.remove_collection(option)
+    update_config(config)
+    st.session_state['verify_text'] = ''
+
+
 def manage_tab():
     st.header('知识库信息')
     option = st.selectbox('选择知识库',
@@ -100,13 +193,6 @@ def manage_tab():
         st.markdown(' ')
 
         st.subheader(':red[危险操作]')
-        if st.session_state.get('drop'):
-            conn.drop_collection(collection_name)
-            milvus_cfg.remove_collection(option)
-            update_config(config)
-
-            st.session_state['verify_text'] = ''
-            st.rerun()
 
         with st.container(border=True):
             st.markdown('**删除知识库**')
@@ -121,7 +207,16 @@ def manage_tab():
             else:
                 st.session_state['drop_collection_disable'] = True
 
-            st.button('删除知识库', type='primary', disabled=st.session_state['drop_collection_disable'], key='drop')
+            st.button(
+                '删除知识库',
+                type='primary',
+                disabled=st.session_state['drop_collection_disable'],
+                on_click=del_collection,
+                kwargs={
+                    'collection_name': collection_name,
+                    'option': option
+                }
+            )
 
 
 def new_tab():
@@ -160,83 +255,22 @@ def new_tab():
                 param = st.text_area('params', value=get_index_param(index_type),
                                      disabled=st.session_state['new_collection_disable'])
 
-        if submit := st.button('新建知识库', type='primary', disabled=st.session_state['new_collection_disable']):
-            if not (collection_name and is_en(collection_name)):
-                st.error('知识库名称必须是不为空的英文')
-                st.stop()
-
-            if conn.has_collection(collection_name):
-                st.error('知识库已存在')
-                st.stop()
-
-            if not title:
-                title = collection_name
-
-            if not description:
-                description = f'This is a collection about {collection_name}'
-
-            index_param = {
-                "metric_type": metric_type,
-                "index_type": index_types[index_type],
-                "params": eval(param),
+        st.button(
+            '新建知识库',
+            type='primary',
+            disabled=st.session_state['new_collection_disable'],
+            on_click=create_collection,
+            kwargs={
+                'collection_name': collection_name,
+                'language': language,
+                'title': title,
+                'description': description,
+                'metric_type': metric_type,
+                'index_types': index_types,
+                'index_type': index_type,
+                'param': param
             }
-
-            if language == 'zh':
-                embedding = load_embedding_zh()
-            else:
-                embedding = load_embedding_en()
-
-            with st.spinner('Creating collection...'):
-                doc = Document(page_content=description,
-                               metadata={
-                                   'title': 'About this collection',
-                                   'section': 'Abstract',
-                                   'author': '',
-                                   'doi': '',
-                                   'year': datetime.now().year,
-                                   'ref': ''
-                               })
-
-                sqlite_path = config.get_sqlite_path()
-                doc_store = SqliteDocStore(
-                    connection_string=sqlite_path,
-                    drop_old=True
-                )
-
-                vector_db = Milvus(
-                    embedding,
-                    collection_name=collection_name,
-                    connection_args=milvus_cfg.get_conn_args(),
-                    index_params=index_param,
-                    drop_old=True,
-                    auto_id=True
-                )
-
-                child_splitter = RecursiveCharacterTextSplitter(
-                    chunk_size=100,
-                    chunk_overlap=10,
-                    separators=['.', '\n\n', '\n'],
-                    keep_separator=False
-                )
-
-                retriever = ParentDocumentRetriever(
-                    vectorstore=vector_db,
-                    docstore=doc_store,
-                    child_splitter=child_splitter
-                )
-
-                retriever.add_documents([doc])
-
-                milvus_cfg.add_collection(
-                    Collection.from_dict({"collection_name": collection_name,
-                                          "language": language,
-                                          "title": title,
-                                          "description": description,
-                                          "index_param": index_param}))
-                update_config(config)
-            logger.info('success')
-            st.success('创建成功')
-            st.balloons()
+        )
 
 
 tab1, tab2 = st.tabs(['知识库管理', '新建知识库'])
