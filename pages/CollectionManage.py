@@ -136,10 +136,8 @@ def manage_tab():
 
 def new_tab():
     st.header('新建知识库')
-    main_container = st.container(border=True)
-    info_container = st.container(border=False)
 
-    with main_container:
+    with st.container(border=True):
         col1_1, col1_2 = st.columns([3, 1], gap='medium')
         collection_name = col1_1.text_input('知识库名称 :red[*]', disabled=st.session_state['new_collection_disable'])
         language = col1_2.selectbox('语言', ['en', 'zh'], disabled=st.session_state['new_collection_disable'])
@@ -253,6 +251,7 @@ def new_tab():
             logger.info('success')
             st.success('创建成功')
             st.balloons()
+            st.rerun()
 
 
 tab1, tab2 = st.tabs(['知识库管理', '新建知识库'])
