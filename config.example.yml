@@ -1,9 +1,10 @@
 # 数据目录
-data_root: 'data'
-pdf_path: 'document'
-md_path: 'output/markdown'
-xml_path: 'output/xml'
-sqlite_path: 'sqlite/document.db'
+paper_directory:
+  data_root: 'data'
+  pdf_path: 'document'
+  md_path: 'output/markdown'
+  xml_path: 'output/xml'
+  sqlite_path: 'sqlite/document.db'
 
 # 配置代理
 proxy:
@@ -23,7 +24,7 @@ pubmed:
 
 # grobid相关配置
 grobid:
-  config_path: 'grobid/grobid.json'
+  config_path: 'docker/grobid/grobid.json'
   service: 'processFulltextDocument'
   multi_process: 10
 
@@ -31,13 +32,18 @@ grobid:
 milvus:
   milvus_host: '127.0.0.1'
   milvus_port: 19530
-  en_model: 'BAAI/bge-m3'
-  zh_model: 'infgrad/stella-large-zh-v3-1792d'
   using_remote: False
   remote_database:
     url: ''
     username: ''
     password: ''
+
+embedding:
+  model: 'BAAI/bge-m3'
+  save_local: True
+  local_path: 'model'
+  fp16: True
+  normalize_embeddings: True
 
 llm:
   openai:

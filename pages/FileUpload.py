@@ -15,17 +15,17 @@ from llm.RetrieverCore import insert_retriever
 from llm.storage.MilvusConnection import MilvusConnection
 from uicomponent.StComponent import side_bar_links, role_check
 from uicomponent.StatusBus import update_config, get_config
-from utils.FileUtil import save_to_md, section_to_documents, Section
+from utils.FileUtil import *
 from utils.GrobidUtil import parse_xml, parse_pdf_to_xml
-from utils.MarkdownPraser import split_markdown, split_markdown_text
+from utils.MarkdownPraser import *
 from utils.PMCUtil import download_paper_data, parse_paper_data
 from utils.PubmedUtil import get_paper_info
 
 config: Config = get_config()
 milvus_cfg: MilvusConfig = config.milvus_config
 collections = []
-for collection in milvus_cfg.COLLECTIONS:
-    collections.append(collection.NAME)
+for collection in milvus_cfg.collections:
+    collections.append(collection.collection_name)
 
 st.set_page_config(
     page_title="学术大模型知识库",
@@ -64,7 +64,7 @@ def __check_exist(ref_list: DataFrame) -> DataFrame:
     ref_list['exist'] = False
     with MilvusConnection(**milvus_cfg.get_conn_args()) as conn:
         for index, row in ref_list.iterrows():
-            _num = conn.query(milvus_cfg.get_collection().NAME, filter=f'doi == "{row.doi}"')
+            _num = conn.query(milvus_cfg.get_collection().collection_name, filter=f'doi == "{row.doi}"')
             if len(_num) != 0:
                 ref_list.at[index, 'exist'] = True
 
@@ -115,17 +115,17 @@ def __download_from_pmc(pmc_id: str) -> Tuple[int, str]:
         with open(xml_path, 'r', encoding='utf-8') as f:
             xml_text = f.read()
 
-        data = parse_paper_data(xml_text, year, doi)
+        flag, data = parse_paper_data(xml_text)
 
-        if not data['norm']:
+        if not flag:
             return -1, dl['pmid']
 
         output_path = os.path.join(config.get_md_path(), year, f"{doi.replace('/', '@')}.md")
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        save_to_md(data['sections'], output_path, ref=True, year=year, author=data['author'], doi=doi)
+        save_to_md(data, output_path)
 
     with st.spinner('Adding paper to vector db...'):
-        docs = section_to_documents(data['sections'], year=int(year), doi=doi, author=data['author'])
+        docs = section_to_documents(data)
         __add_documents(docs)
 
     return 0, dl['pmid']
@@ -257,7 +257,6 @@ def pdf_tab():
                     data = get_paper_info(uploaded_file.name.replace('.pdf', '').replace('PM', ''), config)
 
                     pdf_path = os.path.join(config.get_pdf_path(), data['year'], uploaded_file.name)
-                    os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
 
                     section_dict = [Section(data['title'], 1), Section('Abstract', 2), Section(data['abstract'], 0)]
 

@@ -2,7 +2,7 @@ import re
 import string
 from typing import List
 
-from bs4 import ResultSet, Tag
+from bs4 import Tag
 
 
 def format_filename(filename: str) -> str:

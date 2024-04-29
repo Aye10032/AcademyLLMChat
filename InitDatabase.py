@@ -7,7 +7,6 @@ from datetime import datetime
 import yaml
 from langchain.retrievers import ParentDocumentRetriever
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores.milvus import Milvus
 from langchain_core.documents import Document
 from loguru import logger
@@ -26,26 +25,16 @@ def init_retriever() -> ParentDocumentRetriever:
     milvus_cfg = config.milvus_config
 
     collection = milvus_cfg.get_collection().NAME
-
-    if milvus_cfg.get_collection().LANGUAGE == 'zh':
-        model = config.milvus_config.ZH_MODEL
-
-        embedding = HuggingFaceEmbeddings(
-            model_name=model,
-            model_kwargs={'device': 'cuda'},
-            encode_kwargs={'normalize_embeddings': True}
-        )
-    else:
-        model = config.milvus_config.EN_MODEL
-
-        embedding = Bgem3Embeddings(
-            model_name=model,
-            model_kwargs={
-                'device': 'cuda',
-                'normalize_embeddings': True
-            }
-        )
-    logger.info(f'load collection [{collection}], using model {model}')
+    embed_cfg = config.embedding_config
+    embedding = Bgem3Embeddings(
+        model_name=embed_cfg.model,
+        model_kwargs={
+            'device': 'cuda',
+            'normalize_embeddings': embed_cfg.normalize_embeddings,
+            'use_fp16': embed_cfg.fp16
+        }
+    )
+    logger.info(f'load collection [{collection}], using model {embed_cfg.model}')
 
     doc_store = SqliteDocStore(
         connection_string=config.get_sqlite_path(),
@@ -178,23 +167,27 @@ if __name__ == '__main__':
         with open(file=yml_path, mode='r', encoding='utf-8') as file:
             yml = yaml.load(file, Loader=yaml.FullLoader)
 
-        DATA_ROOT = yml['data_root']
+        DATA_ROOT = yml['paper_directory']['data_root']
         cfg_path = os.path.join(DATA_ROOT, 'collections.json')
 
         if not args.force and os.path.exists(cfg_path):
             logger.info('config file exists, use existing config file')
         else:
-            cols = [{"collection_name": collection,
-                     "language": 'en',
-                     "title": collection,
-                     "description": f'This is a collection about {collection}',
-                     "index_param": {
-                         "metric_type": 'L2',
-                         "index_type": 'HNSW',
-                         "params": {"M": 8, "efConstruction": 64},
-                     }}
-                    for collection in os.listdir(DATA_ROOT)
-                    if os.path.isdir(os.path.join(DATA_ROOT, collection))]
+            cols = [
+                {
+                    "collection_name": collection,
+                    "language": 'en',
+                    "title": collection,
+                    "description": f'This is a collection about {collection}',
+                    "index_param": {
+                        "metric_type": 'L2',
+                        "index_type": 'HNSW',
+                        "params": {"M": 8, "efConstruction": 64},
+                    }
+                }
+                for collection in os.listdir(DATA_ROOT)
+                if os.path.isdir(os.path.join(DATA_ROOT, collection))
+            ]
 
             json.dump({"collections": cols}, open(cfg_path, 'w', encoding='utf-8'))
             logger.info(f'auto create config file {cfg_path}')
@@ -212,12 +205,12 @@ if __name__ == '__main__':
 
     if args.collection is not None:
         if args.collection == -1:
-            for i in range(len(config.milvus_config.COLLECTIONS)):
+            for i in range(len(config.milvus_config.collections)):
                 logger.info(f'Start init collection {i}')
                 config.set_collection(i)
                 load_md(config.get_md_path())
         else:
-            if args.collection >= len(config.milvus_config.COLLECTIONS) or args.collection < -1:
+            if args.collection >= len(config.milvus_config.collections) or args.collection < -1:
                 logger.error(f'collection index {args.collection} out of range')
                 exit(1)
             else:

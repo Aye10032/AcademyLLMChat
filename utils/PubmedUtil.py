@@ -33,7 +33,7 @@ def get_paper_info(pmid: str, config: Config = None, silent: bool = True) -> Dic
         logger.info(f'request PMID:{pmid}')
     # 构建请求URL，包含API密钥
     url = (f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id={pmid}'
-           f'&retmode=xml&api_key={config.pubmed_config.API_KEY}')
+           f'&retmode=xml&api_key={config.pubmed_config.api_key}')
 
     # 设置用户代理头
     headers = {
@@ -41,7 +41,7 @@ def get_paper_info(pmid: str, config: Config = None, silent: bool = True) -> Dic
     }
 
     # 根据配置决定是否使用代理
-    if config.pubmed_config.USE_PROXY:
+    if config.pubmed_config.use_proxy:
         proxies = {
             'http': config.get_proxy(),
             'https': config.get_proxy()

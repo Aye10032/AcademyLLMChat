@@ -24,23 +24,21 @@ def parse_pdf(pdf_path: LiteralString | str, config: Config = None):
         config = Config()
 
     pdf_paths = []
-    # 遍历pdf_path中所有包含PDF文件的文件夹，并将其绝对路径收集到pdf_paths列表中
+
     for root, dirs, files in os.walk(pdf_path):
         if len(files) > 0:
             pdf_paths.append(os.path.abspath(root))
 
     grobid_cfg = config.grobid_config
-    # 初始化Grobid客户端，用于处理PDF
-    client = GrobidClient(config_path=grobid_cfg.CONFIG_PATH)
 
-    # 遍历pdf_paths中的每个PDF文件夹，将每个PDF文件转换为XML
+    client = GrobidClient(config_path=grobid_cfg.get_config_path())
+
     for path in pdf_paths:
         relative_path = os.path.relpath(path, pdf_path)
         xml_path = os.path.join(config.get_xml_path(), relative_path)
         logger.info(f'Parsing {path} to {xml_path}')
-        client.process(grobid_cfg.SERVICE, path, output=xml_path, n=grobid_cfg.MULTI_PROCESS)
+        client.process(grobid_cfg.service, path, output=xml_path, n=grobid_cfg.multi_process)
 
-    # 清空pdf_paths列表
     pdf_paths.clear()
 
 
@@ -53,12 +51,13 @@ def parse_pdf_to_xml(pdf_path: LiteralString | str | bytes, config: Config = Non
 
     :return: 一个元组，包含处理结果、HTTP状态码和响应内容类型。
     """
+
     if config is None:
         config = Config()
 
     grobid_cfg = config.grobid_config
-    client = GrobidClient(config_path=grobid_cfg.CONFIG_PATH)  # 初始化Grobid客户端
-    return client.process_pdf(grobid_cfg.SERVICE, pdf_path, False, True, False, False, False, False, False)
+    client = GrobidClient(config_path=grobid_cfg.get_config_path())
+    return client.process_pdf(grobid_cfg.service, pdf_path, False, True, False, False, False, False, False)
 
 
 def parse_xml(xml_path: LiteralString | str | bytes) -> list[Section]:

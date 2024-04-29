@@ -76,7 +76,7 @@ def download_paper_data(pmc_id: str, config: Config = None) -> Tuple[int, dict]:
 
     # 构建下载文章数据的URL
     url = (f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id={pmc_id}'
-           f'&retmode=xml&api_key={config.pubmed_config.API_KEY}')
+           f'&retmode=xml&api_key={config.pubmed_config.api_key}')
 
     # 设置HTTP请求头，伪装为Chrome浏览器发送请求
     headers = {
@@ -85,7 +85,7 @@ def download_paper_data(pmc_id: str, config: Config = None) -> Tuple[int, dict]:
 
     # 使用Session对象进行HTTP请求，支持使用代理
     with sessions.Session() as session:
-        if config.pubmed_config.USE_PROXY:
+        if config.pubmed_config.use_proxy:
             # 如果配置了使用代理，则从配置中获取代理地址
             proxies = {
                 'http': config.get_proxy(),

@@ -1,18 +1,15 @@
 from operator import itemgetter
-from typing import List
 
 from langchain_community.vectorstores import milvus
-from langchain_community.vectorstores.milvus import Milvus
-from langchain_core.documents import Document
 from langchain_core.messages import SystemMessage
-from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
-from langchain_core.prompts import PromptTemplate, ChatPromptTemplate
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.pydantic_v1 import BaseModel, Field
 
 import streamlit as st
 from langchain_core.runnables import RunnableLambda, RunnableParallel, RunnablePassthrough
 from llm.AgentCore import translate_sentence
-from llm.ModelCore import load_gpt_16k, load_embedding_en, load_embedding_zh, load_gpt4
+from llm.ModelCore import load_gpt_16k, load_embedding_en, load_gpt4
 from llm.RetrieverCore import *
 from llm.Template import *
 from llm.storage.SqliteStore import SqliteDocStore
@@ -77,11 +74,7 @@ def load_doc_store() -> SqliteDocStore:
 
 @st.cache_data(show_spinner='Asking from LLM chain...')
 def get_answer(collection_name: str, question: str, self_query: bool = False, expr_stmt: str = None, *, llm_name: str):
-    milvus_cfg = config.milvus_config
-    if milvus_cfg.get_collection().LANGUAGE == 'zh':
-        embedding = load_embedding_zh()
-    else:
-        embedding = load_embedding_en()
+    embedding = load_embedding_en()
 
     vec_store = load_vectorstore(collection_name, embedding)
     doc_store = load_doc_store()

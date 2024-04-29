@@ -32,11 +32,11 @@ def role_check(role: int, wide=False):
             st.caption(f'当前的身份为{st.session_state.role}, 需要的权限为{UserRole.OWNER}')
             auth_code = st.text_input('身份码', type='password')
 
-        if auth_code == config.ADMIN_TOKEN:
+        if auth_code == config.admin_token:
             st.session_state['role'] = UserRole.ADMIN
             set_admin_enable()
             auth_holder.empty()
-        elif auth_code == config.OWNER_TOKEN:
+        elif auth_code == config.owner_token:
             st.session_state['role'] = UserRole.OWNER
             set_owner_enable()
             auth_holder.empty()

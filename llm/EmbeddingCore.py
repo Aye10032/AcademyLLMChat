@@ -56,6 +56,7 @@ class Bgem3Embeddings(BaseModel, Embeddings):
             ) from exc
 
         self.client: BGEM3FlagModel = BGEM3FlagModel(self.model_name, **self.model_kwargs)
+        self.client.model.save()
 
         if "-zh" in self.model_name:
             self.query_instruction = DEFAULT_QUERY_BGE_INSTRUCTION_ZH

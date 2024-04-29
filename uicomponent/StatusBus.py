@@ -1,8 +1,6 @@
-from typing import Tuple
-
 import streamlit as st
 
-from Config import Config, MilvusConfig
+from Config import Config
 
 
 def set_visitor_enable():
@@ -48,4 +46,3 @@ def get_config() -> Config:
 
 def update_config(config: Config) -> None:
     st.session_state['config'] = config
-    # st.rerun()

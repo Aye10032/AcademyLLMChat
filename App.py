@@ -43,10 +43,10 @@ setup_log()
 
 config: Config = get_config()
 milvus_cfg = config.milvus_config
-col = milvus_cfg.COLLECTIONS
+col = milvus_cfg.collections
 collections = []
 for collection in col:
-    collections.append(collection.NAME)
+    collections.append(collection.collection_name)
 
 title = milvus_cfg.get_collection().TITLE
 st.title(title)
@@ -60,7 +60,7 @@ with st.sidebar:
                           format_func=lambda x: collections[x],
                           label_visibility='collapsed')
 
-    if not option == milvus_cfg.DEFAULT_COLLECTION:
+    if not option == milvus_cfg.default_collection:
         config.set_collection(option)
         update_config(config)
         st.caption(f'当前数据库为：{milvus_cfg.get_collection().NAME}')

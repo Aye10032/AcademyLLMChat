@@ -1,4 +1,3 @@
-import os
 from datetime import datetime
 
 import pandas as pd
@@ -9,7 +8,7 @@ from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
 
-from Config import Collection, UserRole, get_work_path, Config
+from Config import Collection, UserRole, Config
 from llm.ModelCore import load_embedding_zh, load_embedding_en
 from llm.storage.MilvusConnection import MilvusConnection
 from llm.storage.SqliteStore import SqliteDocStore
@@ -31,8 +30,8 @@ st.set_page_config(
 config: Config = get_config()
 milvus_cfg = config.milvus_config
 collections = []
-for collection in milvus_cfg.COLLECTIONS:
-    collections.append(collection.NAME)
+for collection in milvus_cfg.collections:
+    collections.append(collection.collection_name)
 
 conn = MilvusConnection(**milvus_cfg.get_conn_args())
 
@@ -67,7 +66,7 @@ def manage_tab():
                           format_func=lambda x: collections[x])
 
     if option is not None:
-        collection_name = milvus_cfg.COLLECTIONS[option].NAME
+        collection_name = milvus_cfg.collections[option].collection_name
         st.write(f'知识库 {collection_name} 中共有', conn.get_entity_num(collection_name), '条向量数据')
         field_df = pd.DataFrame()
         for index, field in enumerate(conn.get_collection(collection_name).schema.fields):
@@ -90,7 +89,7 @@ def manage_tab():
         st.markdown('数据库查询界面标题')
         renam_col1, renam_col2 = st.columns([3, 1], gap='large')
         renam_col1.text_input('数据库查询界面标题',
-                              milvus_cfg.COLLECTIONS[option].TITLE,
+                              milvus_cfg.collections[option].title,
                               key='col_title',
                               disabled=st.session_state['manage_collection_disable'],
                               label_visibility='collapsed')
@@ -198,9 +197,7 @@ def new_tab():
                                    'ref': ''
                                })
 
-                sqlite_path = os.path.join(get_work_path(), config.DATA_ROOT, collection_name, config.SQLITE_PATH)
-                os.makedirs(os.path.dirname(sqlite_path), exist_ok=True)
-
+                sqlite_path = config.get_sqlite_path()
                 doc_store = SqliteDocStore(
                     connection_string=sqlite_path,
                     drop_old=True
