@@ -20,7 +20,7 @@ embd_cfg = config.embedding_config
 
 
 @st.cache_resource(show_spinner=f'Loading {embd_cfg.model}...')
-def load_embedding_en() -> Bgem3Embeddings:
+def load_embedding() -> Bgem3Embeddings:
     model = embd_cfg.model
 
     embedding = Bgem3Embeddings(

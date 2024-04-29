@@ -9,7 +9,7 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 import streamlit as st
 from langchain_core.runnables import RunnableLambda, RunnableParallel, RunnablePassthrough
 from llm.AgentCore import translate_sentence
-from llm.ModelCore import load_gpt_16k, load_embedding_en, load_gpt4
+from llm.ModelCore import load_gpt_16k, load_embedding, load_gpt4
 from llm.RetrieverCore import *
 from llm.Template import *
 from llm.storage.SqliteStore import SqliteDocStore
@@ -74,7 +74,7 @@ def load_doc_store() -> SqliteDocStore:
 
 @st.cache_data(show_spinner='Asking from LLM chain...')
 def get_answer(collection_name: str, question: str, self_query: bool = False, expr_stmt: str = None, *, llm_name: str):
-    embedding = load_embedding_en()
+    embedding = load_embedding()
 
     vec_store = load_vectorstore(collection_name, embedding)
     doc_store = load_doc_store()
