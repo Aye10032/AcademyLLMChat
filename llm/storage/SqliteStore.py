@@ -72,9 +72,11 @@ class SqliteBaseStore(BaseStore[str, V], Generic[V]):
 
     @staticmethod
     def __serialize_value(obj: V) -> str:
-        if isinstance(obj, Serializable):
+        try:
             return dumps(obj)
-        return obj
+        except Exception as e:
+            logger.error(e)
+            return obj
 
     @staticmethod
     def __deserialize_value(obj: V) -> Any:
