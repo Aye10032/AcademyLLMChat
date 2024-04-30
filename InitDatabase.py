@@ -204,6 +204,7 @@ if __name__ == '__main__':
     if args.drop_old:
         with ReferenceStore(config.get_reference_path()) as _store:
             _store.drop_old()
+            logger.info('drop old database.')
 
     if args.collection is not None:
         if args.collection == -1:
