@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import Tuple
+from typing import Tuple, List
 
 import pandas as pd
 import streamlit as st
@@ -13,9 +13,9 @@ from Config import UserRole, Config, MilvusConfig
 from llm.RagCore import load_vectorstore, load_doc_store
 from llm.RetrieverCore import insert_retriever
 from llm.storage.MilvusConnection import MilvusConnection
+from llm.storage.SqliteStore import ReferenceStore
 from uicomponent.StComponent import side_bar_links, role_check
 from uicomponent.StatusBus import update_config, get_config
-from utils.FileUtil import *
 from utils.GrobidUtil import parse_xml, parse_pdf_to_xml
 from utils.MarkdownPraser import *
 from utils.PMCUtil import download_paper_data, parse_paper_data
@@ -100,7 +100,7 @@ def __download_reference(ref_list: DataFrame):
     ref_bar.empty()
 
 
-def __download_from_pmc(pmc_id: str) -> Tuple[int, str]:
+def __download_from_pmc(pmc_id: str) -> Tuple[int, Dict[str, Any]]:
     with st.spinner('Downloading paper...'):
         _, dl = download_paper_data(pmc_id, config)
 
@@ -109,7 +109,7 @@ def __download_from_pmc(pmc_id: str) -> Tuple[int, str]:
     xml_path = dl['output_path']
 
     if xml_path is None:
-        return -1, ''
+        return -1, {'source_doi': doi, 'ref_data': []}
 
     with st.spinner('Parsing paper...'):
         with open(xml_path, 'r', encoding='utf-8') as f:
@@ -118,17 +118,18 @@ def __download_from_pmc(pmc_id: str) -> Tuple[int, str]:
         flag, data = parse_paper_data(xml_text)
 
         if not flag:
-            return -1, dl['pmid']
+            return -1, {'source_doi': doi, 'ref_data': []}
 
         output_path = os.path.join(config.get_md_path(), year, f"{doi.replace('/', '@')}.md")
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         save_to_md(data, output_path)
 
+    data.info.ref = False
     with st.spinner('Adding paper to vector db...'):
-        docs = section_to_documents(data)
+        docs, ref_data = split_paper(data)
         __add_documents(docs)
 
-    return 0, dl['pmid']
+    return 0, ref_data
 
 
 def __add_documents(docs: list[Document]) -> None:
@@ -194,8 +195,19 @@ def markdown_tab():
             progress_text = f'正在处理文献(0/{file_count})，请勿关闭或刷新此页面'
             md_bar = st.progress(0, text=progress_text)
             for index, uploaded_file in tqdm(enumerate(uploaded_files), total=file_count):
-                doc = split_markdown(uploaded_file)
+                doc, ref_data = split_markdown(uploaded_file)
+
+                doi = doc[0].metadata.get('doi')
+                with MilvusConnection(**milvus_cfg.get_conn_args()) as conn:
+                    _num = conn.query(milvus_cfg.get_collection().NAME, filter=f'doi == "{doi}"')
+                if _num > 0:
+                    st.error(f'文章 {doi} 已存在，跳过')
+                    continue
+
                 __add_documents(doc)
+                if len(ref_data.get('ref_data')) > 0:
+                    with ReferenceStore(config.get_reference_path()) as ref_store:
+                        ref_store.add_reference(ref_data.get('source_doi'), ref_data.get('ref_data'))
                 progress_num = (index + 1) / file_count
                 md_bar.progress(progress_num, text=f'正在处理文本({index + 1}/{file_count})，请勿关闭或刷新此页面')
             md_bar.empty()
@@ -253,47 +265,29 @@ def pdf_tab():
                 config.set_collection(option)
                 update_config(config)
 
-                with st.spinner('Download information from pubmed...'):
-                    data = get_paper_info(uploaded_file.name.replace('.pdf', '').replace('PM', ''), config)
-
-                    pdf_path = os.path.join(config.get_pdf_path(), data['year'], uploaded_file.name)
-
-                    section_dict = [Section(data['title'], 1), Section('Abstract', 2), Section(data['abstract'], 0)]
+                with st.spinner('Parsing pdf...'):
+                    pdf_path = os.path.join(config.get_pdf_path(), uploaded_file.name)
 
                     with open(pdf_path, 'wb') as f:
                         f.write(uploaded_file.getbuffer())
 
-                    doi = data['doi']
-                    year = data['year']
-                    author = data['author']
+                    _, _, xml_text = parse_pdf_to_xml(pdf_path, config)
 
-                    xml_path = os.path.join(config.get_xml_path(), year, doi.replace('/', '@') + '.grobid.tei.xml')
+                    xml_path = os.path.join(config.get_xml_path(), uploaded_file.name.replace('.pdf', '.'))
+                    with open(xml_path, 'w', encoding='utf-8') as f:
+                        f.write(xml_text)
 
-                    os.makedirs(os.path.dirname(xml_path), exist_ok=True)
+                    result = parse_xml(xml_path)
 
-                with MilvusConnection(**milvus_cfg.get_conn_args()) as conn:
-                    _num = conn.query(milvus_cfg.get_collection().NAME, filter=f'doi == "{doi}"')
+                    md_path = os.path.join(config.get_md_path(), year, doi.replace('/', '@') + '.md')
+                    os.makedirs(os.path.dirname(md_path), exist_ok=True)
+                    save_to_md(section_dict, md_path)
 
-                if len(_num) == 0:
-                    with st.spinner('Parsing pdf...'):
-                        _, _, xml_text = parse_pdf_to_xml(pdf_path, config)
-                        with open(xml_path, 'w', encoding='utf-8') as f:
-                            f.write(xml_text)
-                        result = parse_xml(xml_path)
-
-                        section_dict.extend(result['sections'])
-
-                        md_path = os.path.join(config.get_md_path(), year, doi.replace('/', '@') + '.md')
-                        os.makedirs(os.path.dirname(md_path), exist_ok=True)
-                        save_to_md(section_dict, md_path, year=year, doi=doi, author=author, ref=False)
-
-                        st.toast('PDF识别完毕', icon='👏')
-
-                    docs = section_to_documents(section_dict, author, int(year), doi)
-                    __add_documents(docs)
                     st.toast('PDF识别完毕', icon='👏')
-                else:
-                    st.info('向量库中已经存在此文献')
+
+                docs, ref_data = split_section(section_dict)
+                __add_documents(docs)
+                st.toast('PDF识别完毕', icon='👏')
 
                 if st.session_state.get('pdf_build_ref_tree'):
                     with st.spinner('Analysing reference...'):

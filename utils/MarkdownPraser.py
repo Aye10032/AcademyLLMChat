@@ -141,17 +141,21 @@ def split_markdown_text(md_text: str) -> Tuple[list[Document], Dict[str, Any]]:
     return md_docs, {'source_doi': paper_info.doi, 'ref_data': reference_data}
 
 
-def split_section(sections: list[Section]) -> Tuple[list[Document], Dict[str, Any]]:
+def split_paper(paper: Paper) -> Tuple[list[Document], Dict[str, Any]]:
     """
     将给定的章节列表转换为文档列表
 
-    :param sections: 一个Section类型的列表
+    :param paper: Paper数据类，包含
     :return: 返回一个元组，包含解析后的 Document列表和包含引用信息的一个字典
     """
 
     md_stream = io.StringIO()
 
-    for sec in sections:
+    md_stream.write('---\t\n')
+    yaml.dump(asdict(paper.info), md_stream, sort_keys=False, width=900)
+    md_stream.write('---\t\n')
+
+    for sec in paper.sections:
         text = sec.text
         level = sec.level
         if level == 0:
@@ -164,6 +168,10 @@ def split_section(sections: list[Section]) -> Tuple[list[Document], Dict[str, An
             md_stream.write(f'### {text}\t\n')
         else:
             md_stream.write(f'#### {text}\t\n')
+
+    if paper.info.ref:
+        md_stream.write('## Reference\t\n')
+        yaml.dump(paper.reference.get('ref_data'), md_stream, sort_keys=False, width=900)
 
     md_text = md_stream.getvalue()
 
