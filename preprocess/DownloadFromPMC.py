@@ -81,6 +81,6 @@ if __name__ == '__main__':
     # get_pmc_id(term)
 
     config.set_collection(1)
-    # reset_csv('pmlist.csv')
+    reset_csv('pmlist.csv')
     # download_from_pmc('pmlist.csv')
     solve_xml('pmlist.csv')

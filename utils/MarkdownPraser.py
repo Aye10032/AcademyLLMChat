@@ -1,5 +1,6 @@
+import io
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field, asdict
 from enum import IntEnum
 from io import StringIO
 from typing import Tuple, Any, Dict
@@ -9,6 +10,7 @@ from langchain.text_splitter import MarkdownHeaderTextSplitter, RecursiveCharact
 from langchain_core.documents import Document
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 from loguru import logger
+from yaml import Dumper
 
 
 class PaperType(IntEnum):
@@ -16,6 +18,13 @@ class PaperType(IntEnum):
     GROBID_PAPER = 1
     PMC_PAPER = 2
     NSFC = 3
+
+
+def type_representer(dumper: Dumper, _data):
+    return dumper.represent_int(_data.value)
+
+
+yaml.add_representer(PaperType, type_representer)
 
 
 @dataclass
@@ -57,6 +66,13 @@ class PaperInfo:
     @classmethod
     def from_yaml(cls, data: Dict[str, any]):
         return cls(**data)
+
+
+@dataclass
+class Paper:
+    info: PaperInfo
+    sections: list[Section] = field(default_factory=list)
+    reference: dict[str, Any] = field(default_factory=dict)
 
 
 def split_markdown(document: UploadedFile) -> Tuple[list[Document], Dict[str, Any]]:
@@ -125,17 +141,51 @@ def split_markdown_text(md_text: str) -> Tuple[list[Document], Dict[str, Any]]:
     return md_docs, {'source_doi': paper_info.doi, 'ref_data': reference_data}
 
 
-def save_to_md(sections: list[Section], output_path) -> None:
+def split_section(sections: list[Section]) -> Tuple[list[Document], Dict[str, Any]]:
+    """
+    将给定的章节列表转换为文档列表
+
+    :param sections: 一个Section类型的列表
+    :return: 返回一个元组，包含解析后的 Document列表和包含引用信息的一个字典
+    """
+
+    md_stream = io.StringIO()
+
+    for sec in sections:
+        text = sec.text
+        level = sec.level
+        if level == 0:
+            md_stream.write(f'{text}\t\n')
+        elif level == 1:
+            md_stream.write(f'# {text}\t\n')
+        elif level == 2:
+            md_stream.write(f'## {text}\t\n')
+        elif level == 3:
+            md_stream.write(f'### {text}\t\n')
+        else:
+            md_stream.write(f'#### {text}\t\n')
+
+    md_text = md_stream.getvalue()
+
+    return split_markdown_text(md_text)
+
+
+def save_to_md(paper: Paper, output_path) -> None:
     """
     将章节列表保存为Markdown格式的文件。
 
-    :param sections: 包含章节内容的列表，每个章节都由Section类型表示。
+    :param paper: 具体的文献数据
     :param output_path: 输出Markdown文件的路径。
     :return: 无返回值。
     """
 
     with open(output_path, 'w', encoding='utf-8') as f:
-        for sec in sections:
+
+        f.write('---\t\n')
+        yaml.dump(asdict(paper.info), f, sort_keys=False, width=900)
+        f.write('---\t\n')
+
+        for sec in paper.sections:
             text = sec.text
             level = sec.level
             if level == 0:
@@ -148,6 +198,9 @@ def save_to_md(sections: list[Section], output_path) -> None:
                 f.write(f'### {text}\t\n')
             else:
                 f.write(f'#### {text}\t\n')
+
+        f.write('## Reference\t\n')
+        yaml.dump(paper.reference.get('ref_data'), f, sort_keys=False, width=900)
 
 
 def load_from_md(path: str) -> Tuple[list[Document], Dict[str, Any]]:

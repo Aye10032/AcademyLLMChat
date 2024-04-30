@@ -60,7 +60,7 @@ def parse_pdf_to_xml(pdf_path: LiteralString | str | bytes, config: Config = Non
     return client.process_pdf(grobid_cfg.service, pdf_path, False, True, False, False, False, False, False)
 
 
-def parse_xml(xml_path: LiteralString | str | bytes) -> list[Section]:
+def parse_xml(xml_path: LiteralString | str | bytes) -> Paper:
     """
     解析XML文件，提取相关信息。
 
@@ -115,7 +115,8 @@ def parse_xml(xml_path: LiteralString | str | bytes) -> list[Section]:
     key_div = soup.find('profileDesc').find('keywords')
     keywords = split_words(key_div) if key_div is not None else ['']
 
-    sections.append(PaperInfo(authors[0], year, PaperType.GROBID_PAPER, ','.join(keywords), True, doi).get_section())
+    paper_info = PaperInfo(authors[0], year, PaperType.GROBID_PAPER, ','.join(keywords), True, doi)
+
     sections.append(Section(title, 1))
 
     # 提取摘要
@@ -158,10 +159,7 @@ def parse_xml(xml_path: LiteralString | str | bytes) -> list[Section]:
         ref_title = reference.find('title').text
         ref_list.append({'title': ref_title, 'pmid': '', 'pmc': '', 'doi': ''})
 
-    sections.append(Section('Reference', 2))
-    sections.append(Section(yaml.dump(ref_list), 0))
-
-    return sections
+    return Paper(paper_info, sections, {'source_doi': doi, 'ref_data': ref_list})
 
 
 def __extract_author_name(surname, given_names) -> str:

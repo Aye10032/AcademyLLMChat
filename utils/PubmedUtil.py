@@ -24,62 +24,49 @@ def get_paper_info(pmid: str, config: Config = None, silent: bool = True) -> Dic
     :return: 包含论文信息的字典。
     """
 
-    # 如果未提供配置对象，则创建默认配置
     if config is None:
         config = Config()
 
-    # 记录请求信息
     if not silent:
         logger.info(f'request PMID:{pmid}')
-    # 构建请求URL，包含API密钥
     url = (f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id={pmid}'
            f'&retmode=xml&api_key={config.pubmed_config.api_key}')
 
-    # 设置用户代理头
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
 
-    # 根据配置决定是否使用代理
     if config.pubmed_config.use_proxy:
         proxies = {
             'http': config.get_proxy(),
             'https': config.get_proxy()
         }
-        # 发起GET请求
         response = requests.request("GET", url, headers=headers, proxies=proxies, timeout=10)
     else:
         response = requests.request("GET", url, headers=headers, timeout=10)
 
-    # 检查响应状态
     if response.status_code == 200:
-        # 使用BeautifulSoup解析XML响应
         soup = BeautifulSoup(response.text, 'xml')
 
-        # 提取论文标题和出版年份
         title = soup.find('Article').find('ArticleTitle').text if soup.find('Article') else None
         year = (soup.find('Article')
                 .find('JournalIssue')
                 .find('PubDate').find('Year').text)
 
-        # 提取第一作者信息
         author = ''
         if author_block := soup.find('Author'):
             last_name = author_block.find('LastName').text if author_block.find('LastName') else ''
             initials = author_block.find('Initials').text if author_block.find('Initials') else ''
             author = f'{last_name}, {initials}'
 
-        # 提取摘要
         abstract = soup.find('AbstractText').text if soup.find('AbstractText') else None
 
-        # 提取关键词
         keyword_list = soup.find('KeywordList')
         if keyword_list:
             keywords = [keyword.text for keyword in keyword_list.find_all('Keyword')]
         else:
             keywords = []
 
-        # 提取DOI和PMC标识
         doi_block = soup.find('ArticleIdList').find('ArticleId', {'IdType': 'doi'})
         if doi_block:
             doi = doi_block.text
@@ -93,13 +80,11 @@ def get_paper_info(pmid: str, config: Config = None, silent: bool = True) -> Dic
         else:
             pmc = None
 
-        # 提取参考文献信息
         ref_block = soup.find('ReferenceList')
 
         ref_list = []
         if ref_block:
             for ref in ref_block.find_all('Reference'):
-                # 对每篇参考文献提取PMID、PMC和DOI信息
                 if id_list := ref.find('ArticleIdList'):
                     if ref_pmc_block := id_list.find('ArticleId', {'IdType': 'pmc'}):
                         ref_pmc = ref_pmc_block.text
@@ -118,7 +103,6 @@ def get_paper_info(pmid: str, config: Config = None, silent: bool = True) -> Dic
 
                     ref_list.append({'doi': ref_doi, 'pubmed': ref_pm, 'pmc': ref_pmc})
 
-        # 返回论文信息
         return {
             'title': title,
             'author': author,

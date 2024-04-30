@@ -15,7 +15,7 @@ from requests import sessions
 from Config import Config
 from utils.FileUtil import replace_multiple_spaces
 from utils.Decorator import timer, retry
-from utils.MarkdownPraser import Section, PaperInfo, PaperType
+from utils.MarkdownPraser import *
 
 
 class RefIdType(Enum):
@@ -70,38 +70,30 @@ def download_paper_data(pmc_id: str, config: Config = None) -> Tuple[int, dict]:
     :param config: 包含配置信息的对象，如API密钥和代理设置。如果未提供，则使用默认配置。
     :return: 一个元组，包含HTTP响应状态码和一个字典，字典包含文章的年份、DOI和输出路径。
     """
-    # 检查是否提供了配置对象，未提供则使用默认配置
+
     if config is None:
         config = Config()
 
-    # 构建下载文章数据的URL
     url = (f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id={pmc_id}'
            f'&retmode=xml&api_key={config.pubmed_config.api_key}')
 
-    # 设置HTTP请求头，伪装为Chrome浏览器发送请求
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
 
-    # 使用Session对象进行HTTP请求，支持使用代理
     with sessions.Session() as session:
         if config.pubmed_config.use_proxy:
-            # 如果配置了使用代理，则从配置中获取代理地址
             proxies = {
                 'http': config.get_proxy(),
                 'https': config.get_proxy()
             }
             response = session.request("GET", url, headers=headers, proxies=proxies, timeout=10)
         else:
-            # 否则直接发送请求
             response = session.request("GET", url, headers=headers, timeout=10)
 
-    # 检查HTTP响应状态码，若非200，则抛出异常
     if response.status_code == 200:
-        # 使用BeautifulSoup解析XML响应内容
         soup = BeautifulSoup(response.text, 'xml')
 
-        # 提取文章的DOI和发表年份
         doi = soup.find('article-id', {'pub-id-type': 'doi'}).text \
             if soup.find('article-id', {'pub-id-type': 'doi'}) \
             else None
@@ -114,17 +106,14 @@ def download_paper_data(pmc_id: str, config: Config = None) -> Tuple[int, dict]:
             if soup.find('pub-date') \
             else None
 
-        # 根据DOI和年份构建本地存储路径
         xml_path = os.path.join(config.get_xml_path(), year, doi.replace('/', '@') + '.xml') if doi else None
 
-        # 如果路径存在，创建目录并将XML数据写入文件
         if xml_path:
             os.makedirs(os.path.dirname(xml_path), exist_ok=True)
 
             with open(xml_path, 'w', encoding='utf-8') as f:
                 f.write(response.text)
 
-        # 返回HTTP状态码和相关元数据
         return response.status_code, {
             'year': year,
             'doi': doi,
@@ -132,11 +121,10 @@ def download_paper_data(pmc_id: str, config: Config = None) -> Tuple[int, dict]:
             'output_path': xml_path
         }
     else:
-        # 如果请求失败，抛出异常
         raise Exception('下载请求失败')
 
 
-def parse_paper_data(xml_text: str, silent: bool = True) -> Tuple[bool, List[Section]]:
+def parse_paper_data(xml_text: str, silent: bool = True) -> Tuple[bool, Paper]:
     """
     从给定的XML文本中解析论文数据。
 
@@ -169,9 +157,6 @@ def parse_paper_data(xml_text: str, silent: bool = True) -> Tuple[bool, List[Sec
     else:
         reference_type = RefIdType.NORMAL
 
-    # 初始化论文章节列表
-    sections: list[Section] = []
-
     # 提取论文作者信息
     author_block = soup.find('contrib-group').find('name')
     author = __extract_author_name(author_block) if author_block else ''
@@ -195,15 +180,17 @@ def parse_paper_data(xml_text: str, silent: bool = True) -> Tuple[bool, List[Sec
     if len(keywords) == 0:
         keywords.append('')
 
-    sections.append(PaperInfo(
+    paper_info = PaperInfo(
         author.replace('\n', '').replace('\r', ' ').strip(),
         int(year),
         PaperType.PMC_PAPER,
         ','.join(keywords),
         True,
         doi.replace('\n', '').replace('\r', '').strip()
-    ).get_section())
+    )
 
+    # 初始化论文章节列表
+    sections: list[Section] = []
     # 提取并处理论文标题
     title = soup.find('article-title').text.replace('\n', ' ') \
         if soup.find('article-title') \
@@ -220,7 +207,7 @@ def parse_paper_data(xml_text: str, silent: bool = True) -> Tuple[bool, List[Sec
     if ref_block is None or len(ref_block) == 0:
         if not silent:
             logger.warning(f'{doi} has no reference')
-        return False, sections
+        return False, Paper(paper_info, sections, {'source_doi': doi, 'ref_data': []})
 
     # 如果存在摘要，将其添加为一个章节，并处理摘要内容及引用信息
     if abs_block:
@@ -229,7 +216,7 @@ def parse_paper_data(xml_text: str, silent: bool = True) -> Tuple[bool, List[Sec
     else:
         if not silent:
             logger.warning(f'{doi} has no Abstract')
-        return False, sections
+        return False, Paper(paper_info, sections, {'source_doi': doi, 'ref_data': []})
 
     # 处理正文部分的章节信息
     if main_sections:
@@ -237,11 +224,10 @@ def parse_paper_data(xml_text: str, silent: bool = True) -> Tuple[bool, List[Sec
 
     # 添加参考文献
     global mix_ref
-    sections.append(Section('Reference', 2))
-    sections.append(Section(__extract_ref(ref_block, mix_ref), 0))
+    ref_data = __extract_ref(ref_block, mix_ref)
 
     # 返回解析后的论文信息
-    return True, sections
+    return True, Paper(paper_info, sections, {'source_doi': doi, 'ref_data': ref_data})
 
 
 def __extract_author_name(xml_block: BeautifulSoup | NavigableString | None) -> str:
@@ -352,7 +338,7 @@ def deal_sb_paper(origin_str: str) -> str:
     return origin_str
 
 
-def __extract_ref(ref_soup: BeautifulSoup, check_mix: bool = False) -> str:
+def __extract_ref(ref_soup: BeautifulSoup, check_mix: bool = False) -> List[Dict[str, Any]]:
     ref_blocks = ref_soup.find_all('ref', recursive=False)
     ref_list = []
 
@@ -370,7 +356,7 @@ def __extract_ref(ref_soup: BeautifulSoup, check_mix: bool = False) -> str:
                 for element_block in element_blocks:
                     ref_list.append(__get_ref_info(element_block))
 
-    return yaml.dump(ref_list)
+    return ref_list
 
 
 def __get_ref_info(ref_block: BeautifulSoup) -> Dict:
