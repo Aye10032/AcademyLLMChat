@@ -24,7 +24,7 @@ def init_retriever() -> ParentDocumentRetriever:
     logger.info('start building vector database...')
     milvus_cfg = config.milvus_config
 
-    collection = milvus_cfg.get_collection().NAME
+    collection = milvus_cfg.get_collection().collection_name
     embed_cfg = config.embedding_config
     embedding = Bgem3Embeddings(
         model_name=embed_cfg.model,
@@ -47,7 +47,7 @@ def init_retriever() -> ParentDocumentRetriever:
         embedding,
         collection_name=collection,
         connection_args=milvus_cfg.get_conn_args(),
-        index_params=milvus_cfg.get_collection().INDEX_PARAM,
+        index_params=milvus_cfg.get_collection().index_param,
         drop_old=True,
         auto_id=True
     )
@@ -63,7 +63,7 @@ def init_retriever() -> ParentDocumentRetriever:
 
     child_splitter = RecursiveCharacterTextSplitter(
         chunk_size=100,
-        chunk_overlap=10,
+        chunk_overlap=0,
         separators=['.', '\n\n', '\n'],
         keep_separator=False
     )
@@ -88,7 +88,7 @@ def load_md(base_path: str) -> None:
     """
     # 初始化检索器，并添加初始文档
     retriever = init_retriever()
-    init_doc = Document(page_content=f'This is a collection about {config.milvus_config.get_collection().NAME}',
+    init_doc = Document(page_content=f'This is a collection about {config.milvus_config.get_collection().collection_name}',
                         metadata={
                             'title': 'About this collection',
                             'section': 'Abstract',
