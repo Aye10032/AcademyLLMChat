@@ -3,7 +3,7 @@ import os
 from dataclasses import dataclass, field, asdict
 from enum import IntEnum
 from io import StringIO
-from typing import Tuple, Any, Dict
+from typing import Tuple, Dict
 
 import yaml
 from langchain.text_splitter import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
@@ -28,12 +28,6 @@ yaml.add_representer(PaperType, type_representer)
 
 
 @dataclass
-class Section:
-    text: str
-    level: int
-
-
-@dataclass
 class PaperInfo:
     author: str = ''
     year: int = -1
@@ -42,40 +36,31 @@ class PaperInfo:
     ref: bool = False
     doi: str = ''
 
-    def get_section(self) -> Section:
-        if "'" in self.keywords:
-            block_str = (f"---\t\n"
-                         f"author: {self.author}\n"
-                         f"year: {self.year}\n"
-                         f"type: {self.type}\n"
-                         f'keywords: "{self.keywords}"\n'
-                         f"ref: {self.ref}\n"
-                         f"doi: '{self.doi}'\n"
-                         f"---\t\n")
-        else:
-            block_str = (f"---\t\n"
-                         f"author: {self.author}\n"
-                         f"year: {self.year}\n"
-                         f"type: {self.type}\n"
-                         f"keywords: '{self.keywords}'\n"
-                         f"ref: {self.ref}\n"
-                         f"doi: '{self.doi}'\n"
-                         f"---\t\n")
-        return Section(block_str, 0)
-
     @classmethod
     def from_yaml(cls, data: Dict[str, any]):
         return cls(**data)
 
 
 @dataclass
+class Section:
+    text: str
+    level: int
+
+
+@dataclass
+class Reference:
+    source_doi: str
+    ref_list: list = field(default_factory=list)
+
+
+@dataclass
 class Paper:
     info: PaperInfo
     sections: list[Section] = field(default_factory=list)
-    reference: dict[str, Any] = field(default_factory=dict)
+    reference: Reference = field(default_factory=Reference)
 
 
-def split_markdown(document: UploadedFile) -> Tuple[list[Document], Dict[str, Any]]:
+def split_markdown(document: UploadedFile) -> Tuple[list[Document], Reference]:
     """
     分割Markdown文档为多个部分。
 
@@ -89,7 +74,7 @@ def split_markdown(document: UploadedFile) -> Tuple[list[Document], Dict[str, An
     return md_docs, reference_data
 
 
-def split_markdown_text(md_text: str) -> Tuple[list[Document], Dict[str, Any]]:
+def split_markdown_text(md_text: str) -> Tuple[list[Document], Reference]:
     """
     分割Markdown文本。
 
@@ -138,10 +123,10 @@ def split_markdown_text(md_text: str) -> Tuple[list[Document], Dict[str, Any]]:
 
     md_docs = r_splitter.split_documents(head_split_docs)
 
-    return md_docs, {'source_doi': paper_info.doi, 'ref_data': reference_data}
+    return md_docs, Reference(paper_info.doi, reference_data)
 
 
-def split_paper(paper: Paper) -> Tuple[list[Document], Dict[str, Any]]:
+def split_paper(paper: Paper) -> Tuple[list[Document], Reference]:
     """
     将给定的章节列表转换为文档列表
 
@@ -171,7 +156,7 @@ def split_paper(paper: Paper) -> Tuple[list[Document], Dict[str, Any]]:
 
     if paper.info.ref:
         md_stream.write('## Reference\t\n')
-        yaml.dump(paper.reference.get('ref_data'), md_stream, sort_keys=False, width=900)
+        yaml.dump(paper.reference.ref_list, md_stream, sort_keys=False, width=900)
 
     md_text = md_stream.getvalue()
 
@@ -208,10 +193,10 @@ def save_to_md(paper: Paper, output_path) -> None:
                 f.write(f'#### {text}\t\n')
 
         f.write('## Reference\t\n')
-        yaml.dump(paper.reference.get('ref_data'), f, sort_keys=False, width=900)
+        yaml.dump(paper.reference.ref_list, f, sort_keys=False, width=900)
 
 
-def load_from_md(path: str) -> Tuple[list[Document], Dict[str, Any]]:
+def load_from_md(path: str) -> Tuple[list[Document], Reference]:
     """
     从给定的Markdown文件路径加载内容，并将其分割为文档列表和元数据字典。
 

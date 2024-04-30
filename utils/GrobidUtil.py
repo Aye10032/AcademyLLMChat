@@ -1,4 +1,4 @@
-from typing import LiteralString
+from typing import LiteralString, Any
 
 from grobid_client.grobid_client import GrobidClient
 from bs4 import BeautifulSoup
@@ -42,7 +42,7 @@ def parse_pdf(pdf_path: LiteralString | str, config: Config = None):
     pdf_paths.clear()
 
 
-def parse_pdf_to_xml(pdf_path: LiteralString | str | bytes, config: Config = None) -> (Any, int, str):
+def parse_pdf_to_xml(pdf_path: LiteralString | str | bytes, config: Config = None) -> Tuple[Any, int, str]:
     """
     将PDF文件解析为XML格式。
 
@@ -60,15 +60,21 @@ def parse_pdf_to_xml(pdf_path: LiteralString | str | bytes, config: Config = Non
     return client.process_pdf(grobid_cfg.service, pdf_path, False, True, False, False, False, False, False)
 
 
-def parse_xml(xml_path: LiteralString | str | bytes) -> Paper:
+def parse_xml(xml_path: LiteralString | str | bytes, sections: list = None) -> Paper:
     """
     解析XML文件，提取相关信息。
 
     :param xml_path: XML文件的路径，可以是字符串路径、字节序列或LiteralString。
+    :param sections:
     :return: 格式化后的段落信息
     """
 
-    sections: list[Section] = []
+    if sections is None:
+        sections: list[Section] = []
+        append = False
+    else:
+        append = True
+
     with open(xml_path, 'r', encoding='utf-8') as f:
         xml_data = f.read()
         soup = BeautifulSoup(xml_data, 'xml')
@@ -117,14 +123,15 @@ def parse_xml(xml_path: LiteralString | str | bytes) -> Paper:
 
     paper_info = PaperInfo(authors[0], year, PaperType.GROBID_PAPER, ','.join(keywords), True, doi)
 
-    sections.append(Section(title, 1))
+    if not append:
+        sections.append(Section(title, 1))
 
-    # 提取摘要
-    abstract_list = soup.find('profileDesc').select('abstract p')
-    if len(abstract_list) > 0:
-        sections.append(Section('Abstract', 2))
-        for p in abstract_list:
-            sections.append(Section(p.text.strip(), 0))
+        # 提取摘要
+        abstract_list = soup.find('profileDesc').select('abstract p')
+        if len(abstract_list) > 0:
+            sections.append(Section('Abstract', 2))
+            for p in abstract_list:
+                sections.append(Section(p.text.strip(), 0))
 
     # 提取章节信息
     for section in soup.find('body').find_all('div'):
@@ -159,7 +166,7 @@ def parse_xml(xml_path: LiteralString | str | bytes) -> Paper:
         ref_title = reference.find('title').text
         ref_list.append({'title': ref_title, 'pmid': '', 'pmc': '', 'doi': ''})
 
-    return Paper(paper_info, sections, {'source_doi': doi, 'ref_data': ref_list})
+    return Paper(paper_info, sections, Reference(doi, ref_list))
 
 
 def __extract_author_name(surname, given_names) -> str:

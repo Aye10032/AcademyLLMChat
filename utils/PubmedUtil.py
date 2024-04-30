@@ -1,5 +1,5 @@
 import random
-from typing import Dict
+from typing import Dict, Tuple, List
 
 import pandas as pd
 import requests
@@ -9,19 +9,17 @@ from loguru import logger
 
 from Config import Config
 from utils.Decorator import retry
+from utils.MarkdownPraser import PaperInfo, Section, PaperType, Paper, Reference
 
 
 @retry(delay=random.uniform(2.0, 5.0))
-def get_paper_info(pmid: str, config: Config = None, silent: bool = True) -> Dict:
+def get_paper_info(pmid: str, config: Config = None, silent: bool = True) -> Paper:
     """
-    获取指定PMID的论文信息。
 
-    通过.ncbi.nlm.nih.gov的eutils服务获取论文的元数据，包括标题、年份、作者、摘要、关键词、DOI、PMC标识和参考文献列表。
-
-    :param pmid: 论文的PubMed标识符。
-    :param config: 包含API密钥和代理配置的配置对象。如果未提供，则使用默认配置。
+    :param pmid:
+    :param config:
     :param silent:
-    :return: 包含论文信息的字典。
+    :return:
     """
 
     if config is None:
@@ -103,16 +101,17 @@ def get_paper_info(pmid: str, config: Config = None, silent: bool = True) -> Dic
 
                     ref_list.append({'doi': ref_doi, 'pubmed': ref_pm, 'pmc': ref_pmc})
 
-        return {
-            'title': title,
-            'author': author,
-            'year': year,
-            'abstract': abstract,
-            'keywords': keywords,
-            'doi': doi,
-            'pmc': pmc,
-            'ref_list': pd.DataFrame(ref_list)
-        }
+        if pmc is None:
+            paper_info = PaperInfo(author, int(year), PaperType.GROBID_PAPER, ''.join(keywords), True, doi)
+        else:
+            paper_info = PaperInfo(author, int(year), PaperType.PMC_PAPER, ''.join(keywords), True, doi)
+
+        section_list = [
+            Section(title, 1),
+            Section('Abstract', 2),
+            Section(abstract, 0)
+        ]
+        return Paper(paper_info, section_list, Reference(doi, ref_list))
     else:
         # 请求失败时抛出异常
         raise Exception('下载请求失败')
