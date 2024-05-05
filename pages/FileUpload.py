@@ -64,7 +64,7 @@ def __check_exist(ref_list: DataFrame) -> DataFrame:
     ref_list['exist'] = False
     with MilvusConnection(**milvus_cfg.get_conn_args()) as conn:
         for index, row in ref_list.iterrows():
-            _num = conn.query(milvus_cfg.get_collection().collection_name, filter=f'doi == "{row.doi}"')
+            _num = conn.client.query(milvus_cfg.get_collection().collection_name, filter=f'doi == "{row.doi}"')
             if len(_num) != 0:
                 ref_list.at[index, 'exist'] = True
 
@@ -227,7 +227,7 @@ def markdown_tab():
 
                 doi = doc[0].metadata.get('doi')
                 with MilvusConnection(**milvus_cfg.get_conn_args()) as conn:
-                    _num = conn.query(milvus_cfg.get_collection().NAME, filter=f'doi == "{doi}"')
+                    _num = conn.client.query(milvus_cfg.get_collection().collection_name, filter=f'doi == "{doi}"')
                 if _num > 0:
                     st.error(f'文章 {doi} 已存在，跳过')
                     continue
