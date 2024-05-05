@@ -3,7 +3,7 @@ import os.path
 import random
 import re
 from enum import Enum
-from typing import Tuple, Dict, List
+from typing import Tuple, Dict, List, Any
 
 import requests
 import pandas as pd
