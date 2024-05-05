@@ -120,7 +120,7 @@ def load_md(base_path: str) -> None:
             try:
                 retriever.add_documents(md_docs)
                 with ReferenceStore(config.get_reference_path()) as ref_store:
-                    ref_store.add_reference(reference_data.get('source_doi'), reference_data.get('ref_data'))
+                    ref_store.add_reference(reference_data)
             except Exception as e:
                 logger.error(f'loading <{_file}> ({year}) fail')
                 logger.error(e)

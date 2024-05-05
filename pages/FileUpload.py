@@ -100,7 +100,7 @@ def __download_reference(ref_list: DataFrame):
     ref_bar.empty()
 
 
-def __download_from_pmc(pmc_id: str) -> Tuple[int, Reference]:
+def __download_from_pmc(pmc_id: str, is_reference: bool = True) -> Tuple[int, Reference]:
     with st.spinner('Downloading paper...'):
         _, dl = download_paper_data(pmc_id, config)
 
@@ -122,12 +122,37 @@ def __download_from_pmc(pmc_id: str) -> Tuple[int, Reference]:
 
         output_path = os.path.join(config.get_md_path(), year, f"{doi.replace('/', '@')}.md")
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        save_to_md(data, output_path)
 
-    data.info.ref = False
+    if not is_reference:
+        data.info.ref = True
+
+        with st.spinner('Analysing reference...'):
+            ref_list = data.reference.ref_list
+            for index, ref_dict in enumerate(ref_list):
+                ref_dict: dict
+                if term := ref_dict.get('pmid') != '':
+                    ref_dict = pm.get_info_by_term(term, pm.SearchType.PM)
+                elif term := ref_dict.get('doi') != '':
+                    ref_dict = pm.get_info_by_term(term, pm.SearchType.DOI)
+                elif term := ref_dict.get('title') != '':
+                    ref_dict = pm.get_info_by_term(term, pm.SearchType.TITLE)
+                else:
+                    continue
+
+                ref_list[index] = ref_dict
+
+            data.reference.ref_list = ref_list
+    else:
+        data.info.ref = False
+
+    save_to_md(data, output_path)
+
     with st.spinner('Adding paper to vector db...'):
         docs, ref_data = split_paper(data)
-        __add_documents(docs)
+        if not is_reference:
+            __add_documents(docs, ref_data)
+        else:
+            __add_documents(docs)
 
     return 0, ref_data
 
@@ -140,7 +165,7 @@ def __add_documents(docs: list[Document], ref_data: Reference = None) -> None:
 
     if ref_data is not None and len(ref_data.ref_list) > 0:
         with ReferenceStore(config.get_reference_path()) as ref_store:
-            ref_store.add_reference(ref_data.source_doi, ref_data.ref_list)
+            ref_store.add_reference(ref_data)
 
 
 def markdown_tab():
@@ -248,11 +273,6 @@ def pdf_tab():
                                          disabled=st.session_state['pdf_uploader_disable'])
 
         st.button('解析并添加', key='pdf_submit', type='primary', disabled=st.session_state['pdf_uploader_disable'])
-
-        df_block = st.empty()
-
-        if st.session_state.get('ref_list') is not None:
-            df_block.dataframe(st.session_state.get('ref_list'), use_container_width=True)
 
         if st.session_state.get('pdf_submit'):
             if uploaded_file is not None:
@@ -367,11 +387,6 @@ def pmc_tab():
                                label_visibility='collapsed')
 
         st.button('下载并添加', type='primary', key='pmc_submit', disabled=st.session_state['pmc_uploader_disable'])
-
-        df_block = st.empty()
-
-        if st.session_state.get('ref_list') is not None:
-            df_block.dataframe(st.session_state.get('ref_list'), use_container_width=True)
 
         if st.session_state.get('pmc_submit'):
             option = st.session_state.get('pmc_selection')

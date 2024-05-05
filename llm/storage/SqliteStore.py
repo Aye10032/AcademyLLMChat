@@ -6,6 +6,8 @@ from langchain_core.load import Serializable, dumps, loads
 from langchain_core.stores import BaseStore
 from loguru import logger
 
+from utils.MarkdownPraser import Reference
+
 V = TypeVar("V")
 
 ITERATOR_WINDOW_SIZE = 500
@@ -208,10 +210,12 @@ class ReferenceStore:
         if self._conn:
             self._conn.close()
 
-    def add_reference(self, source_doi: str, ref_data: list) -> None:
+    def add_reference(self, ref_data: Reference) -> None:
         cur = self._conn.cursor()
         data = []
-        for index, reference in enumerate(ref_data):
+        source_doi = ref_data.source_doi
+        ref_list = ref_data.ref_list
+        for index, reference in enumerate(ref_list):
             if isinstance(reference, list):
                 for sub_index, sub_ref in enumerate(reference):
                     data.append((
