@@ -17,7 +17,8 @@ class PaperType(IntEnum):
     PURE_MARKDOWN = 0
     GROBID_PAPER = 1
     PMC_PAPER = 2
-    NSFC = 3
+    PM_INFO = 3
+    NSFC = 4
 
 
 def type_representer(dumper: Dumper, _data):

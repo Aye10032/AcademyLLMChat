@@ -19,7 +19,7 @@ from uicomponent.StatusBus import update_config, get_config
 from utils.GrobidUtil import parse_xml, parse_pdf_to_xml
 from utils.MarkdownPraser import *
 from utils.PMCUtil import download_paper_data, parse_paper_data
-from utils.PubmedUtil import get_paper_info
+import utils.PubmedUtil as pm
 
 config: Config = get_config()
 milvus_cfg: MilvusConfig = config.milvus_config
@@ -132,12 +132,15 @@ def __download_from_pmc(pmc_id: str) -> Tuple[int, Reference]:
     return 0, ref_data
 
 
-def __add_documents(docs: list[Document]) -> None:
-    vector_db = load_vectorstore(config.milvus_config.get_collection().NAME)
+def __add_documents(docs: list[Document], ref_data: Reference = None) -> None:
+    vector_db = load_vectorstore(config.milvus_config.get_collection().collection_name)
     doc_db = load_doc_store()
     retriever = insert_retriever(vector_db, doc_db)
-
     retriever.add_documents(docs)
+
+    if ref_data is not None and len(ref_data.ref_list) > 0:
+        with ReferenceStore(config.get_reference_path()) as ref_store:
+            ref_store.add_reference(ref_data.source_doi, ref_data.ref_list)
 
 
 def markdown_tab():
@@ -204,10 +207,8 @@ def markdown_tab():
                     st.error(f'文章 {doi} 已存在，跳过')
                     continue
 
-                __add_documents(doc)
-                if len(ref_data.ref_list) > 0:
-                    with ReferenceStore(config.get_reference_path()) as ref_store:
-                        ref_store.add_reference(ref_data.source_doi, ref_data.ref_list)
+                __add_documents(doc, ref_data)
+
                 progress_num = (index + 1) / file_count
                 md_bar.progress(progress_num, text=f'正在处理文本({index + 1}/{file_count})，请勿关闭或刷新此页面')
             md_bar.empty()
@@ -249,82 +250,87 @@ def pdf_tab():
         st.button('解析并添加', key='pdf_submit', type='primary', disabled=st.session_state['pdf_uploader_disable'])
 
         df_block = st.empty()
-        retry_block = st.empty()
-        error_block = st.empty()
 
         if st.session_state.get('ref_list') is not None:
             df_block.dataframe(st.session_state.get('ref_list'), use_container_width=True)
 
-        if not st.session_state.get('retry_disable'):
-            retry_block.button('重试', key='pdf_retry', disabled=st.session_state['retry_disable'])
-            error_block.error('下载出现错误，请重试')
+        if st.session_state.get('pdf_submit'):
+            if uploaded_file is not None:
+                option = st.session_state.get('pdf_selection')
+                config.set_collection(option)
+                update_config(config)
 
-        # if st.session_state.get('pdf_submit'):
-        #     if uploaded_file is not None:
-        #         option = st.session_state.get('pdf_selection')
-        #         config.set_collection(option)
-        #         update_config(config)
-        #
-        #         with st.spinner('Parsing pdf...'):
-        #             pdf_path = os.path.join(config.get_pdf_path(), uploaded_file.name)
-        #
-        #             with open(pdf_path, 'wb') as f:
-        #                 f.write(uploaded_file.getbuffer())
-        #
-        #             _, _, xml_text = parse_pdf_to_xml(pdf_path, config)
-        #
-        #             xml_path = os.path.join(config.get_xml_path(), uploaded_file.name.replace('.pdf', '.'))
-        #             with open(xml_path, 'w', encoding='utf-8') as f:
-        #                 f.write(xml_text)
-        #
-        #             result = parse_xml(xml_path)
-        #
-        #             md_path = os.path.join(config.get_md_path(), year, doi.replace('/', '@') + '.md')
-        #             os.makedirs(os.path.dirname(md_path), exist_ok=True)
-        #             save_to_md(section_dict, md_path)
-        #
-        #             st.toast('PDF识别完毕', icon='👏')
-        #
-        #         docs, ref_data = split_section(section_dict)
-        #         __add_documents(docs)
-        #         st.toast('PDF识别完毕', icon='👏')
-        #
-        #         if st.session_state.get('pdf_build_ref_tree'):
-        #             with st.spinner('Analysing reference...'):
-        #                 ref_list = data['ref_list']
-        #                 ref_list['download'] = False
-        #                 ref_list = __check_exist(ref_list)
-        #
-        #                 st.session_state['retry_visible'] = True
-        #                 try:
-        #                     __download_reference(ref_list)
-        #                 except Exception as e:
-        #                     logger.error(e)
-        #                     st.session_state['retry_disable'] = False
-        #                     st.rerun()
-        #                 finally:
-        #                     df_block.dataframe(st.session_state.get('ref_list'), use_container_width=True)
-        #                     st.toast('引用处理完毕', icon='👏')
-        #
-        #         st.success('文献添加完毕')
-        #         st.snow()
-        #
-        #     else:
-        #         st.warning('请先上传PDF文件')
+                with st.spinner('Getting information about the paper..'):
+                    paper_data = pm.get_paper_info()
 
-        if st.session_state.get('pdf_retry'):
-            ref_list = st.session_state.get('ref_list')
-            error_block.empty()
+                with st.spinner('Parsing pdf...'):
+                    pdf_path = os.path.join(config.get_pdf_path(), str(paper_data.info.year), uploaded_file.name)
 
-            with st.spinner('Analysing reference...'):
-                try:
-                    __download_reference(ref_list)
-                except Exception as e:
-                    logger.error(e)
-                    st.session_state['retry_disable'] = False
-                    st.rerun()
-                finally:
-                    st.success('引用处理完毕')
+                    with open(pdf_path, 'wb') as f:
+                        f.write(uploaded_file.getbuffer())
+
+                    _, _, xml_text = parse_pdf_to_xml(pdf_path, config)
+
+                    xml_path = os.path.join(config.get_xml_path(), str(paper_data.info.year), uploaded_file.name.replace('.pdf', '.'))
+                    with open(xml_path, 'w', encoding='utf-8') as f:
+                        f.write(xml_text)
+
+                    result = parse_xml(xml_path, paper_data.sections)
+
+                    md_path = os.path.join(
+                        config.get_md_path(), str(paper_data.info.year),
+                        paper_data.info.doi.replace('/', '@') + '.md'
+                    )
+                    os.makedirs(os.path.dirname(md_path), exist_ok=True)
+                    save_to_md(result, md_path)
+
+                    st.toast('PDF识别完毕', icon='👏')
+
+                docs, ref_data = split_paper(result)
+                st.toast('PDF识别完毕', icon='👏')
+
+                if st.session_state.get('pdf_build_ref_tree'):
+                    with st.spinner('Analysing reference...'):
+                        ref_list = ref_data.ref_list
+                        for index, ref_dict in enumerate(ref_list):
+                            ref_dict: dict
+                            if term := ref_dict.get('pmid') != '':
+                                ref_dict = pm.get_info_by_term(term, pm.SearchType.PM)
+                            elif term := ref_dict.get('doi') != '':
+                                ref_dict = pm.get_info_by_term(term, pm.SearchType.DOI)
+                            elif term := ref_dict.get('title') != '':
+                                ref_dict = pm.get_info_by_term(term, pm.SearchType.TITLE)
+                            else:
+                                continue
+
+                            ref_list[index] = ref_dict
+
+                        ref_data.ref_list = ref_list
+
+                    with st.spinner('Adding document to database...'):
+                        __add_documents(docs, ref_data)
+
+                    # TODO 引用文献下载
+                    # ref_list = __check_exist(pd.DataFrame(ref_list))
+                    #
+                    # try:
+                    #     __download_reference(ref_list)
+                    # except Exception as e:
+                    #     logger.error(e)
+                    #     st.session_state['retry_disable'] = False
+                    #     st.rerun()
+                    # finally:
+                    #     df_block.dataframe(st.session_state.get('ref_list'), use_container_width=True)
+                    #     st.toast('引用处理完毕', icon='👏')
+                else:
+                    with st.spinner('Adding document to database...'):
+                        __add_documents(docs)
+
+                st.success('文献添加完毕')
+                st.snow()
+
+            else:
+                st.warning('请先上传PDF文件')
 
 
 def pmc_tab():
