@@ -108,7 +108,7 @@ def split_markdown_text(md_text: str) -> Tuple[list[Document], Reference]:
 
     reference_data = []
     if paper_info.ref:
-        if head_split_docs[-1].metadata['section'] != 'Reference' or head_split_docs[-1].metadata['section'] != '参考文献':
+        if head_split_docs[-1].metadata['section'] != 'Reference' and head_split_docs[-1].metadata['section'] != '参考文献':
             raise Exception('Missing "Reference" section')
         else:
             head_split_docs.pop(-1)
