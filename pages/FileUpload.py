@@ -10,6 +10,7 @@ from pandas import DataFrame
 from tqdm import tqdm
 
 from Config import UserRole, Config, MilvusConfig
+from llm.ModelCore import load_embedding
 from llm.RagCore import load_vectorstore, load_doc_store
 from llm.RetrieverCore import insert_retriever
 from llm.storage.MilvusConnection import MilvusConnection
@@ -158,7 +159,8 @@ def __download_from_pmc(pmc_id: str, is_reference: bool = True) -> Tuple[int, Re
 
 
 def __add_documents(docs: list[Document], ref_data: Reference = None) -> None:
-    vector_db = load_vectorstore(config.milvus_config.get_collection().collection_name)
+    embedding = load_embedding()
+    vector_db = load_vectorstore(config.milvus_config.get_collection().collection_name, embedding)
     doc_db = load_doc_store()
     retriever = insert_retriever(vector_db, doc_db)
     retriever.add_documents(docs)
