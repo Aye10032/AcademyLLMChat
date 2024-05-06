@@ -226,11 +226,12 @@ def markdown_tab():
                 doc, ref_data = split_markdown(uploaded_file)
 
                 doi = doc[0].metadata.get('doi')
-                with MilvusConnection(**milvus_cfg.get_conn_args()) as conn:
-                    _num = len(conn.client.query(milvus_cfg.get_collection().collection_name, filter=f'doi == "{doi}"'))
-                if _num > 0:
-                    st.error(f'文章 {doi} 已存在，跳过')
-                    continue
+                if not doi == '':
+                    with MilvusConnection(**milvus_cfg.get_conn_args()) as conn:
+                        _num = len(conn.client.query(milvus_cfg.get_collection().collection_name, filter=f'doi == "{doi}"'))
+                    if _num > 0:
+                        st.error(f'文章 {doi} 已存在，跳过')
+                        continue
 
                 __add_documents(doc, ref_data)
 
