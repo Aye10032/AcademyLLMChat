@@ -243,7 +243,7 @@ if prompt:
             else:
                 chat_history.add_user_message(message['content'])
 
-        response = chat_with_history(chat_history, prompt)
+        response = st.write_stream(chat_with_history(chat_history, prompt))
 
         st.chat_message('assistant', avatar='logo.png').markdown(response.content)
         st.session_state.messages.append({'role': 'assistant', 'content': response.content})

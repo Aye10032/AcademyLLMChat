@@ -29,7 +29,7 @@ def chat_with_history(_chat_history: ChatMessageHistory | StreamlitChatMessageHi
         history_messages_key='chat_history',
     )
 
-    result = chain_with_message_history.invoke(
+    result = chain_with_message_history.stream(
         {'input': question},
         {'configurable': {'session_id': 'unused'}},
     )
