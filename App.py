@@ -107,30 +107,28 @@ with st.sidebar:
     仅在查询模式下生效，默认情况下会使用LLM自动分析提问的自然语言，返回条件搜索结果。也可以手动指定查找文献的条件。
     """)
 
+if 'messages' not in st.session_state:
+    st.session_state.messages = []
+
+if 'documents' not in st.session_state:
+    st.session_state.documents = []
+
+if 'cite_list' not in st.session_state:
+    st.session_state.cite_list = []
+
 prompt = st.chat_input('请输入问题')
 
 col_chat, col_doc = st.columns([1, 1], gap='large')
 
-with col_chat:
-    if 'messages' not in st.session_state:
-        st.session_state.messages = []
+chat_container = col_chat.container(height=610, border=False)
 
-    with st.container(height=610, border=False):
-        for message in st.session_state.messages:
-            icon = 'logo.png' if message['role'] != 'user' else None
-            with st.chat_message(message['role'], avatar=icon):
-                st.markdown(message['content'])
-
-        if prompt:
-            st.chat_message('user').markdown(prompt)
+with chat_container:
+    for message in st.session_state.messages:
+        icon = 'logo.png' if message['role'] != 'user' else None
+        with st.chat_message(message['role'], avatar=icon):
+            st.markdown(message['content'])
 
 with col_doc:
-    if 'documents' not in st.session_state:
-        st.session_state.documents = []
-
-    if 'cite_list' not in st.session_state:
-        st.session_state.cite_list = []
-
     if len(st.session_state.documents) > 0:
         st.subheader('文献片段')
         with st.container(height=550, border=True):
@@ -159,6 +157,8 @@ with col_doc:
                 st.divider()
 
 if prompt:
+    chat_container.chat_message('user').markdown(prompt)
+
     if not st.session_state.get('chat_type'):
         collection_name = milvus_cfg.get_collection().collection_name
 
@@ -243,10 +243,8 @@ if prompt:
             else:
                 chat_history.add_user_message(message['content'])
 
-        response = st.write_stream(chat_with_history(chat_history, prompt))
+        response = chat_with_history(chat_history, prompt)
 
-        st.chat_message('assistant', avatar='logo.png').markdown(response.content)
-        st.session_state.messages.append({'role': 'assistant', 'content': response.content})
-        logger.info(f"({st.session_state.get('LLM')}) answer: {response.content}")
-
-        st.rerun()
+        result = chat_container.chat_message('assistant', avatar='logo.png').write_stream(response)
+        st.session_state.messages.append({'role': 'assistant', 'content': result})
+        logger.info(f"({st.session_state.get('LLM')}) answer: {result}")

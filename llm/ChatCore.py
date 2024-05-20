@@ -4,10 +4,7 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 
 from llm.ModelCore import load_gpt
 
-import streamlit as st
 
-
-@st.cache_data(show_spinner='chat with GPT...')
 def chat_with_history(_chat_history: ChatMessageHistory | StreamlitChatMessageHistory, question: str):
     prompt = ChatPromptTemplate.from_messages(
         [
