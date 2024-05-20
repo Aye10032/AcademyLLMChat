@@ -112,7 +112,7 @@ def split_markdown_text(md_text: str) -> Tuple[list[Document], Reference]:
             raise Exception('Missing "Reference" section')
         else:
             head_split_docs.pop(-1)
-            md_text.replace('## 参考文献', '## Reference')
+            md_text = md_text.replace('## 参考文献', '## Reference')
             reference_text = md_text.split('## Reference')[-1].rstrip('\t\n').lstrip('\t\n')
             reference_data = yaml.load(reference_text, Loader=yaml.FullLoader)
 
@@ -208,12 +208,12 @@ def load_from_md(path: str) -> Tuple[list[Document], Reference]:
     # 检查路径是否指向一个文件
     if not os.path.isfile(path):
         logger.error('This is not a file path!')
-        return [], {}
+        return [], Reference('', [])
 
     # 检查文件扩展名是否为.md
     if not path.endswith('.md'):
         logger.error('This is not a markdown file!')
-        return [], {}
+        return [], Reference('', [])
 
     with open(path, 'r', encoding='utf-8') as f:
         md_text = f.read()
