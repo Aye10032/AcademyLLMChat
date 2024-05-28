@@ -5,7 +5,6 @@ from datetime import datetime
 import streamlit as st
 from langchain_community.chat_message_histories import ChatMessageHistory
 from loguru import logger
-from pandas import DataFrame
 
 from Config import Config
 from llm.ChatCore import chat_with_history
@@ -48,24 +47,34 @@ collections = []
 for collection in col:
     collections.append(collection.collection_name)
 
+if milvus_cfg.get_collection().language == 'zh':
+    st.session_state['app_is_zh_collection'] = True
+else:
+    st.session_state['app_is_zh_collection'] = True
+
 title = milvus_cfg.get_collection().title
 st.title(title)
+
+
+def on_collection_change():
+    option = st.session_state.get('app_collection')
+    config.set_collection(option)
+    update_config(config)
+
 
 with st.sidebar:
     side_bar_links()
 
     st.markdown('#### 选择知识库')
-    option = st.selectbox('选择知识库',
-                          range(len(collections)),
-                          format_func=lambda x: collections[x],
-                          label_visibility='collapsed')
-
-    if not option == milvus_cfg.default_collection:
-        config.set_collection(option)
-        update_config(config)
-        st.caption(f'当前数据库为：{milvus_cfg.get_collection().collection_name}')
-    else:
-        st.caption(f'当前数据库为：{milvus_cfg.get_collection().collection_name}')
+    st.selectbox(
+        '选择知识库',
+        range(len(collections)),
+        format_func=lambda x: collections[x],
+        label_visibility='collapsed',
+        key='app_collection',
+        on_change=on_collection_change
+    )
+    st.caption(f'当前数据库为：{milvus_cfg.get_collection().collection_name}')
 
     st.divider()
     st.markdown('#### Advance')
@@ -95,7 +104,7 @@ with st.sidebar:
     else:
         st.caption('精准模式：:red[关]')
 
-    st.toggle('双语回答', True, key='show_en')
+    st.toggle('双语回答', True, key='show_en', disabled=st.session_state.get('app_is_zh_collection'))
 
     st.divider()
     st.subheader('使用说明')
@@ -161,6 +170,7 @@ if prompt:
 
     if not st.session_state.get('chat_type'):
         collection_name = milvus_cfg.get_collection().collection_name
+        need_trans = not st.session_state.get('app_is_zh_collection')
 
         logger.info(f'question ({collection_name}): {prompt}')
         st.session_state.messages = [{'role': 'user', 'content': prompt}]
@@ -186,12 +196,13 @@ if prompt:
                     prompt,
                     True,
                     expr,
+                    translate=need_trans,
                     llm_name=st.session_state.get('LLM')
                 )
             else:
-                response = get_answer(collection_name, prompt, True, llm_name=st.session_state.get('LLM'))
+                response = get_answer(collection_name, prompt, True, translate=need_trans, llm_name=st.session_state.get('LLM'))
         else:
-            response = get_answer(collection_name, prompt, llm_name=st.session_state.get('LLM'))
+            response = get_answer(collection_name, prompt, translate=need_trans, llm_name=st.session_state.get('LLM'))
 
         st.session_state.documents = response['docs']
 
@@ -224,8 +235,11 @@ if prompt:
         st.session_state.cite_list = cite_list
         cite_str = '\n\n'.join(cite_str_list)
 
-        if st.session_state.get('show_en'):
-            answer_str = f"{answer['answer_en']}\n\n{answer['answer_zh']}\n\n**参考文献**: \n\n{cite_str}"
+        if need_trans:
+            if st.session_state.get('show_en'):
+                answer_str = f"{answer['answer_en']}\n\n{answer['answer_zh']}\n\n**参考文献**: \n\n{cite_str}"
+            else:
+                answer_str = f"{answer['answer_zh']}\n\n**参考文献**: \n\n{cite_str}"
         else:
             answer_str = f"{answer['answer_zh']}\n\n**参考文献**: \n\n{cite_str}"
         st.session_state.messages.append({'role': 'assistant', 'content': answer_str})

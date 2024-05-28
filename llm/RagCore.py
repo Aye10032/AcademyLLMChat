@@ -18,7 +18,7 @@ from uicomponent.StatusBus import get_config
 config = get_config()
 
 
-class CitedAnswer(BaseModel):
+class CitedAnswerEN(BaseModel):
     """Answer the user question both in English and Chinese based only on the given essay fragment, and cite the sources used."""
 
     answer_en: str = Field(
@@ -28,6 +28,19 @@ class CitedAnswer(BaseModel):
     answer_zh: str = Field(
         ...,
         description="Chinese translation of English answer",
+    )
+    citations: List[int] = Field(
+        ...,
+        description="The integer IDs of the SPECIFIC fragment which justify the answer.",
+    )
+
+
+class CitedAnswerZH(BaseModel):
+    """Answer the user question in Chinese based only on the given essay fragment, and cite the sources used."""
+
+    answer_zh: str = Field(
+        ...,
+        description='The answer to the user question in Chinese, which is based only on the given fragment, , and use "[]" at the end of the sentence to mark the ID of the quoted fragment',
     )
     citations: List[int] = Field(
         ...,
@@ -73,7 +86,15 @@ def load_doc_store() -> SqliteDocStore:
 
 
 @st.cache_data(show_spinner='Asking from LLM chain...')
-def get_answer(collection_name: str, question: str, self_query: bool = False, expr_stmt: str = None, *, llm_name: str):
+def get_answer(
+        collection_name: str,
+        question: str,
+        self_query: bool = False,
+        expr_stmt: str = None,
+        translate: bool = True,
+        *,
+        llm_name: str
+):
     embedding = load_embedding()
 
     vec_store = load_vectorstore(collection_name, embedding)
@@ -86,7 +107,11 @@ def get_answer(collection_name: str, question: str, self_query: bool = False, ex
     else:
         llm = load_gpt()
 
-    question = translate_sentence(question, TRANSLATE_TO_EN).trans
+    if translate:
+        question = translate_sentence(question, TRANSLATE_TO_EN).trans
+        parser = JsonOutputParser(pydantic_object=CitedAnswerEN)
+    else:
+        parser = JsonOutputParser(pydantic_object=CitedAnswerZH)
 
     if self_query:
         if expr_stmt is not None:
@@ -96,8 +121,6 @@ def get_answer(collection_name: str, question: str, self_query: bool = False, ex
     else:
 
         retriever = base_retriever(vec_store, doc_store, embedding)
-
-    parser = JsonOutputParser(pydantic_object=CitedAnswer)
 
     system_prompt = PromptTemplate(
         template=ASK_SYSTEM,
