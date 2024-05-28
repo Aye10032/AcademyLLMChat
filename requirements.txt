@@ -12,7 +12,7 @@ langchain==0.1.16
 langchain-core==0.1.43
 langchain_community==0.0.33
 markdown
-pymilvus==2.3.6
+pymilvus==2.4.1
 sentence_transformers
 pydantic
 lark
