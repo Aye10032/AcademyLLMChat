@@ -200,7 +200,7 @@ def new_tab():
             embedding = load_embedding()
 
             with st.spinner('Creating collection...'):
-                init_doc = Document(page_content=f'This is a collection about {config.milvus_config.get_collection().collection_name}',
+                init_doc = Document(page_content=f'This is a collection about {description}',
                                     metadata={
                                         'title': 'About this collection',
                                         'section': 'Abstract',
