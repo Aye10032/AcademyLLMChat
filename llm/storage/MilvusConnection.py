@@ -22,23 +22,29 @@ class MilvusConnection:
     def __del__(self):
         connections.disconnect('default')
 
-    def list_collections(self) -> list:
+    @staticmethod
+    def list_collections() -> list:
         return utility.list_collections()
 
-    def has_collection(self, collection_name) -> bool:
+    @staticmethod
+    def has_collection(collection_name) -> bool:
         return utility.has_collection(collection_name)
 
-    def get_collection(self, collection_name) -> Collection:
+    @staticmethod
+    def get_collection(collection_name) -> Collection:
         return Collection(collection_name)
 
     def get_describe(self, collection_name) -> dict:
         return self.client.describe_collection(collection_name)
 
     def get_entity_num(self, collection_name) -> int:
-        return self.client.num_entities(collection_name=collection_name)
+        result = self.client.query(collection_name, '', ['count(*)'])
+        return result[0].get('count(*)')
 
-    def get_query_segment_info(self, collection_name):
+    @staticmethod
+    def get_query_segment_info(collection_name):
         return utility.get_query_segment_info(collection_name)
 
-    def drop_collection(self, collection_name) -> None:
+    @staticmethod
+    def drop_collection(collection_name) -> None:
         utility.drop_collection(collection_name)
