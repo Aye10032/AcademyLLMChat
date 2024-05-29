@@ -124,11 +124,12 @@ def load_moonshot() -> Moonshot:
     return llm
 
 
-@st.cache_resource(show_spinner='Loading GLM...')
-def load_glm() -> ChatZhipuAI:
-    llm = ChatZhipuAI(
-        api_key=config.zhipu_config.api_key,
+@st.cache_resource(show_spinner='Loading GLM4...')
+def load_glm() -> ChatOpenAI:
+    llm = ChatOpenAI(
         model=config.zhipu_config.model,
+        openai_api_base='https://open.bigmodel.cn/api/paas/v4/',
+        openai_api_key=config.zhipu_config.api_key,
         temperature=0.05,
     )
 

@@ -46,3 +46,9 @@ def get_config() -> Config:
 
 def update_config(config: Config) -> None:
     st.session_state['config'] = config
+
+    milvus_cfg = config.milvus_config
+    if milvus_cfg.get_collection().language == 'zh':
+        st.session_state['app_is_zh_collection'] = True
+    else:
+        st.session_state['app_is_zh_collection'] = False

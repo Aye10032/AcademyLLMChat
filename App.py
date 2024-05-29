@@ -40,17 +40,14 @@ st.set_page_config(
 os.environ["LANGCHAIN_PROJECT"] = 'AcademyLLMChat'
 setup_log()
 
+llm_options = ['gpt3.5', 'gpt3.5-16k', 'gpt4', 'GLM-4']
+
 config: Config = get_config()
 milvus_cfg = config.milvus_config
 col = milvus_cfg.collections
 collections = []
 for collection in col:
     collections.append(collection.collection_name)
-
-if milvus_cfg.get_collection().language == 'zh':
-    st.session_state['app_is_zh_collection'] = True
-else:
-    st.session_state['app_is_zh_collection'] = True
 
 title = milvus_cfg.get_collection().title
 st.title(title)
@@ -60,6 +57,12 @@ def on_collection_change():
     option = st.session_state.get('app_collection')
     config.set_collection(option)
     update_config(config)
+
+    if st.session_state.get('app_is_zh_collection'):
+        st.session_state['LLM'] = llm_options[3]
+        st.session_state['show_en'] = False
+    else:
+        st.session_state['LLM'] = llm_options[1]
 
 
 with st.sidebar:
@@ -80,7 +83,7 @@ with st.sidebar:
     st.markdown('#### Advance')
 
     st.selectbox('选择LLM',
-                 options=['gpt3.5', 'gpt3.5-16k', 'gpt4'],
+                 options=llm_options,
                  index=1,
                  key='LLM')
 
@@ -170,7 +173,6 @@ if prompt:
 
     if not st.session_state.get('chat_type'):
         collection_name = milvus_cfg.get_collection().collection_name
-        need_trans = not st.session_state.get('app_is_zh_collection')
 
         logger.info(f'question ({collection_name}): {prompt}')
         st.session_state.messages = [{'role': 'user', 'content': prompt}]
@@ -196,13 +198,12 @@ if prompt:
                     prompt,
                     True,
                     expr,
-                    translate=need_trans,
                     llm_name=st.session_state.get('LLM')
                 )
             else:
-                response = get_answer(collection_name, prompt, True, translate=need_trans, llm_name=st.session_state.get('LLM'))
+                response = get_answer(collection_name, prompt, True, llm_name=st.session_state.get('LLM'))
         else:
-            response = get_answer(collection_name, prompt, translate=need_trans, llm_name=st.session_state.get('LLM'))
+            response = get_answer(collection_name, prompt, llm_name=st.session_state.get('LLM'))
 
         st.session_state.documents = response['docs']
 
@@ -235,13 +236,11 @@ if prompt:
         st.session_state.cite_list = cite_list
         cite_str = '\n\n'.join(cite_str_list)
 
-        if need_trans:
-            if st.session_state.get('show_en'):
-                answer_str = f"{answer['answer_en']}\n\n{answer['answer_zh']}\n\n**参考文献**: \n\n{cite_str}"
-            else:
-                answer_str = f"{answer['answer_zh']}\n\n**参考文献**: \n\n{cite_str}"
+        if st.session_state.get('show_en'):
+            answer_str = f"{answer['answer_en']}\n\n{answer['answer_zh']}\n\n**参考文献**: \n\n{cite_str}"
         else:
             answer_str = f"{answer['answer_zh']}\n\n**参考文献**: \n\n{cite_str}"
+
         st.session_state.messages.append({'role': 'assistant', 'content': answer_str})
         logger.info(f"({st.session_state.get('LLM')}) answer: {answer['answer_zh']}")
 

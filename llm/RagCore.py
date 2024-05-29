@@ -9,7 +9,7 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 import streamlit as st
 from langchain_core.runnables import RunnableLambda, RunnableParallel, RunnablePassthrough
 from llm.AgentCore import translate_sentence
-from llm.ModelCore import load_gpt_16k, load_embedding, load_gpt4
+from llm.ModelCore import load_gpt_16k, load_embedding, load_gpt4, load_glm
 from llm.RetrieverCore import *
 from llm.Template import *
 from llm.storage.SqliteStore import SqliteDocStore
@@ -36,29 +36,41 @@ class CitedAnswerEN(BaseModel):
 
 
 class CitedAnswerZH(BaseModel):
-    """Answer the user question in Chinese based only on the given essay fragment, and cite the sources used."""
+    """仅使用你被给到的文献片段来回答问题，对于回答中用到的文献片段，以学术论文引用的形式用“[]”标注出来它的ID."""
 
     answer_zh: str = Field(
         ...,
-        description='The answer to the user question in Chinese, which is based only on the given fragment, , and use "[]" at the end of the sentence to mark the ID of the quoted fragment',
+        description='对于问题的回答，仅使用你被给到的文献片段来生成答案。对于回答中用到的文献片段，以学术论文引用的形式用“[]”标注出来它的ID.',
     )
     citations: List[int] = Field(
         ...,
-        description="The integer IDs of the SPECIFIC fragment which justify the answer.",
+        description="你的回答中用到的文献片段的ID",
     )
 
 
 def format_docs(docs: List[Document]) -> str:
-    formatted = [
-        f"""Fragment ID: {i + 1}
-Essay Title: {doc.metadata['title']}
-Essay Author: {doc.metadata['author']}
-Publish year: {doc.metadata['year']}
-Essay DOI: {doc.metadata['doi']}
-Fragment Snippet: {doc.page_content}
-"""
-        for i, doc in enumerate(docs)
-    ]
+    if st.session_state.get('app_is_zh_collection'):
+        formatted = [(
+            f"文献 ID: {i + 1}\n"
+            f"文献标题: {doc.metadata['title']}\n"
+            f"文献作者: {doc.metadata['author']}\n"
+            f"发表年份: {doc.metadata['year']}\n"
+            f"文献DOI编号: {doc.metadata['doi']}\n"
+            f"文献片段内容: {doc.page_content}\n"
+        )
+            for i, doc in enumerate(docs)
+        ]
+    else:
+        formatted = [(
+            f"Fragment ID: {i + 1}\n"
+            f"Essay Title: {doc.metadata['title']}\n"
+            f"Essay Author: {doc.metadata['author']}\n"
+            f"Publish year: {doc.metadata['year']}\n"
+            f"Essay DOI: {doc.metadata['doi']}\n"
+            f"Fragment Snippet: {doc.page_content}\n"
+        )
+            for i, doc in enumerate(docs)
+        ]
     return "\n\n" + "\n\n".join(formatted)
 
 
@@ -91,7 +103,6 @@ def get_answer(
         question: str,
         self_query: bool = False,
         expr_stmt: str = None,
-        translate: bool = True,
         *,
         llm_name: str
 ):
@@ -104,14 +115,46 @@ def get_answer(
         llm = load_gpt_16k()
     elif llm_name == 'gpt4':
         llm = load_gpt4()
+    elif llm_name == 'GLM-4':
+        llm = load_glm()
     else:
         llm = load_gpt()
 
-    if translate:
+    if not st.session_state.get('app_is_zh_collection'):
         question = translate_sentence(question, TRANSLATE_TO_EN).trans
         parser = JsonOutputParser(pydantic_object=CitedAnswerEN)
+
+        system_prompt = PromptTemplate(
+            template=ASK_SYSTEM_EN,
+            input_variables=["format_instructions", "example_q", "example_a"],
+        )
+
+        system_str = system_prompt.format(
+            format_instructions=parser.get_format_instructions(),
+            example_q=EXAMPLE_Q,
+            example_a=EXAMPLE_A
+        )
+
+        prompt = ChatPromptTemplate.from_messages(
+            [SystemMessage(content=system_str),
+             ('human', ASK_USER_EN)]
+        )
     else:
         parser = JsonOutputParser(pydantic_object=CitedAnswerZH)
+
+        system_prompt = PromptTemplate(
+            template=ASK_SYSTEM_ZH,
+            input_variables=["format_instructions"],
+        )
+
+        system_str = system_prompt.format(
+            format_instructions=parser.get_format_instructions(),
+        )
+
+        prompt = ChatPromptTemplate.from_messages(
+            [SystemMessage(content=system_str),
+             ('human', ASK_USER_ZH)]
+        )
 
     if self_query:
         if expr_stmt is not None:
@@ -121,22 +164,6 @@ def get_answer(
     else:
 
         retriever = base_retriever(vec_store, doc_store, embedding)
-
-    system_prompt = PromptTemplate(
-        template=ASK_SYSTEM,
-        input_variables=["format_instructions", "example_q", "example_a"],
-    )
-
-    system_str = system_prompt.format(
-        format_instructions=parser.get_format_instructions(),
-        example_q=EXAMPLE_Q,
-        example_a=EXAMPLE_A
-    )
-
-    prompt = ChatPromptTemplate.from_messages(
-        [SystemMessage(content=system_str),
-         ('human', ASK_USER)]
-    )
 
     formatter = itemgetter("docs") | RunnableLambda(format_docs)
 
