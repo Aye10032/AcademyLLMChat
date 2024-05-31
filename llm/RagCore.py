@@ -175,6 +175,6 @@ def get_answer(
         .pick(["answer", "docs"])
     )
 
-    result = answer_chain.invoke(question)
+    result = answer_chain.stream(question)
 
     return result

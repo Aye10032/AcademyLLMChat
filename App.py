@@ -52,6 +52,12 @@ for collection in col:
 title = milvus_cfg.get_collection().title
 st.title(title)
 
+if 'app_is_zh_collection' not in st.session_state:
+    st.session_state['app_is_zh_collection'] = False
+
+if 'LLM' not in st.session_state:
+    st.session_state['LLM'] = llm_options[1]
+
 
 def on_collection_change():
     option = st.session_state.get('app_collection')
@@ -84,7 +90,6 @@ with st.sidebar:
 
     st.selectbox('选择LLM',
                  options=llm_options,
-                 index=1,
                  key='LLM')
 
     st.toggle('对话模式', key='chat_type')
@@ -205,6 +210,8 @@ if prompt:
         else:
             response = get_answer(collection_name, prompt, llm_name=st.session_state.get('LLM'))
 
+        result = chat_container.chat_message('assistant', avatar='logo.png').write_stream(response)
+        logger.info(result)
         st.session_state.documents = response['docs']
 
         answer = response['answer']
