@@ -6,13 +6,13 @@ from langchain.retrievers import ParentDocumentRetriever, MultiQueryRetriever, S
 from langchain.retrievers.multi_query import LineListOutputParser
 from langchain.retrievers.multi_vector import SearchType
 from langchain.retrievers.self_query.milvus import MilvusTranslator
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores.milvus import Milvus
 from langchain_core.callbacks import CallbackManagerForRetrieverRun, AsyncCallbackManagerForRetrieverRun
 from langchain_core.documents import Document
 from langchain_core.prompts import PromptTemplate
 from langchain_core.stores import BaseStore
 from langchain_core.vectorstores import VectorStore
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
 from pandas import DataFrame
 

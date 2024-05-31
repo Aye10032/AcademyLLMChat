@@ -6,11 +6,11 @@ from io import StringIO
 from typing import Tuple, Dict
 
 import yaml
-from langchain.text_splitter import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 from loguru import logger
 from yaml import Dumper
+from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 
 
 class PaperType(IntEnum):
