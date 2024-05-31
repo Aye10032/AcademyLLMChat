@@ -16,9 +16,11 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
 
 from llm.EmbeddingCore import Bgem3Embeddings
-from llm.ModelCore import load_gpt
+from llm.ModelCore import load_gpt, load_glm
 from llm.Template import GENERATE_QUESTION
 from llm.storage.SqliteStore import SqliteBaseStore
+
+import streamlit as st
 
 
 def unique_doc(docs: List[Document]) -> List[Document]:
@@ -61,8 +63,8 @@ class ScoreRetriever(MultiVectorRetriever):
         response = self.llm_chain.invoke(
             {"question": question}, config={"callbacks": run_manager.get_child()}
         )
-        lines = response["text"]
-        return lines
+
+        return response
 
     def retrieve_documents(
             self, queries: List[str], run_manager: CallbackManagerForRetrieverRun
@@ -113,9 +115,8 @@ class ScoreRetriever(MultiVectorRetriever):
         response = await self.llm_chain.ainvoke(
             {"question": question}, callbacks=run_manager.get_child()
         )
-        lines = response["text"]
 
-        return lines
+        return response
 
 
 class ReferenceRetriever(MultiVectorRetriever):
@@ -168,13 +169,16 @@ class ExprRetriever(MultiVectorRetriever):
         docs = self.docstore.mget(ids)
         logger.info(f'retrieve {len(docs)} documents, reranking...')
 
-        rerank_docs = self.embedding.compress_documents(docs, query)[:self.top_k]
+        try:
+            rerank_docs = self.embedding.compress_documents(docs, query)[:self.top_k]
 
-        for i in range(len(rerank_docs)):
-            context_id = rerank_docs[i].metadata[self.id_key]
-            rerank_docs[i].metadata['refer_sentence'] = id_map.get(context_id)
+            for i in range(len(rerank_docs)):
+                context_id = rerank_docs[i].metadata[self.id_key]
+                rerank_docs[i].metadata['refer_sentence'] = id_map.get(context_id)
 
-        return rerank_docs
+            return rerank_docs
+        except Exception as e:
+            logger.error(f'catch exception {e} while check {ids}')
 
 
 class MultiVectorSelfQueryRetriever(SelfQueryRetriever):
@@ -200,13 +204,16 @@ class MultiVectorSelfQueryRetriever(SelfQueryRetriever):
         docs = self.docstore.mget(ids)
         logger.info(f'retrieve {len(docs)} documents, reranking...')
 
-        rerank_docs = self.embedding.compress_documents(docs, query)[:self.top_k]
+        try:
+            rerank_docs = self.embedding.compress_documents(docs, query)[:self.top_k]
 
-        for i in range(len(rerank_docs)):
-            context_id = rerank_docs[i].metadata[self.id_key]
-            rerank_docs[i].metadata['refer_sentence'] = id_map.get(context_id)
+            for i in range(len(rerank_docs)):
+                context_id = rerank_docs[i].metadata[self.id_key]
+                rerank_docs[i].metadata['refer_sentence'] = id_map.get(context_id)
 
-        return rerank_docs
+            return rerank_docs
+        except Exception as e:
+            logger.error(f'catch exception {e} while check {ids}')
 
     def _get_docs_with_query(
             self, query: str, search_kwargs: Dict[str, Any]
@@ -245,7 +252,10 @@ def base_retriever(
         _doc_store: SqliteBaseStore,
         _embedding: Bgem3Embeddings
 ) -> ScoreRetriever:
-    retriever_llm = load_gpt()
+    if st.session_state.get('app_is_zh_collection'):
+        retriever_llm = load_glm()
+    else:
+        retriever_llm = load_gpt()
     query_prompt = PromptTemplate(
         input_variables=["question"],
         template=GENERATE_QUESTION,
