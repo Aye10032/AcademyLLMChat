@@ -210,8 +210,8 @@ if prompt:
         else:
             response = get_answer(collection_name, prompt, llm_name=st.session_state.get('LLM'))
 
-        result = chat_container.chat_message('assistant', avatar='logo.png').write_stream(response)
-        logger.info(result)
+        # result = chat_container.chat_message('assistant', avatar='logo.png').write_stream(response)
+        # logger.info(result)
         st.session_state.documents = response['docs']
 
         answer = response['answer']
