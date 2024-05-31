@@ -97,7 +97,12 @@ class Bgem3Embeddings(BaseModel, Embeddings):
             query: str,
             callbacks: Optional[Callbacks] = None,
     ) -> List[Document]:
-        sentence_pairs = [(query, doc.page_content) for doc in documents]
+
+        sentence_pairs = [
+            (query, doc.page_content)
+            for doc in documents
+            if isinstance(doc, Document)
+        ]
         rerank_scores = []
 
         for i in range(0, len(sentence_pairs), 10):

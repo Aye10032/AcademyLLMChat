@@ -1,6 +1,6 @@
 from typing import List, Optional, Dict, Any, Tuple
 
-from langchain.chains.llm import LLMChain
+# from langchain.chains.llm import LLMChain
 from langchain.chains.query_constructor.schema import AttributeInfo
 from langchain.retrievers import ParentDocumentRetriever, MultiQueryRetriever, SelfQueryRetriever, MultiVectorRetriever
 from langchain.retrievers.multi_query import LineListOutputParser
@@ -10,18 +10,16 @@ from langchain_community.vectorstores.milvus import Milvus
 from langchain_core.callbacks import CallbackManagerForRetrieverRun, AsyncCallbackManagerForRetrieverRun
 from langchain_core.documents import Document
 from langchain_core.prompts import PromptTemplate
+from langchain_core.runnables import Runnable
 from langchain_core.stores import BaseStore
 from langchain_core.vectorstores import VectorStore
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
-from pandas import DataFrame
 
 from llm.EmbeddingCore import Bgem3Embeddings
 from llm.ModelCore import load_gpt
 from llm.Template import GENERATE_QUESTION
 from llm.storage.SqliteStore import SqliteBaseStore
-
-import streamlit as st
 
 
 def unique_doc(docs: List[Document]) -> List[Document]:
@@ -54,7 +52,7 @@ class ScoreRetriever(MultiVectorRetriever):
     embedding: Bgem3Embeddings
 
     multi_query: bool = False
-    llm_chain: LLMChain
+    llm_chain: Runnable
 
     top_k: int = 5
 
@@ -62,7 +60,7 @@ class ScoreRetriever(MultiVectorRetriever):
             self, question: str, run_manager: CallbackManagerForRetrieverRun
     ) -> List[str]:
         response = self.llm_chain.invoke(
-            {"question": question}, callbacks=run_manager.get_child()
+            {"question": question}, config={"callbacks": run_manager.get_child()}
         )
         lines = response["text"]
         return lines
@@ -99,14 +97,18 @@ class ScoreRetriever(MultiVectorRetriever):
         docs = self.docstore.mget(ids)
         logger.info(f'retrieve {len(docs)} documents, reranking...')
 
-        rerank_docs = self.embedding.compress_documents(docs, query)[:self.top_k]
+        try:
+            rerank_docs = self.embedding.compress_documents(docs, query)[:self.top_k]
 
-        for i in range(len(rerank_docs)):
-            context_id = rerank_docs[i].metadata[self.id_key]
-            rerank_docs[i].metadata['refer_sentence'] = id_map.get(context_id) if id_map.__contains__(
-                context_id) else []
+            for i in range(len(rerank_docs)):
+                context_id = rerank_docs[i].metadata[self.id_key]
+                rerank_docs[i].metadata['refer_sentence'] = id_map.get(context_id) if id_map.__contains__(
+                    context_id) else []
 
-        return rerank_docs
+            return rerank_docs
+        except Exception as e:
+            logger.error(e)
+            logger.error(ids)
 
     async def agenerate_queries(
             self, question: str, run_manager: AsyncCallbackManagerForRetrieverRun
