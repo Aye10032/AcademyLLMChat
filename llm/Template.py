@@ -1,10 +1,17 @@
-GENERATE_QUESTION = """You are an AI language model assistant. Your task is to generate three 
+GENERATE_QUESTION_EN = """You are an AI language model assistant. Your task is to generate three 
 different versions of the given user question to retrieve relevant documents from a vector database.  
 By generating multiple perspectives on the user question, your goal is to help
 the user overcome some of the limitations of the distance-based similarity search. 
 The given question may be in Chinese or English, and the question you return must in English.
 Provide these alternative questions separated by newlines.
 Original question: {question}
+"""
+
+GENERATE_QUESTION_ZH = """你是一名学术工作者，现在你被给予了一个问题。
+你的任务是通过对用户问题生成多个视角，帮助用户克服基于距离的相似性搜索的一些局限性。
+你需要生成3个与之相近但不相同的问题以便从向量数据库中检索相关文档。
+对于生成的问题，使用换行符隔开。
+原问题: {question}
 """
 
 TRANSLATE_TO_EN = """Assuming you are an AI assistant, your task is to accurately translate the user's 

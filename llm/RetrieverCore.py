@@ -17,7 +17,7 @@ from loguru import logger
 
 from llm.EmbeddingCore import Bgem3Embeddings
 from llm.ModelCore import load_gpt, load_glm
-from llm.Template import GENERATE_QUESTION
+from llm.Template import GENERATE_QUESTION_EN, GENERATE_QUESTION_ZH
 from llm.storage.SqliteStore import SqliteBaseStore
 
 import streamlit as st
@@ -254,12 +254,16 @@ def base_retriever(
 ) -> ScoreRetriever:
     if st.session_state.get('app_is_zh_collection'):
         retriever_llm = load_glm()
+        query_prompt = PromptTemplate(
+            input_variables=["question"],
+            template=GENERATE_QUESTION_ZH,
+        )
     else:
         retriever_llm = load_gpt()
-    query_prompt = PromptTemplate(
-        input_variables=["question"],
-        template=GENERATE_QUESTION,
-    )
+        query_prompt = PromptTemplate(
+            input_variables=["question"],
+            template=GENERATE_QUESTION_EN,
+        )
 
     parser = LineListOutputParser()
 
