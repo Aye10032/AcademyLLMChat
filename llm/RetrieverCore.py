@@ -1,6 +1,5 @@
 from typing import List, Optional, Dict, Any, Tuple
 
-# from langchain.chains.llm import LLMChain
 from langchain.chains.query_constructor.schema import AttributeInfo
 from langchain.retrievers import ParentDocumentRetriever, MultiQueryRetriever, SelfQueryRetriever, MultiVectorRetriever
 from langchain.retrievers.multi_query import LineListOutputParser
@@ -102,13 +101,11 @@ class ScoreRetriever(MultiVectorRetriever):
 
             for i in range(len(rerank_docs)):
                 context_id = rerank_docs[i].metadata[self.id_key]
-                rerank_docs[i].metadata['refer_sentence'] = id_map.get(context_id) if id_map.__contains__(
-                    context_id) else []
+                rerank_docs[i].metadata['refer_sentence'] = id_map.get(context_id) if context_id in id_map else []
 
             return rerank_docs
         except Exception as e:
-            logger.error(e)
-            logger.error(ids)
+            logger.error(f'catch exception {e} while check {ids}')
 
     async def agenerate_queries(
             self, question: str, run_manager: AsyncCallbackManagerForRetrieverRun
@@ -256,11 +253,7 @@ def base_retriever(
 
     parser = LineListOutputParser()
 
-    llm_chain = LLMChain(
-        llm=retriever_llm,
-        prompt=query_prompt,
-        output_parser=parser
-    )
+    llm_chain = query_prompt | retriever_llm | parser
 
     retriever = ScoreRetriever(
         vectorstore=_vector_store,
