@@ -5,7 +5,7 @@ from langchain.chains.query_constructor.schema import AttributeInfo
 from langchain.retrievers import ParentDocumentRetriever, MultiQueryRetriever, SelfQueryRetriever, MultiVectorRetriever
 from langchain.retrievers.multi_query import LineListOutputParser
 from langchain.retrievers.multi_vector import SearchType
-from langchain.retrievers.self_query.milvus import MilvusTranslator
+from langchain_community.query_constructors.milvus import MilvusTranslator
 from langchain_community.vectorstores.milvus import Milvus
 from langchain_core.callbacks import CallbackManagerForRetrieverRun, AsyncCallbackManagerForRetrieverRun
 from langchain_core.documents import Document
