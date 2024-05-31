@@ -93,7 +93,7 @@ class Bgem3Embeddings(BaseModel, Embeddings):
 
     def compress_documents(
             self,
-            documents: Sequence[Document],
+            documents: list[Document],
             query: str,
             callbacks: Optional[Callbacks] = None,
     ) -> List[Document]:
@@ -124,7 +124,7 @@ class Bgem3Embeddings(BaseModel, Embeddings):
 
     async def acompress_documents(
             self,
-            documents: Sequence[Document],
+            documents: list[Document],
             query: str,
             callbacks: Optional[Callbacks] = None,
     ) -> Sequence[Document]:

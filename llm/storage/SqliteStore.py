@@ -100,10 +100,10 @@ class SqliteBaseStore(BaseStore[str, V], Generic[V]):
         items = cur.fetchall()
         cur.close()
 
-        ordered_values = {key: None for key in keys}
+        ordered_values = {key: type[Document] for key in keys}
         for item in items:
             v = item[0]
-            val: Optional[Document] = self.__deserialize_value(v) if v is not None else v
+            val: Document = self.__deserialize_value(v)
             k = item[1]
             val.metadata['doc_id'] = k
             ordered_values[k] = val
@@ -242,3 +242,18 @@ class ReferenceStore:
 
 
 SqliteDocStore = SqliteBaseStore[Document]
+
+
+def main() -> None:
+    doc_store: SqliteBaseStore = SqliteDocStore(
+        connection_string='../../data/test/sqlite/document.db'
+    )
+
+    docs = doc_store.mget(['a94044f5-0fb8-4469-9a5c-47ca053fe063', 'b259f5c5-569a-44fe-a8b7-ab1df8a00b01'])
+    query = 'test'
+    sentence_pairs = [(query, doc.page_content) for doc in docs]
+    print(sentence_pairs)
+
+
+if __name__ == '__main__':
+    main()
