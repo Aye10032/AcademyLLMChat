@@ -226,7 +226,7 @@ class ReferenceStore:
                         sub_ref.get('pmid'),
                         sub_ref.get('pmc'),
                     ))
-            else:
+            elif isinstance(reference, dict):
                 data.append((
                     source_doi,
                     str(index + 1),
@@ -236,8 +236,10 @@ class ReferenceStore:
                     reference.get('pmc'),
                 ))
 
-        cur.executemany(f"INSERT INTO {self.table_name} VALUES(?, ?, ?, ?, ?, ?)", data)
-        self._conn.commit()
+        if len(data) > 0:
+            cur.executemany(f"INSERT INTO {self.table_name} VALUES(?, ?, ?, ?, ?, ?)", data)
+            self._conn.commit()
+
         cur.close()
 
 
