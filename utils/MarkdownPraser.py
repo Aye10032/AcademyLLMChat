@@ -11,7 +11,7 @@ from loguru import logger
 from yaml import Dumper
 from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 
-from paper.Paper import *
+from utils.paper.Paper import *
 
 
 def type_representer(dumper: Dumper, _data):
