@@ -63,7 +63,7 @@ if 'retry_disable' not in st.session_state:
     st.session_state['retry_disable'] = True
 
 
-def __download_reference(ref_list: DataFrame):
+def __download_reference(target_collection: Collection, ref_list: DataFrame):
     st.session_state['retry_disable'] = True
 
     ref_bar = st.progress(0, text='')
@@ -78,7 +78,7 @@ def __download_reference(ref_list: DataFrame):
             continue
 
         if pd.notna(row.pmc):
-            tag, pmid = __download_from_pmc(row.pmc)
+            tag, pmid = __download_from_pmc(target_collection, row.pmc)
             if tag == 0:
                 ref_list.at[index, 'exist'] = True
             else:
@@ -152,7 +152,7 @@ def __download_from_pmc(target_collection: Collection, pmc_id: str, is_reference
 def __add_documents(target_collection: Collection, docs: list[Document], ref_data: Reference = None) -> None:
     embedding = load_embedding()
     vector_db = load_vectorstore(target_collection.collection_name, embedding)
-    doc_db = load_doc_store()
+    doc_db = load_doc_store(config.get_collection_sqlite_path(target_collection))
     retriever = insert_retriever(vector_db, doc_db, target_collection.language)
     retriever.add_documents(docs)
 
@@ -228,8 +228,6 @@ def markdown_tab():
         if st.session_state.get('md_submit'):
             option = st.session_state.get('md_selection')
             target_collection = milvus_cfg.get_collection_by_id(option)
-            # config.set_collection(option)
-            # update_config(config)
 
             file_count = len(uploaded_files)
             if file_count == 0:
@@ -443,8 +441,6 @@ def pmc_tab():
         if st.session_state.get('pmc_submit'):
             option = st.session_state.get('pmc_selection')
             target_collection = milvus_cfg.get_collection_by_id(option)
-            # config.set_collection(option)
-            # update_config(config)
 
             tag, pmid = __download_from_pmc(target_collection, pmc_id)
 
@@ -453,6 +449,7 @@ def pmc_tab():
 
             if st.session_state.get('pmc_build_ref_tree'):
                 with st.spinner('Analysing reference...'):
+                    # TODO 引用文献下载
                     pass
 
             st.success('添加完成')
