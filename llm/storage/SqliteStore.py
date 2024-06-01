@@ -78,7 +78,6 @@ class SqliteBaseStore(BaseStore[str, V], Generic[V]):
             return dumps(obj)
         except Exception as e:
             logger.error(e)
-            return obj
 
     @staticmethod
     def __deserialize_value(obj: V) -> Any:
@@ -86,7 +85,6 @@ class SqliteBaseStore(BaseStore[str, V], Generic[V]):
             return loads(obj)
         except Exception as e:
             logger.error(e)
-            return obj
 
     def mget(self, keys: Sequence[str]) -> List[Optional[V]]:
         cur = self._conn.cursor()
@@ -251,10 +249,21 @@ def main() -> None:
         connection_string='../../data/test/sqlite/document.db'
     )
 
-    docs = doc_store.mget(['a94044f5-0fb8-4469-9a5c-47ca053fe063', 'b259f5c5-569a-44fe-a8b7-ab1df8a00b01'])
-    query = 'test'
-    sentence_pairs = [(query, doc.page_content) for doc in docs]
-    print(sentence_pairs)
+    docs = doc_store.mget(['215e7644-558b-4c0e-82ec-c6c7b80f5f82'])
+    print(docs)
+
+    # for ids in [
+    #     '6e8664e6-186d-4451-b75d-0e341368f047', '215e7644-558b-4c0e-82ec-c6c7b80f5f82', '18112a0c-b4ea-421f-acab-86517bb7ce6f',
+    #     '382f6616-d9fb-43e1-877f-2764275ee79e', '70eb810e-f05e-4a09-a446-4786699deecf', '60978dc6-1b91-4f54-b431-14219e5bedb3',
+    #     '9b3ae9ce-59e6-4344-abc5-90ade3ce1fa3', 'ce339e57-754e-4715-8b78-a7192a8e5bd3', '59058637-7a87-42f7-855d-bf7739e74e67',
+    #     '286d774d-9022-49dd-a768-c77d7f3ce48f', '910d43e9-4b35-484c-99f7-fcbb9fe00e85', '3a6f6d63-bc40-4428-ae2f-bb1ac917cc65',
+    #     '909c81bd-2cd4-4a28-9c62-d55b3f6c6ea2', 'f12d70a8-63e2-4d93-809c-fca736a64447', '18106ce7-d8dd-4c3a-a9ea-1231706a7d46',
+    #     'ac8c6b7b-c000-4c66-80cb-1c8aaaf41624', '4f19a0c8-96d9-457b-b916-18d834ad286d', 'c3ddd415-05b5-4264-9c62-03593a383045'
+    # ]:
+    #     docs = doc_store.mget([ids])
+    #     query = 'test'
+    #     sentence_pairs = [(query, doc.page_content) for doc in docs]
+    #     print(sentence_pairs)
 
 
 if __name__ == '__main__':
