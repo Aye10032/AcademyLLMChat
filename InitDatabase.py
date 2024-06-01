@@ -60,12 +60,22 @@ def init_retriever() -> ParentDocumentRetriever:
         keep_separator=False
     )
 
-    child_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=100,
-        chunk_overlap=0,
-        separators=['.', '\n\n', '\n'],
-        keep_separator=False
-    )
+    if milvus_cfg.get_collection().language == 'en':
+        child_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=100,
+            chunk_overlap=0,
+            separators=['.', '\n\n', '\n'],
+            keep_separator=False
+        )
+    elif milvus_cfg.get_collection().language == 'zh':
+        child_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=100,
+            chunk_overlap=0,
+            separators=['。', '？', '\n\n', '\n'],
+            keep_separator=False
+        )
+    else:
+        raise Exception(f'error language {milvus_cfg.get_collection().language}')
 
     retriever = ParentDocumentRetriever(
         vectorstore=vector_db,
