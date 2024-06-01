@@ -57,9 +57,9 @@ with st.sidebar:
 role_check(UserRole.OWNER)
 
 
-def del_collection(collection_name: str, option: int) -> None:
+def del_collection(target_collection: Collection, option: int) -> None:
     with MilvusConnection(**milvus_cfg.get_conn_args()) as conn:
-        conn.drop_collection(collection_name)
+        conn.drop_collection(target_collection.collection_name)
 
     milvus_cfg.remove_collection(option)
     update_config(config)
@@ -96,11 +96,13 @@ def manage_tab():
 
         st.markdown('数据库查询界面标题')
         renam_col1, renam_col2 = st.columns([3, 1], gap='large')
-        renam_col1.text_input('数据库查询界面标题',
-                              milvus_cfg.collections[option].title,
-                              key='col_title',
-                              disabled=st.session_state['manage_collection_disable'],
-                              label_visibility='collapsed')
+        renam_col1.text_input(
+            '数据库查询界面标题',
+            milvus_cfg.collections[option].title,
+            key='col_title',
+            disabled=st.session_state['manage_collection_disable'],
+            label_visibility='collapsed'
+        )
         if renam_col2.button('Rename', disabled=st.session_state['manage_collection_disable']):
             milvus_cfg.rename_collection(option, st.session_state['col_title'])
             update_config(config)
@@ -128,7 +130,7 @@ def manage_tab():
                 disabled=st.session_state['drop_collection_disable'],
                 on_click=del_collection,
                 kwargs={
-                    'collection_name': collection_name,
+                    'collection': milvus_cfg.collections[option],
                     'option': option
                 }
             )
@@ -139,6 +141,7 @@ def new_tab():
 
     with st.container(border=True):
         col1_1, col1_2 = st.columns([3, 1], gap='medium')
+
         collection_name = col1_1.text_input('知识库名称 :red[*]', disabled=st.session_state['new_collection_disable'])
         language = col1_2.selectbox('语言', ['en', 'zh'], disabled=st.session_state['new_collection_disable'])
 
@@ -200,6 +203,14 @@ def new_tab():
             embedding = load_embedding()
 
             with st.spinner('Creating collection...'):
+                new_collection = Collection.from_dict({
+                    "collection_name": collection_name,
+                    "language": language,
+                    "title": title,
+                    "description": description,
+                    "index_param": index_param
+                })
+
                 init_doc = Document(page_content=f'This is a collection about {description}',
                                     metadata={
                                         'title': 'About this collection',
@@ -211,7 +222,7 @@ def new_tab():
                                         'doi': ''
                                     })
 
-                sqlite_path = config.get_sqlite_path()
+                sqlite_path = config.get_collection_sqlite_path(new_collection)
                 doc_store = SqliteDocStore(
                     connection_string=sqlite_path,
                     drop_old=True
@@ -226,12 +237,20 @@ def new_tab():
                     auto_id=True
                 )
 
-                child_splitter = RecursiveCharacterTextSplitter(
-                    chunk_size=100,
-                    chunk_overlap=0,
-                    separators=['.', '\n\n', '\n'],
-                    keep_separator=False
-                )
+                if language == 'en':
+                    child_splitter = RecursiveCharacterTextSplitter(
+                        chunk_size=100,
+                        chunk_overlap=0,
+                        separators=['.', '\n\n', '\n'],
+                        keep_separator=False
+                    )
+                else:
+                    child_splitter = RecursiveCharacterTextSplitter(
+                        chunk_size=100,
+                        chunk_overlap=0,
+                        separators=['。', '？', '\n\n', '\n'],
+                        keep_separator=False
+                    )
 
                 retriever = ParentDocumentRetriever(
                     vectorstore=vector_db,
@@ -241,12 +260,8 @@ def new_tab():
 
                 retriever.add_documents([init_doc])
 
-                milvus_cfg.add_collection(
-                    Collection.from_dict({"collection_name": collection_name,
-                                          "language": language,
-                                          "title": title,
-                                          "description": description,
-                                          "index_param": index_param}))
+                milvus_cfg.add_collection(new_collection)
+                config.set_collection(0)
                 update_config(config)
             logger.info('success')
             st.success('创建成功')
