@@ -89,9 +89,9 @@ def load_vectorstore(collection_name: str, _embedding_model) -> Milvus:
     return vector_db
 
 
-def load_doc_store() -> SqliteDocStore:
+def load_doc_store(db_path: str) -> SqliteDocStore:
     doc_store = SqliteDocStore(
-        connection_string=config.get_sqlite_path()
+        connection_string=db_path
     )
 
     return doc_store
@@ -109,7 +109,7 @@ def get_answer(
     embedding = load_embedding()
 
     vec_store = load_vectorstore(collection_name, embedding)
-    doc_store = load_doc_store()
+    doc_store = load_doc_store(config.get_sqlite_path())
 
     if llm_name == 'gpt3.5-16k':
         llm = load_gpt_16k()
