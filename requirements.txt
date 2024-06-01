@@ -30,4 +30,4 @@ httpx[socks]==0.24.1
 httpx-sse
 PyJWT
 
-streamlit~=1.31.0
+streamlit
