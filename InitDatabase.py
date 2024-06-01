@@ -38,9 +38,15 @@ def init_retriever() -> ParentDocumentRetriever:
     )
     logger.info(f'load collection [{collection}], using model {embed_cfg.model}')
 
-    doc_store = SqliteDocStore(
-        connection_string=config.get_sqlite_path()
-    )
+    if args.drop_old:
+        doc_store = SqliteDocStore(
+            connection_string=config.get_sqlite_path(),
+            drop_old=True
+        )
+    else:
+        doc_store = SqliteDocStore(
+            connection_string=config.get_sqlite_path()
+        )
 
     vector_db = Milvus(
         embedding,
@@ -96,9 +102,6 @@ def load_md(base_path: str) -> None:
     :return: 无返回值
     """
     # 初始化检索器，并添加初始文档
-    if args.drop_old:
-        os.remove(config.get_sqlite_path())
-        logger.info('delete old file')
 
     retriever = init_retriever()
 
