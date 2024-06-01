@@ -9,18 +9,20 @@ from loguru import logger
 from pandas import DataFrame
 from tqdm import tqdm
 
-from Config import UserRole, Config, MilvusConfig
+from Config import UserRole, Config, MilvusConfig, Collection
 from llm.ModelCore import load_embedding
 from llm.RagCore import load_vectorstore, load_doc_store
 from llm.RetrieverCore import insert_retriever
 from llm.storage.MilvusConnection import MilvusConnection
 from llm.storage.SqliteStore import ReferenceStore
 from uicomponent.StComponent import side_bar_links, role_check
-from uicomponent.StatusBus import update_config, get_config
-from utils.GrobidUtil import parse_xml, parse_pdf_to_xml
-from utils.MarkdownPraser import *
-from utils.PMCUtil import download_paper_data, parse_paper_data
+from uicomponent.StatusBus import get_config
+from utils.paper.Paper import *
+
+import utils.MarkdownPraser as md
+import utils.GrobidUtil as gb
 import utils.PubmedUtil as pm
+import utils.PMCUtil as pmc
 
 config: Config = get_config()
 milvus_cfg: MilvusConfig = config.milvus_config
@@ -61,17 +63,6 @@ if 'retry_disable' not in st.session_state:
     st.session_state['retry_disable'] = True
 
 
-def __check_exist(ref_list: DataFrame) -> DataFrame:
-    ref_list['exist'] = False
-    with MilvusConnection(**milvus_cfg.get_conn_args()) as conn:
-        for index, row in ref_list.iterrows():
-            _num = len(conn.client.query(milvus_cfg.get_collection().collection_name, filter=f'doi == "{row.doi}"'))
-            if _num != 0:
-                ref_list.at[index, 'exist'] = True
-
-    return ref_list
-
-
 def __download_reference(ref_list: DataFrame):
     st.session_state['retry_disable'] = True
 
@@ -101,9 +92,9 @@ def __download_reference(ref_list: DataFrame):
     ref_bar.empty()
 
 
-def __download_from_pmc(pmc_id: str, is_reference: bool = True) -> Tuple[int, Reference]:
+def __download_from_pmc(target_collection: Collection, pmc_id: str, is_reference: bool = True) -> Tuple[int, Reference]:
     with st.spinner('Downloading paper...'):
-        _, dl = download_paper_data(pmc_id, config)
+        _, dl = pmc.download_paper_data(pmc_id, config)
 
     doi = dl['doi']
     year = dl['year']
@@ -116,7 +107,7 @@ def __download_from_pmc(pmc_id: str, is_reference: bool = True) -> Tuple[int, Re
         with open(xml_path, 'r', encoding='utf-8') as f:
             xml_text = f.read()
 
-        flag, data = parse_paper_data(xml_text)
+        flag, data = pmc.parse_paper_data(xml_text)
 
         if not flag:
             return -1, Reference(doi, [])
@@ -146,28 +137,41 @@ def __download_from_pmc(pmc_id: str, is_reference: bool = True) -> Tuple[int, Re
     else:
         data.info.ref = False
 
-    save_to_md(data, output_path)
+    md.save_to_md(data, output_path)
 
     with st.spinner('Adding paper to vector db...'):
-        docs, ref_data = split_paper(data)
+        docs, ref_data = md.split_paper(data)
         if not is_reference:
-            __add_documents(docs, ref_data)
+            __add_documents(target_collection, docs, ref_data)
         else:
-            __add_documents(docs)
+            __add_documents(target_collection, docs)
 
     return 0, ref_data
 
 
-def __add_documents(docs: list[Document], ref_data: Reference = None) -> None:
+def __add_documents(target_collection: Collection, docs: list[Document], ref_data: Reference = None) -> None:
     embedding = load_embedding()
-    vector_db = load_vectorstore(config.milvus_config.get_collection().collection_name, embedding)
+    vector_db = load_vectorstore(target_collection.collection_name, embedding)
     doc_db = load_doc_store()
-    retriever = insert_retriever(vector_db, doc_db)
+    retriever = insert_retriever(vector_db, doc_db, target_collection.language)
     retriever.add_documents(docs)
 
-    if ref_data is not None and len(ref_data.ref_list) > 0:
+    if (
+            st.session_state.get('build_ref_tree')
+            and
+            ref_data is not None
+            and
+            len(ref_data.ref_list) > 0
+    ):
         with ReferenceStore(config.get_reference_path()) as ref_store:
             ref_store.add_reference(ref_data)
+
+
+def set_ref_build(key_word: str):
+    if 'build_ref_tree' not in st.session_state:
+        st.session_state['build_ref_tree'] = False
+
+    st.session_state['build_ref_tree'] = st.session_state.get(key_word)
 
 
 def markdown_tab():
@@ -187,18 +191,26 @@ def markdown_tab():
             """
         )
 
-    with col_2.container(border=True):
+    with (col_2.container(border=True)):
         st.markdown('选择知识库')
 
         md_col1, md_col2 = st.columns([3, 1], gap='large')
-        md_col1.selectbox('选择知识库',
-                          range(len(collections)),
-                          format_func=lambda x: collections[x],
-                          key='md_selection',
-                          disabled=st.session_state['md_uploader_disable'],
-                          label_visibility='collapsed')
+        md_col1.selectbox(
+            '选择知识库',
+            range(len(collections)),
+            format_func=lambda x: collections[x],
+            key='md_selection',
+            disabled=st.session_state['md_uploader_disable'],
+            label_visibility='collapsed'
+        )
 
-        md_col2.checkbox('构建引用树', key='md_build_ref_tree', disabled=st.session_state['pdf_uploader_disable'])
+        md_col2.checkbox(
+            '构建引用树',
+            key='md_build_ref_tree',
+            disabled=st.session_state['pdf_uploader_disable'],
+            on_change=set_ref_build,
+            kwargs={'key_word': 'md_build_ref_tree'}
+        )
 
         st.markdown(' ')
 
@@ -208,14 +220,16 @@ def markdown_tab():
             type=['md'],
             accept_multiple_files=True,
             disabled=st.session_state['md_uploader_disable'],
-            label_visibility='collapsed')
+            label_visibility='collapsed'
+        )
 
         st.button('导入文献', key='md_submit', type='primary', disabled=st.session_state['md_uploader_disable'])
 
         if st.session_state.get('md_submit'):
             option = st.session_state.get('md_selection')
-            config.set_collection(option)
-            update_config(config)
+            target_collection = milvus_cfg.get_collection_by_id(option)
+            # config.set_collection(option)
+            # update_config(config)
 
             file_count = len(uploaded_files)
             if file_count == 0:
@@ -225,17 +239,26 @@ def markdown_tab():
             progress_text = f'正在处理文献(0/{file_count})，请勿关闭或刷新此页面'
             md_bar = st.progress(0, text=progress_text)
             for index, uploaded_file in tqdm(enumerate(uploaded_files), total=file_count):
-                doc, ref_data = split_markdown(uploaded_file)
+                doc, ref_data = md.split_markdown(uploaded_file)
 
                 doi = doc[0].metadata.get('doi')
+                year = doc[0].metadata.get('year')
                 if not doi == '':
                     with MilvusConnection(**milvus_cfg.get_conn_args()) as conn:
-                        _num = len(conn.client.query(milvus_cfg.get_collection().collection_name, filter=f'doi == "{doi}"'))
+                        _num = len(conn.client.query(
+                            target_collection.collection_name,
+                            filter=f'doi == "{doi}"'
+                        ))
                     if _num > 0:
                         st.error(f'文章 {doi} 已存在，跳过')
                         continue
 
-                __add_documents(doc, ref_data)
+                __add_documents(target_collection, doc, ref_data)
+
+                file_path = os.path.join(config.get_collection_md_path(target_collection), str(year), uploaded_file.name)
+
+                with open(file_path, 'wb') as f:
+                    f.write(uploaded_file.getbuffer())
 
                 progress_num = (index + 1) / file_count
                 md_bar.progress(progress_num, text=f'正在处理文本({index + 1}/{file_count})，请勿关闭或刷新此页面')
@@ -260,16 +283,25 @@ def pdf_tab():
             """
         )
 
-    with col_2.container(border=True):
+    with (col_2.container(border=True)):
         st.markdown('选择知识库')
         pdf_col1, pdf_col2 = st.columns([3, 1], gap='large')
-        pdf_col1.selectbox('选择知识库',
-                           range(len(collections)),
-                           format_func=lambda x: collections[x],
-                           key='pdf_selection',
-                           disabled=st.session_state['pdf_uploader_disable'],
-                           label_visibility='collapsed')
-        pdf_col2.checkbox('构建引用树', key='pdf_build_ref_tree', disabled=st.session_state['pdf_uploader_disable'])
+        pdf_col1.selectbox(
+            '选择知识库',
+            range(len(collections)),
+            format_func=lambda x: collections[x],
+            key='pdf_selection',
+            disabled=st.session_state['pdf_uploader_disable'],
+            label_visibility='collapsed'
+        )
+
+        pdf_col2.checkbox(
+            '构建引用树',
+            key='pdf_build_ref_tree',
+            disabled=st.session_state['pdf_uploader_disable'],
+            on_change=set_ref_build,
+            kwargs={'key_word': 'pdf_build_ref_tree'}
+        )
 
         uploaded_file = st.file_uploader('选择PDF文件',
                                          type=['pdf'],
@@ -278,82 +310,90 @@ def pdf_tab():
         st.button('解析并添加', key='pdf_submit', type='primary', disabled=st.session_state['pdf_uploader_disable'])
 
         if st.session_state.get('pdf_submit'):
-            if uploaded_file is not None:
-                option = st.session_state.get('pdf_selection')
-                config.set_collection(option)
-                update_config(config)
+            if uploaded_file is None:
+                st.warning('请先上传PDF文件')
+                st.stop()
 
-                with st.spinner('Getting information about the paper..'):
-                    paper_data = pm.get_paper_info()
+            option = st.session_state.get('pdf_selection')
+            target_collection = milvus_cfg.get_collection_by_id(option)
 
-                with st.spinner('Parsing pdf...'):
-                    pdf_path = os.path.join(config.get_pdf_path(), str(paper_data.info.year), uploaded_file.name)
+            with st.spinner('Getting information about the paper..'):
+                paper_data = pm.get_paper_info()
 
-                    with open(pdf_path, 'wb') as f:
-                        f.write(uploaded_file.getbuffer())
+            with st.spinner('Parsing pdf...'):
+                pdf_path = os.path.join(
+                    config.get_collection_pdf_path(target_collection),
+                    str(paper_data.info.year),
+                    uploaded_file.name
+                )
 
-                    _, _, xml_text = parse_pdf_to_xml(pdf_path, config)
+                with open(pdf_path, 'wb') as f:
+                    f.write(uploaded_file.getbuffer())
 
-                    xml_path = os.path.join(config.get_xml_path(), str(paper_data.info.year), uploaded_file.name.replace('.pdf', '.'))
-                    with open(xml_path, 'w', encoding='utf-8') as f:
-                        f.write(xml_text)
+                _, _, xml_text = gb.parse_pdf_to_xml(pdf_path, config)
 
-                    result = parse_xml(xml_path, paper_data.sections)
+                xml_path = os.path.join(
+                    config.get_collection_xml_path(target_collection),
+                    str(paper_data.info.year),
+                    uploaded_file.name.replace('.pdf', '.')
+                )
+                with open(xml_path, 'w', encoding='utf-8') as f:
+                    f.write(xml_text)
 
-                    md_path = os.path.join(
-                        config.get_md_path(), str(paper_data.info.year),
-                        paper_data.info.doi.replace('/', '@') + '.md'
-                    )
-                    os.makedirs(os.path.dirname(md_path), exist_ok=True)
-                    save_to_md(result, md_path)
+                result = gb.parse_xml(xml_path, paper_data.sections)
 
-                    st.toast('PDF识别完毕', icon='👏')
+                md_path = os.path.join(
+                    config.get_collection_md_path(target_collection),
+                    str(paper_data.info.year),
+                    paper_data.info.doi.replace('/', '@') + '.md'
+                )
+                os.makedirs(os.path.dirname(md_path), exist_ok=True)
+                md.save_to_md(result, md_path)
 
-                docs, ref_data = split_paper(result)
                 st.toast('PDF识别完毕', icon='👏')
 
-                if st.session_state.get('pdf_build_ref_tree'):
-                    with st.spinner('Analysing reference...'):
-                        ref_list = ref_data.ref_list
-                        for index, ref_dict in enumerate(ref_list):
-                            ref_dict: dict
-                            if term := ref_dict.get('pmid') != '':
-                                ref_dict = pm.get_info_by_term(term, pm.SearchType.PM)
-                            elif term := ref_dict.get('doi') != '':
-                                ref_dict = pm.get_info_by_term(term, pm.SearchType.DOI)
-                            elif term := ref_dict.get('title') != '':
-                                ref_dict = pm.get_info_by_term(term, pm.SearchType.TITLE)
-                            else:
-                                continue
+            docs, ref_data = md.split_paper(result)
+            st.toast('PDF识别完毕', icon='👏')
 
-                            ref_list[index] = ref_dict
+            if st.session_state.get('pdf_build_ref_tree'):
+                with st.spinner('Analysing reference...'):
+                    ref_list = ref_data.ref_list
+                    for index, ref_dict in enumerate(ref_list):
+                        ref_dict: dict
+                        if term := ref_dict.get('pmid') != '':
+                            ref_dict = pm.get_info_by_term(term, pm.SearchType.PM)
+                        elif term := ref_dict.get('doi') != '':
+                            ref_dict = pm.get_info_by_term(term, pm.SearchType.DOI)
+                        elif term := ref_dict.get('title') != '':
+                            ref_dict = pm.get_info_by_term(term, pm.SearchType.TITLE)
+                        else:
+                            continue
 
-                        ref_data.ref_list = ref_list
+                        ref_list[index] = ref_dict
 
-                    with st.spinner('Adding document to database...'):
-                        __add_documents(docs, ref_data)
+                    ref_data.ref_list = ref_list
 
-                    # TODO 引用文献下载
-                    # ref_list = __check_exist(pd.DataFrame(ref_list))
-                    #
-                    # try:
-                    #     __download_reference(ref_list)
-                    # except Exception as e:
-                    #     logger.error(e)
-                    #     st.session_state['retry_disable'] = False
-                    #     st.rerun()
-                    # finally:
-                    #     df_block.dataframe(st.session_state.get('ref_list'), use_container_width=True)
-                    #     st.toast('引用处理完毕', icon='👏')
-                else:
-                    with st.spinner('Adding document to database...'):
-                        __add_documents(docs)
+                with st.spinner('Adding document to database...'):
+                    __add_documents(target_collection, docs, ref_data)
 
-                st.success('文献添加完毕')
-                st.snow()
-
+                # TODO 引用文献下载
+                # ref_list = __check_exist(pd.DataFrame(ref_list))
+                #
+                # try:
+                #     __download_reference(ref_list)
+                # except Exception as e:
+                #     logger.error(e)
+                #     st.session_state['retry_disable'] = False
+                #     st.rerun()
+                # finally:
+                #     df_block.dataframe(st.session_state.get('ref_list'), use_container_width=True)
+                #     st.toast('引用处理完毕', icon='👏')
             else:
-                st.warning('请先上传PDF文件')
+                with st.spinner('Adding document to database...'):
+                    __add_documents(target_collection, docs)
+
+            st.success('文献添加完毕')
+            st.snow()
 
 
 def pmc_tab():
@@ -371,32 +411,42 @@ def pmc_tab():
             """
         )
 
-    with col_2.container(border=True):
+    with (col_2.container(border=True)):
         st.markdown('选择知识库')
         pmc_col1, pmc_col2 = st.columns([3, 1], gap='large')
-        pmc_col1.selectbox('选择知识库',
-                           range(len(collections)),
-                           format_func=lambda x: collections[x],
-                           key='pmc_selection',
-                           disabled=st.session_state['pmc_uploader_disable'],
-                           label_visibility='collapsed')
+        pmc_col1.selectbox(
+            '选择知识库',
+            range(len(collections)),
+            format_func=lambda x: collections[x],
+            key='pmc_selection',
+            disabled=st.session_state['pmc_uploader_disable'],
+            label_visibility='collapsed'
+        )
 
-        pmc_col2.checkbox('构建引用树', key='pmc_build_ref_tree', disabled=st.session_state['pmc_uploader_disable'])
+        pmc_col2.checkbox(
+            '构建引用树',
+            key='pmc_build_ref_tree',
+            disabled=st.session_state['pmc_uploader_disable'],
+            on_change=set_ref_build,
+            kwargs={'key_word': 'pmc_build_ref_tree'}
+        )
 
         st.markdown('PMC ID')
-        pmc_id = st.text_input('PMC ID',
-                               key='pmc_id',
-                               disabled=st.session_state['pmc_uploader_disable'],
-                               label_visibility='collapsed')
+        pmc_id = st.text_input(
+            'PMC ID',
+            disabled=st.session_state['pmc_uploader_disable'],
+            label_visibility='collapsed'
+        )
 
         st.button('下载并添加', type='primary', key='pmc_submit', disabled=st.session_state['pmc_uploader_disable'])
 
         if st.session_state.get('pmc_submit'):
             option = st.session_state.get('pmc_selection')
-            config.set_collection(option)
-            update_config(config)
+            target_collection = milvus_cfg.get_collection_by_id(option)
+            # config.set_collection(option)
+            # update_config(config)
 
-            tag, pmid = __download_from_pmc(pmc_id)
+            tag, pmid = __download_from_pmc(target_collection, pmc_id)
 
             if tag == -1:
                 st.error('文章结构不完整！请检查相关信息，或尝试通过PDF加载.')

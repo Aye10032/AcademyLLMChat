@@ -1,9 +1,8 @@
 import io
 import os
-from dataclasses import dataclass, field, asdict
-from enum import IntEnum
+from dataclasses import asdict
 from io import StringIO
-from typing import Tuple, Dict
+from typing import Tuple, Dict, TextIO
 
 import yaml
 from langchain_core.documents import Document
@@ -12,13 +11,7 @@ from loguru import logger
 from yaml import Dumper
 from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 
-
-class PaperType(IntEnum):
-    PURE_MARKDOWN = 0
-    GROBID_PAPER = 1
-    PMC_PAPER = 2
-    PM_INFO = 3
-    NSFC = 4
+from paper.Paper import *
 
 
 def type_representer(dumper: Dumper, _data):
@@ -26,39 +19,6 @@ def type_representer(dumper: Dumper, _data):
 
 
 yaml.add_representer(PaperType, type_representer)
-
-
-@dataclass
-class PaperInfo:
-    author: str = ''
-    year: int = -1
-    type: int = PaperType.PURE_MARKDOWN
-    keywords: str = ''
-    ref: bool = False
-    doi: str = ''
-
-    @classmethod
-    def from_yaml(cls, data: Dict[str, any]):
-        return cls(**data)
-
-
-@dataclass
-class Section:
-    text: str
-    level: int
-
-
-@dataclass
-class Reference:
-    source_doi: str
-    ref_list: list = field(default_factory=list)
-
-
-@dataclass
-class Paper:
-    info: PaperInfo
-    sections: list[Section] = field(default_factory=list)
-    reference: Reference = field(default_factory=Reference)
 
 
 def split_markdown(document: UploadedFile) -> Tuple[list[Document], Reference]:
@@ -137,30 +97,8 @@ def split_paper(paper: Paper) -> Tuple[list[Document], Reference]:
     """
 
     md_stream = io.StringIO()
-
-    md_stream.write('---\t\n')
-    yaml.dump(asdict(paper.info), md_stream, sort_keys=False, width=900)
-    md_stream.write('---\t\n')
-
-    for sec in paper.sections:
-        text = sec.text
-        level = sec.level
-        if level == 0:
-            md_stream.write(f'{text}\t\n')
-        elif level == 1:
-            md_stream.write(f'# {text}\t\n')
-        elif level == 2:
-            md_stream.write(f'## {text}\t\n')
-        elif level == 3:
-            md_stream.write(f'### {text}\t\n')
-        else:
-            md_stream.write(f'#### {text}\t\n')
-
-    if paper.info.ref:
-        md_stream.write('## Reference\t\n')
-        yaml.dump(paper.reference.ref_list, md_stream, sort_keys=False, width=900)
-
-    md_text = md_stream.getvalue()
+    md_text = __write_to_stream(md_stream, paper)
+    md_stream.close()
 
     return split_markdown_text(md_text)
 
@@ -175,27 +113,43 @@ def save_to_md(paper: Paper, output_path) -> None:
     """
 
     with open(output_path, 'w', encoding='utf-8') as f:
+        __write_to_stream(f, paper)
 
-        f.write('---\t\n')
-        yaml.dump(asdict(paper.info), f, sort_keys=False, width=900)
-        f.write('---\t\n')
 
-        for sec in paper.sections:
-            text = sec.text
-            level = sec.level
-            if level == 0:
-                f.write(f'{text}\t\n')
-            elif level == 1:
-                f.write(f'# {text}\t\n')
-            elif level == 2:
-                f.write(f'## {text}\t\n')
-            elif level == 3:
-                f.write(f'### {text}\t\n')
-            else:
-                f.write(f'#### {text}\t\n')
+def __write_to_stream(stream: StringIO | TextIO, paper: Paper) -> str:
+    """
+    将论文信息和内容写入指定的流中，格式为Markdown。
 
-        f.write('## Reference\t\n')
-        yaml.dump(paper.reference.ref_list, f, sort_keys=False, width=900)
+    :param stream: 可以是StringIO或者TextIO类型的流，用于写入Markdown文本。
+    :param paper: Paper对象，包含论文的元数据和正文部分。
+    :return: 返回流中写入的Markdown文本字符串。
+    """
+
+    stream.write('---\t\n')
+    yaml.dump(asdict(paper.info), stream, sort_keys=False, width=900)
+    stream.write('---\t\n')
+
+    for sec in paper.sections:
+        text = sec.text
+        level = sec.level
+        if level == 0:
+            stream.write(f'{text}\t\n')
+        elif level == 1:
+            stream.write(f'# {text}\t\n')
+        elif level == 2:
+            stream.write(f'## {text}\t\n')
+        elif level == 3:
+            stream.write(f'### {text}\t\n')
+        else:
+            stream.write(f'#### {text}\t\n')
+
+    if paper.info.ref:
+        stream.write('## Reference\t\n')
+        yaml.dump(paper.reference.ref_list, stream, sort_keys=False, width=900)
+
+    md_text = stream.getvalue()
+
+    return md_text
 
 
 def load_from_md(path: str) -> Tuple[list[Document], Reference]:
