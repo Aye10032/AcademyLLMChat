@@ -222,7 +222,7 @@ class MultiVectorSelfQueryRetriever(SelfQueryRetriever):
         return docs
 
 
-def insert_retriever(_vector_store: VectorStore, _doc_store: SqliteBaseStore) -> ParentDocumentRetriever:
+def insert_retriever(_vector_store: VectorStore, _doc_store: SqliteBaseStore, language: str = 'en') -> ParentDocumentRetriever:
     parent_splitter = RecursiveCharacterTextSplitter(
         chunk_size=450,
         chunk_overlap=0,
@@ -230,12 +230,22 @@ def insert_retriever(_vector_store: VectorStore, _doc_store: SqliteBaseStore) ->
         keep_separator=False
     )
 
-    child_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=100,
-        chunk_overlap=10,
-        separators=['.', '\n\n', '\n'],
-        keep_separator=False
-    )
+    if language == 'en':
+        child_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=100,
+            chunk_overlap=0,
+            separators=['.', '\n\n', '\n'],
+            keep_separator=False
+        )
+    elif language == 'zh':
+        child_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=100,
+            chunk_overlap=0,
+            separators=['。', '？', '\n\n', '\n'],
+            keep_separator=False
+        )
+    else:
+        raise Exception(f'wrong language type "{language}"')
 
     retriever = ParentDocumentRetriever(
         vectorstore=_vector_store,
