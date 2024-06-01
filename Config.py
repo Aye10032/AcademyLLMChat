@@ -89,6 +89,10 @@ class MilvusConfig:
         collection: Collection = self.collections[self.default_collection]
         return collection
 
+    def get_collection_by_id(self, index: int):
+        collection: Collection = self.collections[index]
+        return collection
+
     def get_conn_args(self):
         if self.using_remote:
             return {
@@ -241,8 +245,20 @@ class Config:
         os.makedirs(pdf_path, exist_ok=True)
         return pdf_path
 
+    def get_collection_pdf_path(self, collection: Collection):
+        collection_name: str = collection.collection_name
+        pdf_path = os.path.join(get_work_path(), self.data_root, collection_name, self.pdf_path)
+
+        os.makedirs(pdf_path, exist_ok=True)
+        return pdf_path
+
     def get_md_path(self):
         collection_name: str = self.milvus_config.get_collection().collection_name
+        md_path = os.path.join(get_work_path(), self.data_root, collection_name, self.md_path)
+        return md_path
+
+    def get_collection_md_path(self, collection: Collection):
+        collection_name: str = collection.collection_name
         md_path = os.path.join(get_work_path(), self.data_root, collection_name, self.md_path)
         return md_path
 
@@ -253,8 +269,22 @@ class Config:
         os.makedirs(xml_path, exist_ok=True)
         return xml_path
 
+    def get_collection_xml_path(self, collection: Collection):
+        collection_name: str = collection.collection_name
+        xml_path = os.path.join(get_work_path(), self.data_root, collection_name, self.xml_path)
+
+        os.makedirs(xml_path, exist_ok=True)
+        return xml_path
+
     def get_sqlite_path(self):
         collection_name: str = self.milvus_config.get_collection().collection_name
+        sqlite_path = os.path.join(get_work_path(), self.data_root, collection_name, self.sqlite_path)
+
+        os.makedirs(os.path.dirname(sqlite_path), exist_ok=True)
+        return sqlite_path
+
+    def get_collection_sqlite_path(self, collection: Collection):
+        collection_name: str = collection.collection_name
         sqlite_path = os.path.join(get_work_path(), self.data_root, collection_name, self.sqlite_path)
 
         os.makedirs(os.path.dirname(sqlite_path), exist_ok=True)
