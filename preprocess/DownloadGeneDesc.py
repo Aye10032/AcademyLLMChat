@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from requests import sessions
 from tqdm import tqdm
 
+from Config import Config
 from utils.Decorator import retry
 
 
@@ -34,14 +35,21 @@ def get_ids(term: str, max_size: int) -> None:
 
 @retry(delay=random.uniform(2.0, 5.0))
 def get_info(gene_id: str):
+    config = Config()
+
     url = (f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=gene&id={gene_id}&retmode=xml')
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
 
+    proxies = {
+        'http': config.get_proxy(),
+        'https': config.get_proxy()
+    }
+
     with sessions.Session() as session:
-        response = session.request("GET", url, headers=headers, timeout=10)
+        response = session.request("GET", url, headers=headers, proxies=proxies, timeout=10)
 
     if response.status_code == 200:
         soup = BeautifulSoup(response.text, 'xml')
