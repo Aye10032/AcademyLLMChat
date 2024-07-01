@@ -35,6 +35,7 @@ class NebulaGraphStore:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        self.client.release()
         self.connection_pool.close()
 
     def create_space(
@@ -82,10 +83,21 @@ class NebulaGraphStore:
         logger.info('done')
         return result
 
+    def drop_space(self, space_name: str):
+        result = self.client.execute(f'DROP SPACE IF EXISTS {space_name};')
+
+        logger.info('Deleting graph database, please wait...')
+        time.sleep(6)
+        logger.info('done')
+        return result
+
 
 def main() -> None:
     with NebulaGraphStore() as store:
-        store.create_space('reference', vid_type=VidType.STRING255)
+        # store.create_space('reference', vid_type=VidType.STRING255)
+        result = store.drop_space('reference')
+
+    print(result)
 
 
 if __name__ == '__main__':
