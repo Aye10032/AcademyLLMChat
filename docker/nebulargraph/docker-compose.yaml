@@ -1,7 +1,7 @@
 version: '3.4'
 services:
   metad0:
-    image: docker.io/vesoft/nebula-metad:nightly
+    image: docker.io/vesoft/nebula-metad:v3.8.0
     environment:
       USER: root
       TZ:   "${TZ}"
@@ -15,6 +15,7 @@ services:
       - --log_dir=/logs
       - --v=0
       - --minloglevel=0
+      - --heartbeat_interval_secs=6
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://metad0:19559/status"]
       interval: 30s
@@ -22,9 +23,9 @@ services:
       retries: 3
       start_period: 20s
     ports:
-      - 9559
-      - 19559
-      - 19560
+      - "9559"
+      - "19559"
+      - "19560"
     volumes:
       - ./data/meta0:/data/meta
       - ./logs/meta0:/logs
@@ -35,7 +36,7 @@ services:
       - SYS_PTRACE
 
   metad1:
-    image: docker.io/vesoft/nebula-metad:nightly
+    image: docker.io/vesoft/nebula-metad:v3.8.0
     environment:
       USER: root
       TZ:   "${TZ}"
@@ -49,6 +50,7 @@ services:
       - --log_dir=/logs
       - --v=0
       - --minloglevel=0
+      - --heartbeat_interval_secs=6
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://metad1:19559/status"]
       interval: 30s
@@ -56,9 +58,9 @@ services:
       retries: 3
       start_period: 20s
     ports:
-      - 9559
-      - 19559
-      - 19560
+      - "9559"
+      - "19559"
+      - "19560"
     volumes:
       - ./data/meta1:/data/meta
       - ./logs/meta1:/logs
@@ -69,7 +71,7 @@ services:
       - SYS_PTRACE
 
   metad2:
-    image: docker.io/vesoft/nebula-metad:nightly
+    image: docker.io/vesoft/nebula-metad:v3.8.0
     environment:
       USER: root
       TZ:   "${TZ}"
@@ -83,6 +85,7 @@ services:
       - --log_dir=/logs
       - --v=0
       - --minloglevel=0
+      - --heartbeat_interval_secs=6
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://metad2:19559/status"]
       interval: 30s
@@ -90,9 +93,9 @@ services:
       retries: 3
       start_period: 20s
     ports:
-      - 9559
-      - 19559
-      - 19560
+      - "9559"
+      - "19559"
+      - "19560"
     volumes:
       - ./data/meta2:/data/meta
       - ./logs/meta2:/logs
@@ -103,7 +106,7 @@ services:
       - SYS_PTRACE
 
   storaged0:
-    image: docker.io/vesoft/nebula-storaged:nightly
+    image: docker.io/vesoft/nebula-storaged:v3.8.0
     environment:
       USER: root
       TZ:   "${TZ}"
@@ -117,6 +120,7 @@ services:
       - --log_dir=/logs
       - --v=0
       - --minloglevel=0
+      - --heartbeat_interval_secs=6
     depends_on:
       - metad0
       - metad1
@@ -128,9 +132,9 @@ services:
       retries: 3
       start_period: 20s
     ports:
-      - 9779
-      - 19779
-      - 19780
+      - "9779"
+      - "19779"
+      - "19780"
     volumes:
       - ./data/storage0:/data/storage
       - ./logs/storage0:/logs
@@ -141,7 +145,7 @@ services:
       - SYS_PTRACE
 
   storaged1:
-    image: docker.io/vesoft/nebula-storaged:nightly
+    image: docker.io/vesoft/nebula-storaged:v3.8.0
     environment:
       USER: root
       TZ:   "${TZ}"
@@ -155,6 +159,7 @@ services:
       - --log_dir=/logs
       - --v=0
       - --minloglevel=0
+      - --heartbeat_interval_secs=6
     depends_on:
       - metad0
       - metad1
@@ -166,9 +171,9 @@ services:
       retries: 3
       start_period: 20s
     ports:
-      - 9779
-      - 19779
-      - 19780
+      - "9779"
+      - "19779"
+      - "19780"
     volumes:
       - ./data/storage1:/data/storage
       - ./logs/storage1:/logs
@@ -179,7 +184,7 @@ services:
       - SYS_PTRACE
 
   storaged2:
-    image: docker.io/vesoft/nebula-storaged:nightly
+    image: docker.io/vesoft/nebula-storaged:v3.8.0
     environment:
       USER: root
       TZ:   "${TZ}"
@@ -193,6 +198,7 @@ services:
       - --log_dir=/logs
       - --v=0
       - --minloglevel=0
+      - --heartbeat_interval_secs=6
     depends_on:
       - metad0
       - metad1
@@ -204,9 +210,9 @@ services:
       retries: 3
       start_period: 20s
     ports:
-      - 9779
-      - 19779
-      - 19780
+      - "9779"
+      - "19779"
+      - "19780"
     volumes:
       - ./data/storage2:/data/storage
       - ./logs/storage2:/logs
@@ -217,7 +223,7 @@ services:
       - SYS_PTRACE
 
   graphd:
-    image: docker.io/vesoft/nebula-graphd:nightly
+    image: docker.io/vesoft/nebula-graphd:v3.8.0
     environment:
       USER: root
       TZ:   "${TZ}"
@@ -230,6 +236,7 @@ services:
       - --log_dir=/logs
       - --v=0
       - --minloglevel=0
+      - --heartbeat_interval_secs=6
     depends_on:
       - storaged0
       - storaged1
@@ -242,8 +249,8 @@ services:
       start_period: 20s
     ports:
       - "9669:9669"
-      - 19669
-      - 19670
+      - "19669"
+      - "19670"
     volumes:
       - ./logs/graph:/logs
     networks:
@@ -253,7 +260,7 @@ services:
       - SYS_PTRACE
 
   graphd1:
-    image: docker.io/vesoft/nebula-graphd:nightly
+    image: docker.io/vesoft/nebula-graphd:v3.8.0
     environment:
       USER: root
       TZ:   "${TZ}"
@@ -266,6 +273,7 @@ services:
       - --log_dir=/logs
       - --v=0
       - --minloglevel=0
+      - --heartbeat_interval_secs=6
     depends_on:
       - storaged0
       - storaged1
@@ -277,9 +285,9 @@ services:
       retries: 3
       start_period: 20s
     ports:
-      - 9669
-      - 19669
-      - 19670
+      - "9669"
+      - "19669"
+      - "19670"
     volumes:
       - ./logs/graph1:/logs
     networks:
@@ -289,7 +297,7 @@ services:
       - SYS_PTRACE
 
   graphd2:
-    image: docker.io/vesoft/nebula-graphd:nightly
+    image: docker.io/vesoft/nebula-graphd:v3.8.0
     environment:
       USER: root
       TZ:   "${TZ}"
@@ -302,6 +310,7 @@ services:
       - --log_dir=/logs
       - --v=0
       - --minloglevel=0
+      - --heartbeat_interval_secs=6
     depends_on:
       - storaged0
       - storaged1
@@ -313,9 +322,9 @@ services:
       retries: 3
       start_period: 20s
     ports:
-      - 9669
-      - 19669
-      - 19670
+      - "9669"
+      - "19669"
+      - "19670"
     volumes:
       - ./logs/graph2:/logs
     networks:
@@ -325,7 +334,7 @@ services:
       - SYS_PTRACE
 
   console:
-    image: docker.io/vesoft/nebula-console:nightly
+    image: docker.io/vesoft/nebula-console:v3.8.0
     entrypoint: ""
     command:
       - sh
