@@ -58,6 +58,9 @@ if 'app_is_zh_collection' not in st.session_state:
 if 'LLM' not in st.session_state:
     st.session_state['LLM'] = llm_options[1]
 
+if 'show_en' not in st.session_state:
+    st.session_state['show_en'] = True
+
 
 def on_collection_change():
     option = st.session_state.get('app_collection')
@@ -112,7 +115,7 @@ with st.sidebar:
     else:
         st.caption('精准模式：:red[关]')
 
-    st.toggle('双语回答', True, key='show_en', disabled=st.session_state.get('app_is_zh_collection'))
+    st.toggle('双语回答', key='show_en', disabled=st.session_state.get('app_is_zh_collection'))
 
     st.divider()
     st.subheader('使用说明')
@@ -210,8 +213,6 @@ if prompt:
         else:
             response = get_answer(collection_name, prompt, llm_name=st.session_state.get('LLM'))
 
-        # result = chat_container.chat_message('assistant', avatar='logo.png').write_stream(response)
-        # logger.info(result)
         st.session_state.documents = response['docs']
 
         answer = response['answer']
