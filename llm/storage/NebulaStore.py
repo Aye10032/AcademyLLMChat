@@ -48,11 +48,13 @@ class NebulaGraphStore:
             vid_type: str,
     ) -> ResultSet:
         """
-        :param space_name:
-        :param partition_num:
-        :param replica_factor:
-        :param vid_type:
-        :param comment:
+        创建图空间
+
+        :param space_name: 在NebulaGraph实例中唯一标识一个图空间，仅支持 1~4 字节的 UTF-8 编码字符，包括英文字母（区分大小写）、数字、中文等
+        :param partition_num: 指定图空间的分片数量。建议设置为集群中硬盘数量的 20 倍（HDD 硬盘建议为 2 倍）
+        :param replica_factor: 指定每个分片的副本数量。建议在生产环境中设置为 3，在测试环境中设置为 1。副本数量必须是奇数
+        :param vid_type: 指定点 ID 的数据类型
+        :param comment: 图空间的描述
         :return:
 
         CREATE SPACE [IF NOT EXISTS] <graph_space_name> (
@@ -83,7 +85,39 @@ class NebulaGraphStore:
         logger.info('done')
         return result
 
-    def drop_space(self, space_name: str):
+    def use_space(self, space_name: str) -> ResultSet:
+        """
+        切换到指定图空间
+
+        :param space_name: 图空间唯一标识
+        :return:
+
+        USE <graph_space_name>;
+        """
+        result = self.client.execute(f'USE {space_name};')
+        return result
+
+    def clear_space(self, space_name: str) -> ResultSet:
+        """
+        清空图空间中的点和边，但不会删除图空间本身以及其中的 Schema 信息
+
+        :param space_name: 图空间唯一标识
+        :return:
+
+        CLEAR SPACE [IF EXISTS] <graph_space_name>
+        """
+        result = self.client.execute(f'CLEAR SPACE IF EXISTS {space_name};')
+        return result
+
+    def drop_space(self, space_name: str) -> ResultSet:
+        """
+        删除指定图空间
+
+        :param space_name: 图空间唯一标识
+        :return:
+
+        DROP SPACE [IF EXISTS] <graph_space_name>
+        """
         result = self.client.execute(f'DROP SPACE IF EXISTS {space_name};')
 
         logger.info('Deleting graph database, please wait...')
@@ -94,10 +128,9 @@ class NebulaGraphStore:
 
 def main() -> None:
     with NebulaGraphStore() as store:
-        # store.create_space('reference', vid_type=VidType.STRING255)
-        result = store.drop_space('reference')
-
-    print(result)
+        # result = store.create_space('reference', vid_type=VidType.STRING255)
+        # result = store.drop_space('reference')
+        store.use_space('reference')
 
 
 if __name__ == '__main__':
