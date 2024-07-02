@@ -37,7 +37,7 @@ class PropType(StrEnum):
 
 
 @dataclass
-class TagProp(Generic[T]):
+class Prop(Generic[T]):
     prop_name: str
     data_type: str
     not_null: bool = False
@@ -177,7 +177,7 @@ class NebulaGraphStore:
     def create_tag(
             self,
             tag_name: str, props: list[str], *,
-            ttl_duration: int = None, ttl_col: TagProp = None, comment: str = ''
+            ttl_duration: int = None, ttl_col: Prop = None, comment: str = ''
     ) -> ResultSet:
         """
         创建TAG
@@ -250,6 +250,57 @@ class NebulaGraphStore:
         result = self.client.execute(stmt)
         return result
 
+    def create_edge(
+            self,
+            edge_name: str, props: list[str], *,
+            ttl_duration: int = None, ttl_col: Prop = None, comment: str = ''
+    ) -> ResultSet:
+        """
+        创建边类型
+
+        :param edge_name: 边类型名称
+        :param props: 属性列表
+        :param ttl_duration: 指定时间戳差值，单位：秒
+        :param ttl_col: 指定要设置存活时间的属性, 属性的数据类型必须是int或者timestamp
+        :param comment:
+        :return:
+
+        CREATE EDGE [IF NOT EXISTS] <edge_type_name>(
+          <prop_name> <data_type> [NULL | NOT NULL] [DEFAULT <default_value>] [COMMENT '<comment>']
+          [{, <prop_name> <data_type> [NULL | NOT NULL] [DEFAULT <default_value>] [COMMENT '<comment>']} ...]
+        )
+        [TTL_DURATION = <ttl_duration>]
+        [TTL_COL = <prop_name>]
+        [COMMENT = '<comment>'];
+        """
+
+        prop_str = ' ,'.join(props)
+        stmt_1 = f'CREATE EDGE IF NOT EXISTS {edge_name}({prop_str})'
+        stmt_2 = []
+        if ttl_duration is not None:
+            assert ttl_col and ttl_col.data_type in [PropType.INT64, PropType.INT32, PropType.INT16, PropType.INT8, PropType.TIMESTAMP]
+            stmt_2.append(f'TTL_DURATION = {ttl_duration}')
+            stmt_2.append(f'TTL_COL = "{ttl_col.prop_name}"')
+
+        if comment:
+            stmt_2.append(f'COMMENT = "{comment}"')
+
+        stmt = f'{stmt_1} {", ".join(stmt_2)};'
+        result = self.client.execute(stmt)
+        return result
+
+    def drop_edge(self, edge_name: str) -> ResultSet:
+        """
+        删除当前工作空间内的指定 Edge type
+
+        :param edge_name: 要删除的edge名称
+        :return:
+
+        DROP EDGE [IF EXISTS] <edge_type_name>;
+        """
+        result = self.client.execute(f'DROP EDGE IF EXISTS {edge_name};')
+        return result
+
 
 def main() -> None:
     with NebulaGraphStore() as store:
@@ -257,11 +308,15 @@ def main() -> None:
         # result = store.drop_space('reference')
         store.use_space('reference')
 
-        prop1 = TagProp('DOI', PropType.STRING, True)
-        prop2 = TagProp('Title', PropType.STRING, True)
-        prop3 = TagProp('Author', PropType.STRING)
-        props = [str(prop1), str(prop2), str(prop3)]
-        print(store.create_tag('paper', props))
+        # prop1 = Prop('DOI', PropType.STRING, True)
+        # prop2 = Prop('Title', PropType.STRING, True)
+        # prop3 = Prop('Author', PropType.STRING)
+        # props = [str(prop1), str(prop2), str(prop3)]
+        # print(store.create_tag('paper', props))
+
+        # prop1 = Prop('ref_id', PropType.INT64, True)
+        # props = [str(prop1)]
+        # print(store.create_edge('cite', props))
 
 
 if __name__ == '__main__':
