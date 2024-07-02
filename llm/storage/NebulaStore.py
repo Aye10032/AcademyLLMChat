@@ -1,15 +1,64 @@
 import time
+from dataclasses import dataclass
 from enum import StrEnum
+from typing import TypeVar, Generic, Optional
 
 from loguru import logger
 from nebula3.Config import Config as NConfig
 from nebula3.data.ResultSet import ResultSet
 from nebula3.gclient.net import ConnectionPool
 
+T = TypeVar('T')
+
 
 class VidType(StrEnum):
     STRING255 = 'FIXED_STRING(255)'
     INT64 = 'INT[64]'
+
+
+class PropType(StrEnum):
+    INT64 = 'int64'
+    INT32 = 'int32'
+    INT16 = 'int16'
+    INT8 = 'int8'
+    FLOAT = 'float'
+    DOUBLE = 'double'
+    BOOL = 'bool'
+    STRING = 'string'
+    DATE = 'date'
+    TIME = 'time'
+    DATETIME = 'datetime'
+    TIMESTAMP = 'timestamp'
+    DURATION = 'duration'
+    GEO = 'geography'
+    POINT = 'geography(point)'
+    LINESTRING = 'geography(linestring)'
+    POLYGON = 'geography(polygon)'
+
+
+@dataclass
+class TagProp(Generic[T]):
+    prop_name: str
+    data_type: str
+    not_null: bool = False
+    default: Optional[T] = None
+    comment: str = ''
+
+    def __str__(self):
+        prop_str = f'{self.prop_name} {self.data_type}'
+        if self.not_null:
+            prop_str += ' NOT NULL'
+
+        if self.default is not None:
+            if isinstance(self.default, str):
+                prop_str += f' DEFAULT {self.default}' if self.default.endswith("()") else f' DEFAULT "{self.default}"'
+            else:
+                prop_str += f" DEFAULT {self.default}"
+
+        if self.comment:
+            prop_str += f' COMMENT "{self.comment}"'
+
+        return prop_str
 
 
 class NebulaGraphStore:
@@ -81,7 +130,7 @@ class NebulaGraphStore:
             )
 
         logger.info('Creating graph database, please wait...')
-        time.sleep(6)
+        time.sleep(3)
         logger.info('done')
         return result
 
@@ -121,16 +170,98 @@ class NebulaGraphStore:
         result = self.client.execute(f'DROP SPACE IF EXISTS {space_name};')
 
         logger.info('Deleting graph database, please wait...')
-        time.sleep(6)
+        time.sleep(3)
         logger.info('done')
+        return result
+
+    def create_tag(
+            self,
+            tag_name: str, props: list[str], *,
+            ttl_duration: int = None, ttl_col: TagProp = None, comment: str = ''
+    ) -> ResultSet:
+        """
+        创建TAG
+
+        :param tag_name: Tag名称,每个图空间内的Tag必须是唯一的。包括英文字母（区分大小写）、数字、中文等。不能包含下划线以外的特殊字符，且不能以数字开头
+        :param props: 属性列表
+        :param ttl_duration: 指定时间戳差值，单位：秒
+        :param ttl_col: 指定要设置存活时间的属性, 属性的数据类型必须是int或者timestamp
+        :param comment:
+        :return:
+
+        CREATE TAG [IF NOT EXISTS] <tag_name> (
+        <prop_name> <data_type>
+        [NULL | NOT NULL]
+        [DEFAULT <default_value>]
+        [COMMENT '<comment>']
+        [{, <prop_name> <data_type> [NULL | NOT NULL] [DEFAULT <default_value>] [COMMENT '<comment>']} ...]
+        )
+        [TTL_DURATION = <ttl_duration>]
+        [TTL_COL = <prop_name>]
+        [COMMENT = '<comment>']
+        """
+
+        prop_str = ' ,'.join(props)
+        stmt_1 = f'CREATE TAG IF NOT EXISTS {tag_name}({prop_str})'
+        stmt_2 = []
+        if ttl_duration is not None:
+            assert ttl_col and ttl_col.data_type in [PropType.INT64, PropType.INT32, PropType.INT16, PropType.INT8, PropType.TIMESTAMP]
+            stmt_2.append(f'TTL_DURATION = {ttl_duration}')
+            stmt_2.append(f'TTL_COL = "{ttl_col.prop_name}"')
+
+        if comment:
+            stmt_2.append(f'COMMENT = "{comment}"')
+
+        stmt = f'{stmt_1} {", ".join(stmt_2)};'
+        result = self.client.execute(stmt)
+
+        return result
+
+    def drop_tag(self, tag_name: str) -> ResultSet:
+        """
+        删除当前工作空间内所有点上的指定 Tag
+
+        :param tag_name: 要删除的tag名称
+        :return:
+
+        DROP TAG [IF EXISTS] <tag_name>;
+        """
+        result = self.client.execute(f'DROP TAG IF EXISTS {tag_name};')
+        return result
+
+    def delete_tag(self, tag_names: list[str], vid_list: list[str]):
+        """
+
+        :param tag_names:
+        :param vid_list:
+        :return:
+
+        DELETE TAG <tag_name_list> FROM <VID_list>;
+        """
+
+        if len(tag_names) == 0:
+            tag_str = '*'
+        else:
+            tag_str = ','.join(tag_names)
+
+        vid_list = [f'"{vid}"' for vid in vid_list]
+
+        stmt = f'DELETE TAG {tag_str} FROM {",".join(vid_list)};'
+        result = self.client.execute(stmt)
         return result
 
 
 def main() -> None:
     with NebulaGraphStore() as store:
-        # result = store.create_space('reference', vid_type=VidType.STRING255)
+        # print(store.create_space('reference', vid_type=VidType.STRING255))
         # result = store.drop_space('reference')
         store.use_space('reference')
+
+        prop1 = TagProp('DOI', PropType.STRING, True)
+        prop2 = TagProp('Title', PropType.STRING, True)
+        prop3 = TagProp('Author', PropType.STRING)
+        props = [str(prop1), str(prop2), str(prop3)]
+        print(store.create_tag('paper', props))
 
 
 if __name__ == '__main__':
