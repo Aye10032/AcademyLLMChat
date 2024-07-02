@@ -95,6 +95,7 @@ class NebulaGraphStore:
             comment: str = None,
             *,
             vid_type: str,
+            check_exist: bool = True,
     ) -> ResultSet:
         """
         创建图空间
@@ -104,6 +105,7 @@ class NebulaGraphStore:
         :param replica_factor: 指定每个分片的副本数量。建议在生产环境中设置为 3，在测试环境中设置为 1。副本数量必须是奇数
         :param vid_type: 指定点 ID 的数据类型
         :param comment: 图空间的描述
+        :param check_exist:
         :return:
 
         CREATE SPACE [IF NOT EXISTS] <graph_space_name> (
@@ -116,18 +118,17 @@ class NebulaGraphStore:
 
         assert vid_type == 'INT[64]' or vid_type.startswith('FIXED_STRING')
 
-        if comment is not None:
-            result = self.client.execute(
-                f'CREATE SPACE IF NOT EXISTS {space_name} ('
-                f'partition_num={partition_num}, replica_factor={replica_factor}, vid_type={vid_type}'
-                f') comment="{comment}"'
-            )
+        if check_exist:
+            stmt = (f'CREATE SPACE IF NOT EXISTS {space_name} ('
+                    f'partition_num={partition_num}, replica_factor={replica_factor}, vid_type={vid_type})')
         else:
-            result = self.client.execute(
-                f'CREATE SPACE IF NOT EXISTS {space_name} ('
-                f'partition_num={partition_num}, replica_factor={replica_factor}, vid_type={vid_type}'
-                f')'
-            )
+            stmt = (f'CREATE SPACE {space_name} ('
+                    f'partition_num={partition_num}, replica_factor={replica_factor}, vid_type={vid_type})')
+
+        if comment is not None:
+            stmt += f' comment="{comment}"'
+
+        result = self.client.execute(stmt)
 
         logger.info('Creating graph database, please wait...')
         time.sleep(3)
@@ -146,28 +147,33 @@ class NebulaGraphStore:
         result = self.client.execute(f'USE {space_name};')
         return result
 
-    def clear_space(self, space_name: str) -> ResultSet:
+    def clear_space(self, space_name: str, *, check_exist: bool = True) -> ResultSet:
         """
         清空图空间中的点和边，但不会删除图空间本身以及其中的 Schema 信息
 
         :param space_name: 图空间唯一标识
+        :param check_exist:
         :return:
 
         CLEAR SPACE [IF EXISTS] <graph_space_name>
         """
-        result = self.client.execute(f'CLEAR SPACE IF EXISTS {space_name};')
+        stmt = f'CLEAR SPACE IF EXISTS {space_name};' if check_exist else f'CLEAR SPACE {space_name};'
+
+        result = self.client.execute(stmt)
         return result
 
-    def drop_space(self, space_name: str) -> ResultSet:
+    def drop_space(self, space_name: str, *, check_exist: bool = True) -> ResultSet:
         """
         删除指定图空间
 
         :param space_name: 图空间唯一标识
+        :param check_exist:
         :return:
 
         DROP SPACE [IF EXISTS] <graph_space_name>
         """
-        result = self.client.execute(f'DROP SPACE IF EXISTS {space_name};')
+        stmt = f'DROP SPACE IF EXISTS {space_name};' if check_exist else f'DROP SPACE {space_name};'
+        result = self.client.execute(stmt)
 
         logger.info('Deleting graph database, please wait...')
         time.sleep(3)
@@ -177,7 +183,7 @@ class NebulaGraphStore:
     def create_tag(
             self,
             tag_name: str, props: list[str], *,
-            ttl_duration: int = None, ttl_col: Prop = None, comment: str = ''
+            ttl_duration: int = None, ttl_col: Prop = None, comment: str = '', check_exist: bool = True
     ) -> ResultSet:
         """
         创建TAG
@@ -187,6 +193,7 @@ class NebulaGraphStore:
         :param ttl_duration: 指定时间戳差值，单位：秒
         :param ttl_col: 指定要设置存活时间的属性, 属性的数据类型必须是int或者timestamp
         :param comment:
+        :param check_exist:
         :return:
 
         CREATE TAG [IF NOT EXISTS] <tag_name> (
@@ -202,7 +209,7 @@ class NebulaGraphStore:
         """
 
         prop_str = ' ,'.join(props)
-        stmt_1 = f'CREATE TAG IF NOT EXISTS {tag_name}({prop_str})'
+        stmt_1 = f'CREATE TAG IF NOT EXISTS {tag_name}({prop_str})' if check_exist else f'CREATE TAG {tag_name}({prop_str})'
         stmt_2 = []
         if ttl_duration is not None:
             assert ttl_col and ttl_col.data_type in [PropType.INT64, PropType.INT32, PropType.INT16, PropType.INT8, PropType.TIMESTAMP]
@@ -217,16 +224,18 @@ class NebulaGraphStore:
 
         return result
 
-    def drop_tag(self, tag_name: str) -> ResultSet:
+    def drop_tag(self, tag_name: str, *, check_exist: bool = True) -> ResultSet:
         """
         删除当前工作空间内所有点上的指定 Tag
 
         :param tag_name: 要删除的tag名称
+        :param check_exist:
         :return:
 
         DROP TAG [IF EXISTS] <tag_name>;
         """
-        result = self.client.execute(f'DROP TAG IF EXISTS {tag_name};')
+        stmt = f'DROP TAG IF EXISTS {tag_name};' if check_exist else f'DROP TAG {tag_name};'
+        result = self.client.execute(stmt)
         return result
 
     def delete_tag(self, tag_names: list[str], vid_list: list[str]):
@@ -253,7 +262,7 @@ class NebulaGraphStore:
     def create_edge(
             self,
             edge_name: str, props: list[str], *,
-            ttl_duration: int = None, ttl_col: Prop = None, comment: str = ''
+            ttl_duration: int = None, ttl_col: Prop = None, comment: str = '', check_exist: bool = True
     ) -> ResultSet:
         """
         创建边类型
@@ -263,6 +272,7 @@ class NebulaGraphStore:
         :param ttl_duration: 指定时间戳差值，单位：秒
         :param ttl_col: 指定要设置存活时间的属性, 属性的数据类型必须是int或者timestamp
         :param comment:
+        :param check_exist:
         :return:
 
         CREATE EDGE [IF NOT EXISTS] <edge_type_name>(
@@ -275,7 +285,7 @@ class NebulaGraphStore:
         """
 
         prop_str = ' ,'.join(props)
-        stmt_1 = f'CREATE EDGE IF NOT EXISTS {edge_name}({prop_str})'
+        stmt_1 = f'CREATE EDGE IF NOT EXISTS {edge_name}({prop_str})' if check_exist else f'CREATE EDGE {edge_name}({prop_str})'
         stmt_2 = []
         if ttl_duration is not None:
             assert ttl_col and ttl_col.data_type in [PropType.INT64, PropType.INT32, PropType.INT16, PropType.INT8, PropType.TIMESTAMP]
@@ -289,16 +299,18 @@ class NebulaGraphStore:
         result = self.client.execute(stmt)
         return result
 
-    def drop_edge(self, edge_name: str) -> ResultSet:
+    def drop_edge(self, edge_name: str, *, check_exist: bool = True) -> ResultSet:
         """
         删除当前工作空间内的指定 Edge type
 
         :param edge_name: 要删除的edge名称
+        :param check_exist:
         :return:
 
         DROP EDGE [IF EXISTS] <edge_type_name>;
         """
-        result = self.client.execute(f'DROP EDGE IF EXISTS {edge_name};')
+        stmt = f'DROP EDGE IF EXISTS {edge_name};' if check_exist else f'DROP EDGE {edge_name};'
+        result = self.client.execute(stmt)
         return result
 
 
