@@ -382,7 +382,7 @@ def remove_last_digit(input_string: str) -> str:
     return input_string.rstrip('0123456789')
 
 
-def remove_digit_and_return(input_string: str) -> (str, int):
+def remove_digit_and_return(input_string: str) -> tuple[str, int]:
     result = remove_last_digit(input_string)
     num_removed = len(input_string) - len(result)
     return result, num_removed

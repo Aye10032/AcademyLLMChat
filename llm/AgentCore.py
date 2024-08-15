@@ -2,7 +2,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.pydantic_v1 import BaseModel, Field
 import streamlit as st
 
-from llm.ModelCore import load_gpt
+from llm.ModelCore import load_gpt4o_mini
 from langchain_core.output_parsers import PydanticOutputParser
 
 
@@ -13,7 +13,7 @@ class Response(BaseModel):
 
 @st.cache_data(show_spinner='Translate sentence...')
 def translate_sentence(question: str, template: str):
-    llm = load_gpt()
+    llm = load_gpt4o_mini()
     parser = PydanticOutputParser(pydantic_object=Response)
     prompt = PromptTemplate(
         template=template,

@@ -40,7 +40,7 @@ st.set_page_config(
 os.environ["LANGCHAIN_PROJECT"] = 'AcademyLLMChat'
 setup_log()
 
-llm_options = ['gpt3.5', 'gpt3.5-16k', 'gpt4', 'GLM-4']
+llm_options = ['gpt4o', 'gpt4o-mini', 'gpt4', 'GLM-4']
 
 config: Config = get_config()
 milvus_cfg = config.milvus_config

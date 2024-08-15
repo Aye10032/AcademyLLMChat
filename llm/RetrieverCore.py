@@ -16,7 +16,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
 
 from llm.EmbeddingCore import Bgem3Embeddings
-from llm.ModelCore import load_gpt, load_glm
+from llm.ModelCore import load_gpt4o_mini, load_glm
 from llm.Template import GENERATE_QUESTION_EN, GENERATE_QUESTION_ZH
 from llm.storage.SqliteStore import SqliteBaseStore
 
@@ -269,7 +269,7 @@ def base_retriever(
             template=GENERATE_QUESTION_ZH,
         )
     else:
-        retriever_llm = load_gpt()
+        retriever_llm = load_gpt4o_mini()
         query_prompt = PromptTemplate(
             input_variables=["question"],
             template=GENERATE_QUESTION_EN,
@@ -331,7 +331,7 @@ def self_query_retriever(
 
     document_content_description = 'Specifics of the article'
 
-    retriever_llm = load_gpt()
+    retriever_llm = load_gpt4o_mini()
     retriever = MultiVectorSelfQueryRetriever.from_llm(
         llm=retriever_llm,
         vectorstore=_vector_store,

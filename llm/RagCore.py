@@ -9,7 +9,7 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 import streamlit as st
 from langchain_core.runnables import RunnableLambda, RunnableParallel, RunnablePassthrough
 from llm.AgentCore import translate_sentence
-from llm.ModelCore import load_gpt_16k, load_embedding, load_gpt4, load_glm
+from llm.ModelCore import load_gpt4o, load_embedding, load_gpt4, load_glm
 from llm.RetrieverCore import *
 from llm.Template import *
 from llm.storage.SqliteStore import SqliteDocStore
@@ -111,14 +111,14 @@ def get_answer(
     vec_store = load_vectorstore(collection_name, embedding)
     doc_store = load_doc_store(config.get_sqlite_path())
 
-    if llm_name == 'gpt3.5-16k':
-        llm = load_gpt_16k()
+    if llm_name == 'gpt4o':
+        llm = load_gpt4o()
     elif llm_name == 'gpt4':
         llm = load_gpt4()
     elif llm_name == 'GLM-4':
         llm = load_glm()
     else:
-        llm = load_gpt()
+        llm = load_gpt4o_mini()
 
     if not st.session_state.get('app_is_zh_collection'):
         question = translate_sentence(question, TRANSLATE_TO_EN).trans

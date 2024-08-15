@@ -1,9 +1,7 @@
 import httpx
 import streamlit as st
 from langchain_anthropic import ChatAnthropic
-from langchain_community.chat_models import ChatZhipuAI
 from langchain_community.chat_models.baidu_qianfan_endpoint import QianfanChatEndpoint
-from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.llms.moonshot import Moonshot
 from langchain_openai import ChatOpenAI
 
@@ -37,33 +35,32 @@ def load_embedding() -> Bgem3Embeddings:
     return embedding
 
 
-@st.cache_resource(show_spinner='Loading GPT3.5 16k...')
-def load_gpt_16k() -> ChatOpenAI:
+@st.cache_resource(show_spinner='Loading GPT4o...')
+def load_gpt4o() -> ChatOpenAI:
     if config.openai_config.use_proxy:
         http_client = httpx.Client(proxies=config.get_proxy())
-        llm = ChatOpenAI(model_name="gpt-3.5-turbo-16k",
+        llm = ChatOpenAI(model_name="gpt-4o",
                          http_client=http_client,
-                         temperature=0,
+                         temperature=0.4,
                          openai_api_key=config.openai_config.api_key)
     else:
         llm = ChatOpenAI(model_name="gpt-3.5-turbo-16k",
-                         temperature=0,
+                         temperature=0.4,
                          openai_api_key=config.openai_config.api_key)
     return llm
 
 
-@st.cache_resource(show_spinner='Loading GPT3.5...')
-def load_gpt() -> ChatOpenAI:
+@st.cache_resource(show_spinner='Loading GPT4o mini...')
+def load_gpt4o_mini() -> ChatOpenAI:
     if config.openai_config.use_proxy:
         http_client = httpx.Client(proxies=config.get_proxy())
-        llm = ChatOpenAI(model_name="gpt-3.5-turbo",
+        llm = ChatOpenAI(model_name="gpt-4o-mini",
                          http_client=http_client,
-                         # openai_proxy=config.get_proxy(),
-                         temperature=0,
+                         temperature=0.4,
                          openai_api_key=config.openai_config.api_key)
     else:
         llm = ChatOpenAI(model_name="gpt-3.5-turbo",
-                         temperature=0,
+                         temperature=0.4,
                          openai_api_key=config.openai_config.api_key)
     return llm
 
@@ -72,14 +69,14 @@ def load_gpt() -> ChatOpenAI:
 def load_gpt4() -> ChatOpenAI:
     if config.openai_config.use_proxy:
         http_client = httpx.Client(proxies=config.get_proxy())
-        llm = ChatOpenAI(model_name="gpt-4",
+        llm = ChatOpenAI(model_name="gpt-4-turbo-2024-04-09",
                          http_client=http_client,
                          # openai_proxy=config.get_proxy(),
-                         temperature=0,
+                         temperature=0.6,
                          openai_api_key=config.openai_config.api_key)
     else:
         llm = ChatOpenAI(model_name="gpt-4",
-                         temperature=0,
+                         temperature=0.6,
                          openai_api_key=config.openai_config.api_key)
     return llm
 

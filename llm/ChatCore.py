@@ -2,7 +2,7 @@ from langchain_community.chat_message_histories import ChatMessageHistory, Strea
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
-from llm.ModelCore import load_gpt
+from llm.ModelCore import load_gpt4o_mini
 
 
 def chat_with_history(_chat_history: ChatMessageHistory | StreamlitChatMessageHistory, question: str):
@@ -16,7 +16,7 @@ def chat_with_history(_chat_history: ChatMessageHistory | StreamlitChatMessageHi
             ('human', '{input}'),
         ]
     )
-    llm = load_gpt()
+    llm = load_gpt4o_mini()
     chain = prompt | llm
 
     chain_with_message_history = RunnableWithMessageHistory(
