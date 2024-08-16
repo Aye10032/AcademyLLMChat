@@ -222,7 +222,7 @@ def new_tab():
                                         'doi': ''
                                     })
 
-                sqlite_path = config.get_collection_sqlite_path(new_collection)
+                sqlite_path = config.get_sqlite_path(new_collection.collection_name)
                 doc_store = SqliteDocStore(
                     connection_string=sqlite_path,
                     drop_old=True

@@ -24,7 +24,7 @@ def init_retriever() -> ParentDocumentRetriever:
     logger.info('start building vector database...')
     milvus_cfg = config.milvus_config
 
-    collection = milvus_cfg.get_collection().collection_name
+    collection_name = milvus_cfg.get_collection().collection_name
     embed_cfg = config.embedding_config
     embedding = Bgem3Embeddings(
         model_name=embed_cfg.model,
@@ -36,21 +36,21 @@ def init_retriever() -> ParentDocumentRetriever:
         local_load=embed_cfg.save_local,
         local_path=embed_cfg.local_path
     )
-    logger.info(f'load collection [{collection}], using model {embed_cfg.model}')
+    logger.info(f'load collection [{collection_name}], using model {embed_cfg.model}')
 
     if args.drop_old:
         doc_store = SqliteDocStore(
-            connection_string=config.get_sqlite_path(),
+            connection_string=config.get_sqlite_path(collection_name),
             drop_old=True
         )
     else:
         doc_store = SqliteDocStore(
-            connection_string=config.get_sqlite_path()
+            connection_string=config.get_sqlite_path(collection_name)
         )
 
     vector_db = Milvus(
         embedding,
-        collection_name=collection,
+        collection_name=collection_name,
         connection_args=milvus_cfg.get_conn_args(),
         index_params=milvus_cfg.get_collection().index_param,
         drop_old=True,
@@ -104,8 +104,8 @@ def load_md(base_path: str) -> None:
     # 初始化检索器，并添加初始文档
 
     retriever = init_retriever()
-
-    init_doc = Document(page_content=f'This is a collection about {config.milvus_config.get_collection().collection_name}',
+    now_collection = config.milvus_config.get_collection().collection_name
+    init_doc = Document(page_content=f'This is a collection about {now_collection}',
                         metadata={
                             'title': 'About this collection',
                             'section': 'Abstract',
@@ -128,7 +128,7 @@ def load_md(base_path: str) -> None:
         year = os.path.basename(root)
         for _file in tqdm(files, total=len(files), desc=f'load file in ({year})'):
             # 加载并处理markdown文件
-            file_path = os.path.join(config.get_md_path(), year, _file)
+            file_path = os.path.join(config.get_md_path(now_collection), year, _file)
 
             # 分割markdown文本为多个文档
             md_docs, reference_data = load_from_md(file_path)
@@ -228,7 +228,7 @@ if __name__ == '__main__':
             for i in range(len(config.milvus_config.collections)):
                 logger.info(f'Start init collection {i}')
                 config.set_collection(i)
-                load_md(config.get_md_path())
+                load_md(config.get_md_path(config.milvus_config.get_collection().collection_name))
         else:
             if args.collection >= len(config.milvus_config.collections) or args.collection < -1:
                 logger.error(f'collection index {args.collection} out of range')
@@ -236,4 +236,4 @@ if __name__ == '__main__':
             else:
                 config.set_collection(args.collection)
                 logger.info(f'Only init collection {args.collection}')
-                load_md(config.get_md_path())
+                load_md(config.get_md_path(config.milvus_config.get_collection().collection_name))

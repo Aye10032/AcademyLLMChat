@@ -39,13 +39,14 @@ def solve_xml(csv_file: str):
 
     df_output = df.copy()
     length = df_output.shape[0]
+    now_collection = config.milvus_config.get_collection().collection_name
     for index, row in tqdm(df_output.iterrows(), total=length, desc='adding documents'):
         if not pd.isna(row.title):
             continue
 
         year: str = row.year
         doi: str = row.doi
-        with open(os.path.join(config.get_xml_path(), year, doi.replace('/', '@') + '.xml'), 'r',
+        with open(os.path.join(config.get_xml_path(now_collection), year, doi.replace('/', '@') + '.xml'), 'r',
                   encoding='utf-8') as f:
             xml_text = f.read()
 
@@ -60,8 +61,8 @@ def solve_xml(csv_file: str):
             df_output.to_csv(csv_file, index=False, encoding='utf-8')
             continue
 
-        output_path = os.path.join(config.get_md_path(), year, doi.replace('/', '@') + '.md')
-        os.makedirs(os.path.join(config.get_md_path(), year), exist_ok=True)
+        output_path = os.path.join(config.get_md_path(now_collection), year, doi.replace('/', '@') + '.md')
+        os.makedirs(os.path.join(config.get_md_path(now_collection), year), exist_ok=True)
         save_to_md(data, output_path)
 
         df_output.at[index, 'title'] = 'done'

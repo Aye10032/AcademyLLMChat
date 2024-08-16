@@ -106,7 +106,8 @@ def download_paper_data(pmc_id: str, config: Config = None) -> Tuple[int, dict]:
             if soup.find('pub-date') \
             else None
 
-        xml_path = os.path.join(config.get_xml_path(), year, doi.replace('/', '@') + '.xml') if doi else None
+        collection = config.milvus_config.get_collection().collection_name
+        xml_path = os.path.join(config.get_xml_path(collection), year, doi.replace('/', '@') + '.xml') if doi else None
 
         if xml_path:
             os.makedirs(os.path.dirname(xml_path), exist_ok=True)

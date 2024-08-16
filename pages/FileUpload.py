@@ -1,4 +1,5 @@
 import os
+import shutil
 from datetime import datetime
 from typing import Tuple, List
 
@@ -112,7 +113,7 @@ def __download_from_pmc(target_collection: Collection, pmc_id: str, is_reference
         if not flag:
             return -1, Reference(doi, [])
 
-        output_path = os.path.join(config.get_md_path(), year, f"{doi.replace('/', '@')}.md")
+        output_path = os.path.join(config.get_md_path(target_collection.collection_name), year, f"{doi.replace('/', '@')}.md")
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
     if not is_reference:
@@ -152,7 +153,7 @@ def __download_from_pmc(target_collection: Collection, pmc_id: str, is_reference
 def __add_documents(target_collection: Collection, docs: list[Document], ref_data: Reference = None) -> None:
     embedding = load_embedding()
     vector_db = load_vectorstore(target_collection.collection_name, embedding)
-    doc_db = load_doc_store(config.get_collection_sqlite_path(target_collection))
+    doc_db = load_doc_store(config.get_sqlite_path(target_collection.collection_name))
     retriever = insert_retriever(vector_db, doc_db, target_collection.language)
     retriever.add_documents(docs)
 
@@ -253,7 +254,7 @@ def markdown_tab():
 
                 __add_documents(target_collection, doc, ref_data)
 
-                file_path = os.path.join(config.get_collection_md_path(target_collection), str(year), uploaded_file.name)
+                file_path = os.path.join(config.get_md_path(target_collection.collection_name), str(year), uploaded_file.name)
 
                 with open(file_path, 'wb') as f:
                     f.write(uploaded_file.getbuffer())
@@ -269,15 +270,13 @@ def pdf_tab():
 
     with col_1.container(border=True):
         st.subheader('使用说明')
-        st.warning('由于PDF解析需要请求PubMed信息，为了防止大量访问造成解析失败，仅允许上传单个文件')
         st.markdown(
-            """  
-            1. 将PDF文件重命名为`PMxxxx.pdf`的格式          
-            2. 确保grobid已经在运行     
-            3. 上传PDF文件      
+            """        
+            1. 确保grobid已经在运行     
+            2. 上传PDF文件      
                 - (可选)选择构建引用树
-            4. 解析并添加文献
-            5. 等待处理完成  
+            3. 解析并添加文献
+            4. 等待处理完成  
             """
         )
 
@@ -301,47 +300,52 @@ def pdf_tab():
             kwargs={'key_word': 'pdf_build_ref_tree'}
         )
 
-        uploaded_file = st.file_uploader('选择PDF文件',
-                                         type=['pdf'],
-                                         disabled=st.session_state['pdf_uploader_disable'])
+        uploaded_files = st.file_uploader(
+            '选择PDF文件',
+            type=['pdf'],
+            disabled=st.session_state['pdf_uploader_disable'],
+            accept_multiple_files=True
+        )
 
         st.button('解析并添加', key='pdf_submit', type='primary', disabled=st.session_state['pdf_uploader_disable'])
 
         if st.session_state.get('pdf_submit'):
-            if uploaded_file is None:
+
+            file_count = len(uploaded_files)
+            if file_count == 0:
                 st.warning('请先上传PDF文件')
                 st.stop()
 
             option = st.session_state.get('pdf_selection')
             target_collection = milvus_cfg.get_collection_by_id(option)
+            target_name = target_collection.collection_name
 
-            with st.spinner('Getting information about the paper..'):
-                paper_data = pm.get_paper_info()
-
-            with st.spinner('Parsing pdf...'):
+            progress_text = f'正在处理文献(0/{file_count})，请勿关闭或刷新此页面'
+            pdf_bar = st.progress(0, text=progress_text)
+            for index, uploaded_file in tqdm(enumerate(uploaded_files), total=file_count):
                 pdf_path = os.path.join(
-                    config.get_collection_pdf_path(target_collection),
-                    str(paper_data.info.year),
-                    uploaded_file.name
+                    config.get_pdf_path(target_name),
+                    'unknown',
+                    uploaded_files.name
                 )
-
                 with open(pdf_path, 'wb') as f:
-                    f.write(uploaded_file.getbuffer())
+                    f.write(uploaded_files.getbuffer())
 
                 _, _, xml_text = gb.parse_pdf_to_xml(pdf_path, config)
 
                 xml_path = os.path.join(
-                    config.get_collection_xml_path(target_collection),
-                    str(paper_data.info.year),
-                    uploaded_file.name.replace('.pdf', '.')
+                    config.get_xml_path(target_name),
+                    'unknown',
+                    uploaded_files.name.replace('.pdf', '.')
                 )
                 with open(xml_path, 'w', encoding='utf-8') as f:
                     f.write(xml_text)
 
-                result = gb.parse_xml(xml_path, paper_data.sections)
+                result = gb.parse_xml(xml_path)
 
+                year = result.info.year
                 md_path = os.path.join(
-                    config.get_collection_md_path(target_collection),
+                    config.get_md_path(target_name),
                     str(paper_data.info.year),
                     paper_data.info.doi.replace('/', '@') + '.md'
                 )

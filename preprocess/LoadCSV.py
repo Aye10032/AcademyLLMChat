@@ -27,6 +27,7 @@ def download_from_csv(year: int):
     df_10 = df[df['Year'] == year]
 
     length = df_10.shape[0]
+    collection = config.milvus_config.get_collection().collection_name
     for index, row in tqdm(df_10.iterrows(), total=length, desc=f'search documents in {year}'):
         if pd.isna(row.PMID):
             continue
@@ -35,10 +36,10 @@ def download_from_csv(year: int):
             continue
 
         time.sleep(random.uniform(2.0, 5.0))
-        pm_data = get_paper_info(row.PMID, config)
-        if pm_data['pmc']:
+        pm_data, pmc_id = get_paper_info(row.PMID, config)
+        if pmc_id:
             time.sleep(random.uniform(1.0, 4.0))
-            _, download_info = download_paper_data(pm_data['pmc'], config)
+            _, download_info = download_paper_data(pmc_id, config)
             doi = download_info['doi']
             year = download_info['year']
             xml_path = download_info['output_path']
@@ -50,21 +51,21 @@ def download_from_csv(year: int):
             if not flag:
                 out_put_df.at[index, 'Title'] = 'skip'
                 out_put_df.at[index, 'DOI'] = doi
-                out_put_df.at[index, 'PMC'] = pm_data['pmc']
+                out_put_df.at[index, 'PMC'] = pmc_id
                 out_put_df.to_csv('nandesyn_pub.csv', index=False, encoding='utf-8')
                 continue
 
-            output_path = os.path.join(config.get_md_path(), year, doi.replace('/', '@') + '.md')
-            os.makedirs(os.path.join(config.get_md_path(), year), exist_ok=True)
+            output_path = os.path.join(config.get_md_path(collection), year, doi.replace('/', '@') + '.md')
+            os.makedirs(os.path.join(config.get_md_path(collection), year), exist_ok=True)
             save_to_md(xml_data, output_path)
 
             out_put_df.at[index, 'Title'] = 'done'
             out_put_df.at[index, 'DOI'] = doi
-            out_put_df.at[index, 'PMC'] = pm_data['pmc']
+            out_put_df.at[index, 'PMC'] = pmc_id
         else:
-            title = pm_data['title']
-            year = pm_data['year']
-            doi = pm_data['doi']
+            title = pm_data.sections[0].text
+            year = pm_data.info.year
+            doi = pm_data.info.doi
 
             if doi is None:
                 out_put_df.at[index, 'Title'] = title
@@ -84,9 +85,10 @@ def load_csv(year: int):
     df_10 = df[df['Year'] == year]
 
     length = df_10.shape[0]
+    collection = config.milvus_config.get_collection().collection_name
     for index, row in tqdm(df_10.iterrows(), total=length, desc=f'search documents in {year}'):
         doi: str = row.DOI
-        xml_path = os.path.join(config.get_xml_path(), str(year), doi.replace('/', '@') + '.xml')
+        xml_path = os.path.join(config.get_xml_path(collection), str(year), doi.replace('/', '@') + '.xml')
 
         if not os.path.exists(xml_path):
             out_put_df['Title'] = 'not exist'
@@ -102,8 +104,8 @@ def load_csv(year: int):
             out_put_df.to_csv('nandesyn_pmc.csv', index=False, encoding='utf-8')
             continue
 
-        output_path = os.path.join(config.get_md_path(), str(year), doi.replace('/', '@') + '.md')
-        os.makedirs(os.path.join(config.get_md_path(), str(year)), exist_ok=True)
+        output_path = os.path.join(config.get_md_path(collection), str(year), doi.replace('/', '@') + '.md')
+        os.makedirs(os.path.join(config.get_md_path(collection), str(year)), exist_ok=True)
         save_to_md(xml_data, output_path)
 
         out_put_df['Title'] = 'done'

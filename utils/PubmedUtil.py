@@ -20,7 +20,7 @@ class SearchType(IntEnum):
 
 
 @retry(delay=random.uniform(2.0, 5.0))
-def get_paper_info(pmid: str, config: Config = None, silent: bool = True) -> Paper:
+def get_paper_info(pmid: str, config: Config = None, silent: bool = True) -> tuple[Paper, str | None]:
     """
     根据PubMed ID (PMID) 获取论文信息。
 
@@ -119,7 +119,7 @@ def get_paper_info(pmid: str, config: Config = None, silent: bool = True) -> Pap
             Section('Abstract', 2),
             Section(abstract, 0)
         ]
-        return Paper(paper_info, section_list, Reference(doi, ref_list))
+        return Paper(paper_info, section_list, Reference(doi, ref_list)), pmc
     else:
         # 请求失败时抛出异常
         raise Exception('下载请求失败')

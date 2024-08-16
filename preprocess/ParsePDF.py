@@ -11,7 +11,8 @@ logger.add('log/pdf2md.log')
 
 
 def assemble_md(silent: bool = True):
-    for root, dirs, files in os.walk(config.get_xml_path()):
+    collection = config.milvus_config.get_collection().collection_name
+    for root, dirs, files in os.walk(config.get_xml_path(collection)):
         if len(files) == 0:
             continue
 
@@ -27,8 +28,8 @@ def assemble_md(silent: bool = True):
 
             data = parse_xml(file_path)
 
-            md_path = os.path.join(config.get_md_path(), file_year, f'{doi}.md')
-            os.makedirs(os.path.join(config.get_md_path(), file_year), exist_ok=True)
+            md_path = os.path.join(config.get_md_path(collection), file_year, f'{doi}.md')
+            os.makedirs(os.path.join(config.get_md_path(collection), file_year), exist_ok=True)
             save_to_md(data, md_path)
 
 

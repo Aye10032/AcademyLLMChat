@@ -109,7 +109,7 @@ def get_answer(
     embedding = load_embedding()
 
     vec_store = load_vectorstore(collection_name, embedding)
-    doc_store = load_doc_store(config.get_sqlite_path())
+    doc_store = load_doc_store(config.get_sqlite_path(collection_name))
 
     if llm_name == 'gpt4o':
         llm = load_gpt4o()

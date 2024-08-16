@@ -32,10 +32,11 @@ def parse_pdf(pdf_path: LiteralString | str, config: Config = None):
     grobid_cfg = config.grobid_config
 
     client = GrobidClient(config_path=grobid_cfg.get_config_path())
+    collection = config.milvus_config.get_collection().collection_name
 
     for path in pdf_paths:
         relative_path = os.path.relpath(path, pdf_path)
-        xml_path = os.path.join(config.get_xml_path(), relative_path)
+        xml_path = os.path.join(config.get_xml_path(collection), relative_path)
         logger.info(f'Parsing {path} to {xml_path}')
         client.process(grobid_cfg.service, path, output=xml_path, n=grobid_cfg.multi_process)
 
