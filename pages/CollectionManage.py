@@ -57,7 +57,8 @@ with st.sidebar:
 role_check(UserRole.OWNER)
 
 
-def del_collection(target_collection: Collection, option: int) -> None:
+def del_collection(option: int) -> None:
+    target_collection = milvus_cfg.collections[option]
     with MilvusConnection(**milvus_cfg.get_conn_args()) as conn:
         conn.drop_collection(target_collection.collection_name)
 
@@ -130,7 +131,6 @@ def manage_tab():
                 disabled=st.session_state['drop_collection_disable'],
                 on_click=del_collection,
                 kwargs={
-                    'collection': milvus_cfg.collections[option],
                     'option': option
                 }
             )
