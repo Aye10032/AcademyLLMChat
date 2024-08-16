@@ -326,17 +326,17 @@ def pdf_tab():
                 pdf_path = os.path.join(
                     config.get_pdf_path(target_name),
                     'unknown',
-                    uploaded_files.name
+                    uploaded_file.name
                 )
                 with open(pdf_path, 'wb') as f:
-                    f.write(uploaded_files.getbuffer())
+                    f.write(uploaded_file.getbuffer())
 
                 _, _, xml_text = gb.parse_pdf_to_xml(pdf_path, config)
 
                 xml_path = os.path.join(
                     config.get_xml_path(target_name),
                     'unknown',
-                    uploaded_files.name.replace('.pdf', '.xml')
+                    uploaded_file.name.replace('.pdf', '.xml')
                 )
                 with open(xml_path, 'w', encoding='utf-8') as f:
                     f.write(xml_text)
