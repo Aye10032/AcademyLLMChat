@@ -360,7 +360,7 @@ def pdf_tab():
                         st.error(f'文章 {doi} 已存在，跳过')
                         continue
 
-                if year != '':
+                if year != -1:
                     md_path = os.path.join(
                         config.get_md_path(target_name),
                         str(year),
@@ -381,7 +381,7 @@ def pdf_tab():
                         str(year),
                         f"{doi.replace('/', '@')}.xml"
                     )
-                    os.makedirs(os.path.dirname(new_xml_path))
+                    os.makedirs(os.path.dirname(new_xml_path), exist_ok=True)
                     shutil.move(xml_path, new_xml_path)
                 else:
                     md_path = os.path.join(
