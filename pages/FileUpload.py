@@ -348,19 +348,30 @@ def pdf_tab():
                 result = gb.parse_xml(xml_path)
 
                 year = result.info.year
+                doi = result.info.doi
+
+                if not doi == '':
+                    with MilvusConnection(**milvus_cfg.get_conn_args()) as conn:
+                        _num = len(conn.client.query(
+                            target_collection.collection_name,
+                            filter=f'doi == "{doi}"'
+                        ))
+                    if _num > 0:
+                        st.error(f'文章 {doi} 已存在，跳过')
+                        continue
 
                 if year != '':
                     md_path = os.path.join(
                         config.get_md_path(target_name),
                         str(year),
-                        f"{result.info.doi.replace('/', '@')}.md"
+                        f"{doi.replace('/', '@')}.md"
                     )
                     os.makedirs(os.path.dirname(md_path), exist_ok=True)
 
                     new_pdf_path = os.path.join(
                         config.get_pdf_path(target_name),
                         str(year),
-                        f"{result.info.doi.replace('/', '@')}.pdf"
+                        f"{doi.replace('/', '@')}.pdf"
                     )
                     os.makedirs(os.path.dirname(new_pdf_path), exist_ok=True)
                     shutil.move(pdf_path, new_pdf_path)
@@ -368,7 +379,7 @@ def pdf_tab():
                     new_xml_path = os.path.join(
                         config.get_xml_path(target_name),
                         str(year),
-                        f"{result.info.doi.replace('/', '@')}.xml"
+                        f"{doi.replace('/', '@')}.xml"
                     )
                     os.makedirs(os.path.dirname(new_xml_path))
                     shutil.move(xml_path, new_xml_path)
@@ -376,7 +387,7 @@ def pdf_tab():
                     md_path = os.path.join(
                         config.get_md_path(target_name),
                         'unknown',
-                        result.info.doi.replace('/', '@') + '.md'
+                        f"{doi.replace('/', '@')}.md"
                     )
 
                 md.save_to_md(result, md_path)
