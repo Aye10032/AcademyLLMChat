@@ -336,7 +336,7 @@ def pdf_tab():
                 xml_path = os.path.join(
                     config.get_xml_path(target_name),
                     'unknown',
-                    uploaded_files.name.replace('.pdf', '.')
+                    uploaded_files.name.replace('.pdf', '.xml')
                 )
                 with open(xml_path, 'w', encoding='utf-8') as f:
                     f.write(xml_text)
@@ -344,56 +344,83 @@ def pdf_tab():
                 result = gb.parse_xml(xml_path)
 
                 year = result.info.year
-                md_path = os.path.join(
-                    config.get_md_path(target_name),
-                    str(paper_data.info.year),
-                    paper_data.info.doi.replace('/', '@') + '.md'
-                )
-                os.makedirs(os.path.dirname(md_path), exist_ok=True)
+
+                if year != '':
+                    md_path = os.path.join(
+                        config.get_md_path(target_name),
+                        str(year),
+                        f"{result.info.doi.replace('/', '@')}.md"
+                    )
+                    os.makedirs(os.path.dirname(md_path), exist_ok=True)
+
+                    new_pdf_path = os.path.join(
+                        config.get_pdf_path(target_name),
+                        str(year),
+                        f"{result.info.doi.replace('/', '@')}.pdf"
+                    )
+                    os.makedirs(os.path.dirname(new_pdf_path), exist_ok=True)
+                    shutil.move(pdf_path, new_pdf_path)
+
+                    new_xml_path = os.path.join(
+                        config.get_xml_path(target_name),
+                        str(year),
+                        f"{result.info.doi.replace('/', '@')}.xml"
+                    )
+                    os.makedirs(os.path.dirname(new_xml_path))
+                    shutil.move(xml_path, new_xml_path)
+                else:
+                    md_path = os.path.join(
+                        config.get_md_path(target_name),
+                        'unknown',
+                        result.info.doi.replace('/', '@') + '.md'
+                    )
+
                 md.save_to_md(result, md_path)
 
-                st.toast('PDF识别完毕', icon='👏')
+                # ----------------------------------
+                docs, ref_data = md.split_paper(result)
 
-            docs, ref_data = md.split_paper(result)
-            st.toast('PDF识别完毕', icon='👏')
+                if st.session_state.get('pdf_build_ref_tree'):
+                    with st.spinner('Analysing reference...'):
+                        ref_list = ref_data.ref_list
+                        for ref_idx, ref_dict in enumerate(ref_list):
+                            ref_dict: dict
+                            if term := ref_dict.get('pmid') != '':
+                                ref_dict = pm.get_info_by_term(term, pm.SearchType.PM)
+                            elif term := ref_dict.get('doi') != '':
+                                ref_dict = pm.get_info_by_term(term, pm.SearchType.DOI)
+                            elif term := ref_dict.get('title') != '':
+                                ref_dict = pm.get_info_by_term(term, pm.SearchType.TITLE)
+                            else:
+                                continue
 
-            if st.session_state.get('pdf_build_ref_tree'):
-                with st.spinner('Analysing reference...'):
-                    ref_list = ref_data.ref_list
-                    for index, ref_dict in enumerate(ref_list):
-                        ref_dict: dict
-                        if term := ref_dict.get('pmid') != '':
-                            ref_dict = pm.get_info_by_term(term, pm.SearchType.PM)
-                        elif term := ref_dict.get('doi') != '':
-                            ref_dict = pm.get_info_by_term(term, pm.SearchType.DOI)
-                        elif term := ref_dict.get('title') != '':
-                            ref_dict = pm.get_info_by_term(term, pm.SearchType.TITLE)
-                        else:
-                            continue
+                            ref_list[ref_idx] = ref_dict
 
-                        ref_list[index] = ref_dict
+                        ref_data.ref_list = ref_list
 
-                    ref_data.ref_list = ref_list
+                    with st.spinner('Adding document to database...'):
+                        __add_documents(target_collection, docs, ref_data)
 
-                with st.spinner('Adding document to database...'):
-                    __add_documents(target_collection, docs, ref_data)
+                    # TODO 引用文献下载
+                    # ref_list = __check_exist(pd.DataFrame(ref_list))
+                    #
+                    # try:
+                    #     __download_reference(ref_list)
+                    # except Exception as e:
+                    #     logger.error(e)
+                    #     st.session_state['retry_disable'] = False
+                    #     st.rerun()
+                    # finally:
+                    #     df_block.dataframe(st.session_state.get('ref_list'), use_container_width=True)
+                    #     st.toast('引用处理完毕', icon='👏')
+                else:
+                    with st.spinner('Adding document to database...'):
+                        __add_documents(target_collection, docs)
 
-                # TODO 引用文献下载
-                # ref_list = __check_exist(pd.DataFrame(ref_list))
-                #
-                # try:
-                #     __download_reference(ref_list)
-                # except Exception as e:
-                #     logger.error(e)
-                #     st.session_state['retry_disable'] = False
-                #     st.rerun()
-                # finally:
-                #     df_block.dataframe(st.session_state.get('ref_list'), use_container_width=True)
-                #     st.toast('引用处理完毕', icon='👏')
-            else:
-                with st.spinner('Adding document to database...'):
-                    __add_documents(target_collection, docs)
+                progress_num = (index + 1) / file_count
+                pdf_bar.progress(progress_num, text=f'正在处理文本({index + 1}/{file_count})，请勿关闭或刷新此页面')
 
+            pdf_bar.empty()
             st.success('文献添加完毕')
             st.snow()
 
