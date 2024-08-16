@@ -241,19 +241,19 @@ class Config:
     def get_pdf_path(self, collection_name: str) -> str | bytes:
         pdf_path = os.path.join(get_work_path(), self.data_root, collection_name, self.pdf_path)
 
-        os.makedirs(pdf_path.join('unknown'), exist_ok=True)
+        os.makedirs(pdf_path, exist_ok=True)
         return pdf_path
 
     def get_md_path(self, collection_name: str) -> str | bytes:
         md_path = os.path.join(get_work_path(), self.data_root, collection_name, self.md_path)
 
-        os.makedirs(md_path.join('unknown'), exist_ok=True)
+        os.makedirs(md_path, exist_ok=True)
         return md_path
 
     def get_xml_path(self, collection_name: str) -> str | bytes:
         xml_path = os.path.join(get_work_path(), self.data_root, collection_name, self.xml_path)
 
-        os.makedirs(xml_path.join('unknown'), exist_ok=True)
+        os.makedirs(xml_path, exist_ok=True)
         return xml_path
 
     def get_sqlite_path(self, collection_name: str) -> str | bytes:

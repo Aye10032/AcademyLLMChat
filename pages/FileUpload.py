@@ -320,6 +320,10 @@ def pdf_tab():
             target_collection = milvus_cfg.get_collection_by_id(option)
             target_name = target_collection.collection_name
 
+            os.makedirs(os.path.join(config.get_pdf_path(target_name), 'unknown'), exist_ok=True)
+            os.makedirs(os.path.join(config.get_xml_path(target_name), 'unknown'), exist_ok=True)
+            os.makedirs(os.path.join(config.get_md_path(target_name), 'unknown'), exist_ok=True)
+
             progress_text = f'正在处理文献(0/{file_count})，请勿关闭或刷新此页面'
             pdf_bar = st.progress(0, text=progress_text)
             for index, uploaded_file in tqdm(enumerate(uploaded_files), total=file_count):
