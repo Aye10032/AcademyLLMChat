@@ -112,8 +112,12 @@ def save_to_md(paper: Paper, output_path) -> None:
     :return: 无返回值。
     """
 
+    md_stream = io.StringIO()
+    md_text = __write_to_stream(md_stream, paper)
+    md_stream.close()
+
     with open(output_path, 'w', encoding='utf-8') as f:
-        __write_to_stream(f, paper)
+        f.write(md_text)
 
 
 def __write_to_stream(stream: StringIO | TextIO, paper: Paper) -> str:
