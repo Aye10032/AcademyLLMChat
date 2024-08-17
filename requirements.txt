@@ -8,9 +8,9 @@ beautifulsoup4
 requests[socks]
 pandas~=2.2.0
 
-langchain==0.2.1
-langchain-core==0.2.3
-langchain_community==0.2.1
+langchain==0.2.14
+langchain-core==0.2.33
+langchain_community==0.2.12
 markdown
 pymilvus==2.4.1
 sentence_transformers
@@ -19,7 +19,7 @@ lark
 # torch==2.2.1+cu121
 
 httpx
-langchain-openai==0.1.8
+langchain-openai==0.1.22
 langchain-anthropic==0.1.13
 # BGE emebedding依赖
 FlagEmbedding==1.2.8
@@ -30,4 +30,4 @@ httpx[socks]==0.24.1
 httpx-sse
 PyJWT
 
-streamlit
+streamlit==1.37.1
