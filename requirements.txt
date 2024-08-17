@@ -6,6 +6,10 @@ lxml
 pyyaml
 beautifulsoup4
 requests[socks]
+httpx[socks]
+httpx-sse
+PyJWT
+
 pandas~=2.2.0
 
 langchain==0.2.14
@@ -21,16 +25,11 @@ lark
 langchain-milvus==0.1.4
 pymilvus==2.4.5
 
-httpx
 langchain-openai==0.1.22
-langchain-anthropic==0.1.13
 # BGE emebedding依赖
 FlagEmbedding==1.2.8
 # 文心一言依赖
 qianfan==0.3.8.2
 # 智谱GLM系列依赖
-httpx[socks]==0.24.1
-httpx-sse
-PyJWT
 
 streamlit==1.37.1

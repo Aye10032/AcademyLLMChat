@@ -1,6 +1,5 @@
 import httpx
 import streamlit as st
-from langchain_anthropic import ChatAnthropic
 from langchain_community.chat_models.baidu_qianfan_endpoint import QianfanChatEndpoint
 from langchain_community.llms.moonshot import Moonshot
 from langchain_openai import ChatOpenAI
@@ -78,22 +77,6 @@ def load_gpt4() -> ChatOpenAI:
         llm = ChatOpenAI(model_name="gpt-4",
                          temperature=0.6,
                          openai_api_key=config.openai_config.api_key)
-    return llm
-
-
-@st.cache_resource(show_spinner='Loading Claude3...')
-def load_claude3() -> ChatAnthropic:
-    if config.claude_config.use_proxy:
-        http_client = httpx.Client(proxies=config.get_proxy())
-        llm = ChatAnthropic(temperature=0,
-                            http_client=http_client,
-                            anthropic_api_key=config.claude_config.api_key,
-                            model_name=config.claude_config.model)
-    else:
-        llm = ChatAnthropic(temperature=0,
-                            anthropic_api_key=config.claude_config.api_key,
-                            model_name=config.claude_config.model)
-
     return llm
 
 

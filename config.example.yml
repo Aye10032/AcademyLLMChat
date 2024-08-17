@@ -49,11 +49,6 @@ llm:
     use_proxy: True
     api_key: ''
 
-  claude3:
-    use_proxy: True
-    model: 'claude-3-opus-20240229'
-    api_key: ''
-
   qianfan:
     model: 'ERNIE-Bot'
     api_key: ''

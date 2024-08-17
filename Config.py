@@ -3,7 +3,7 @@ import os
 import shutil
 from dataclasses import dataclass, field, asdict
 from enum import IntEnum
-from typing import Dict, Tuple, Any, LiteralString
+from typing import Dict, Any
 
 import yaml
 from loguru import logger
@@ -155,17 +155,6 @@ class OpenaiConfig:
 
 
 @dataclass
-class ClaudeConfig:
-    use_proxy: bool
-    model: str
-    api_key: str
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, any]):
-        return cls(**data)
-
-
-@dataclass
 class QianfanConfig:
     api_key: str
     secret_key: str
@@ -224,7 +213,6 @@ class Config:
             self.milvus_config: MilvusConfig = MilvusConfig.from_dict(self.data_root, self.yml['milvus'])
             self.embedding_config: EmbeddingConfig = EmbeddingConfig.from_dict(self.yml['embedding'])
             self.openai_config: OpenaiConfig = OpenaiConfig.from_dict(self.yml['llm']['openai'])
-            self.claude_config: ClaudeConfig = ClaudeConfig.from_dict(self.yml['llm']['claude3'])
             self.qianfan_config: QianfanConfig = QianfanConfig.from_dict(self.yml['llm']['qianfan'])
             self.moonshot_config: MoonshotConfig = MoonshotConfig.from_dict(self.yml['llm']['moonshot'])
             self.zhipu_config: ZhipuConfig = ZhipuConfig.from_dict(self.yml['llm']['zhipu'])
