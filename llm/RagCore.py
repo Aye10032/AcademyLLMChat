@@ -1,6 +1,6 @@
 from operator import itemgetter
 
-from langchain_community.vectorstores import milvus
+from langchain_milvus.vectorstores import milvus
 from langchain_core.messages import SystemMessage
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate

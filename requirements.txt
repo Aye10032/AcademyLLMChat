@@ -11,12 +11,15 @@ pandas~=2.2.0
 langchain==0.2.14
 langchain-core==0.2.33
 langchain_community==0.2.12
+
 markdown
-pymilvus==2.4.1
 sentence_transformers
 pydantic
 lark
 # torch==2.2.1+cu121
+
+langchain-milvus==0.1.4
+pymilvus==2.4.5
 
 httpx
 langchain-openai==0.1.22

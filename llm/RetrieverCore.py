@@ -1,17 +1,17 @@
 from typing import List, Optional, Dict, Any, Tuple
 
 from langchain.chains.query_constructor.schema import AttributeInfo
-from langchain.retrievers import ParentDocumentRetriever, MultiQueryRetriever, SelfQueryRetriever, MultiVectorRetriever
+from langchain.retrievers import ParentDocumentRetriever, SelfQueryRetriever, MultiVectorRetriever
 from langchain.retrievers.multi_query import LineListOutputParser
 from langchain.retrievers.multi_vector import SearchType
 from langchain_community.query_constructors.milvus import MilvusTranslator
-from langchain_community.vectorstores.milvus import Milvus
 from langchain_core.callbacks import CallbackManagerForRetrieverRun, AsyncCallbackManagerForRetrieverRun
 from langchain_core.documents import Document
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import Runnable
 from langchain_core.stores import BaseStore
 from langchain_core.vectorstores import VectorStore
+from langchain_milvus import Milvus
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
 
