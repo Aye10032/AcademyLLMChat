@@ -255,6 +255,7 @@ def markdown_tab():
                 __add_documents(target_collection, doc, ref_data)
 
                 file_path = os.path.join(config.get_md_path(target_collection.collection_name), str(year), uploaded_file.name)
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
                 with open(file_path, 'wb') as f:
                     f.write(uploaded_file.getbuffer())
