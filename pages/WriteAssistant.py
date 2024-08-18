@@ -40,7 +40,7 @@ if prompt:
     st.session_state.write_messages.append({'role': 'user', 'content': prompt})
 
     chat_history = ChatMessageHistory()
-    for message in st.session_state.messages:
+    for message in st.session_state.write_messages:
         if message['role'] == 'assistant':
             chat_history.add_ai_message(message['content'])
         else:
@@ -49,5 +49,5 @@ if prompt:
     response = write_paper(chat_history, prompt)
 
     result = chat_container.chat_message('assistant', avatar='logo.png').write_stream(response)
-    st.session_state.messages.append({'role': 'assistant', 'content': result})
+    st.session_state.write_messages.append({'role': 'assistant', 'content': result})
     logger.info(f"({st.session_state.get('LLM')}) answer: {result}")
