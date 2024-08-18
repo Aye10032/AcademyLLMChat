@@ -27,6 +27,7 @@ def login():
         elif auth_code == config.owner_token:
             st.session_state['role'] = UserRole.OWNER
             set_owner_enable()
+        st.rerun()
 
 
 def role_check(role: int, wide=False):
@@ -43,7 +44,7 @@ def role_check(role: int, wide=False):
 
         with auth_holder.container(border=True):
             st.warning('您无法使用本页面的功能，请输入身份码')
-            st.button('login', on_click=login)
+            st.button('login', on_click=lambda: login())
 
 
 def score_text(score: float) -> str:
