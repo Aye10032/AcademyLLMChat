@@ -30,6 +30,6 @@ langchain-openai==0.1.22
 FlagEmbedding==1.2.8
 # 文心一言依赖
 qianfan==0.3.8.2
-# 智谱GLM系列依赖
 
 streamlit==1.37.1
+streamlit_js_eval
