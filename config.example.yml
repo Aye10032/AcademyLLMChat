@@ -24,8 +24,18 @@ pubmed:
 
 # grobid相关配置
 grobid:
-  config_path: 'docker/grobid/grobid.json'
+  grobid_server: 'http://localhost:8070'
   service: 'processFulltextDocument'
+  batch_size: 100
+  sleep_time: 5
+  timeout: 5
+  coordinates:
+    - 'persName'
+    - 'ref'
+    - 'head'
+    - 's'
+    - 'p'
+    - 'title'
   multi_process: 10
 
 # milvus

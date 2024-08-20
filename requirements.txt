@@ -1,11 +1,11 @@
 loguru
 tqdm
 
-grobid-client-python==0.0.8
 lxml
 pyyaml
 beautifulsoup4
 requests[socks]
+urllib3
 httpx[socks]
 httpx-sse
 PyJWT

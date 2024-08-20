@@ -31,16 +31,17 @@ class PubmedConfig:
 
 @dataclass
 class GrobidConfig:
-    config_path: str
+    grobid_server: str
     service: str
+    batch_size: int
+    sleep_time: int
+    timeout: int
+    coordinates: list[str]
     multi_process: int
 
     @classmethod
     def from_dict(cls, data: Dict[str, any]):
         return cls(**data)
-
-    def get_config_path(self):
-        return os.path.join(get_work_path(), self.config_path)
 
 
 @dataclass

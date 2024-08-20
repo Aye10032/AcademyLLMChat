@@ -336,7 +336,8 @@ def pdf_tab():
                 with open(pdf_path, 'wb') as f:
                     f.write(uploaded_file.getbuffer())
 
-                _, _, xml_text = gb.parse_pdf_to_xml(pdf_path, config)
+                with gb.GrobidConnector(config.grobid_config) as connector:
+                    _, _, xml_text = connector.parse_file(pdf_path)
 
                 xml_path = os.path.join(
                     config.get_xml_path(target_name),
