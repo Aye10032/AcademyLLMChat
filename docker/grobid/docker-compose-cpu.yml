@@ -5,5 +5,5 @@ services:
     ports:
       - "8070:8070"
     ulimits:
-      core: 10
+      core: 0
     restart: on-failure
