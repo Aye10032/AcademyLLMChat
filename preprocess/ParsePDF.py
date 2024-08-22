@@ -13,7 +13,7 @@ logger.add('log/pdf2md.log')
 def _pdf2xml(input_path: str | bytes):
     output_path = os.path.join(input_path, 'xml')
     with GrobidConnector(gr_cfg) as connector:
-        connector.parse_files(input_path, output_path)
+        connector.parse_files(input_path, output_path, skip_exist=True)
 
 
 def _xml2md(input_path: str | bytes):
