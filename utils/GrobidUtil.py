@@ -6,7 +6,7 @@ from typing import LiteralString, Any, Tuple
 
 import requests
 from bs4 import BeautifulSoup
-from requests import RequestException, Response
+from requests import RequestException, Response, ReadTimeout
 from requests.adapters import HTTPAdapter
 from tqdm import tqdm
 from urllib3 import Retry
@@ -133,7 +133,13 @@ class GrobidConnector:
     def __default_parse(self, pdf_file: str | bytes):
         return self.parse_file(pdf_file)
 
-    def parse_files(self, pdf_path: str | bytes, output_path: str | bytes, multi_process: bool = False) -> None:
+    def parse_files(
+            self,
+            pdf_path: str | bytes,
+            output_path: str | bytes,
+            multi_process: bool = False,
+            skip_exist: bool = False,
+    ) -> None:
         file_list = [
             os.path.join(dir_path, filename)
             for dir_path, _, filenames in os.walk(pdf_path)
@@ -171,20 +177,27 @@ class GrobidConnector:
                             pbar.update(1)
             else:
                 for file in file_list:
-                    input_file, status, text = self.parse_file(file)
-
-                    if status == 200:
+                    try:
                         xml_file = os.path.join(
                             output_path,
-                            Path(input_file).name.replace('.pdf', '.grobid.xml')
+                            Path(file).name.replace('.pdf', '.grobid.xml')
                         )
-                        os.makedirs(output_path, exist_ok=True)
-                        with open(xml_file, 'w', encoding='utf8') as f:
-                            f.write(text)
-                    else:
-                        logger.error(f'Parse {input_file} error.')
 
-                    pbar.update(1)
+                        if skip_exist and os.path.exists(xml_file) and os.path.getsize(xml_file) != 0:
+                            continue
+
+                        input_file, status, text = self.parse_file(file)
+
+                        if status == 200:
+                            os.makedirs(output_path, exist_ok=True)
+                            with open(xml_file, 'w', encoding='utf8') as f:
+                                f.write(text)
+                        else:
+                            logger.error(f'Parse {input_file} error.')
+                    except ReadTimeout:
+                        logger.error(f'timeout while parsing {file}')
+                    finally:
+                        pbar.update(1)
 
 
 def parse_xml(xml_path: LiteralString | str | bytes, sections: list = None) -> Paper:
@@ -225,21 +238,25 @@ def parse_xml(xml_path: LiteralString | str | bytes, sections: list = None) -> P
         else:
             authors.append(__extract_author_name(last_name, first_name))
 
+    if len(authors) == 0:
+        authors.append("")
+
     # 提取出版年份
     pub_date = soup.find('publicationStmt')
-    year = pub_date.find('date')
-    year = year.attrs.get('when') if year is not None else ''
-    match len(year):
-        case 4:
-            year = int(year)
-        case 0:
-            year = -1
-        case _:
-            try:
+    year_block = pub_date.find('date')
+    year = year_block.attrs.get('when') if year_block is not None else ''
+
+    try:
+        match len(year):
+            case 4:
+                year = int(year)
+            case 0:
+                year = -1
+            case _:
                 year = int(year[:4])
-            except ValueError:
-                print(len(year))
-                exit()
+    except TypeError:
+        year = -1
+        logger.error(f"{xml_path} 年份提取失败")
 
     doi = soup.find('sourceDesc').find('idno', {'type': 'DOI'})
     doi = doi.text if doi else ''
