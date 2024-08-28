@@ -1,5 +1,5 @@
-import os.path
-from typing import List, Any, Dict, Sequence, Optional
+from collections.abc import Sequence
+from typing import Any, Optional
 
 from langchain_community.embeddings.huggingface import (
     DEFAULT_QUERY_BGE_INSTRUCTION_EN,
@@ -26,7 +26,7 @@ class Bgem3Embeddings(BaseModel, Embeddings):
     use_fp16: bool = True,
     device: str = None
     """
-    model_kwargs: Dict[str, Any] = Field(default_factory=dict)
+    model_kwargs: dict[str, Any] = Field(default_factory=dict)
 
     """
     Keyword arguments to pass when calling the `encode` method of the model.
@@ -37,7 +37,7 @@ class Bgem3Embeddings(BaseModel, Embeddings):
     return_sparse: bool = False,
     return_colbert_vecs: bool = False
     """
-    encode_kwargs: Dict[str, Any] = Field(default_factory=dict)
+    encode_kwargs: dict[str, Any] = Field(default_factory=dict)
 
     """Instruction to use for embedding query."""
     query_instruction: str = DEFAULT_QUERY_BGE_INSTRUCTION_EN
@@ -78,14 +78,14 @@ class Bgem3Embeddings(BaseModel, Embeddings):
     def load_model(self, model_name, **kwargs):
         return
 
-    def embed_query(self, text: str) -> List[float]:
+    def embed_query(self, text: str) -> list[float]:
         text = text.replace("\n", " ")
         embedding = self.client.encode(
             self.query_instruction + text, **self.encode_kwargs
         )['dense_vecs']
         return embedding.tolist()
 
-    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
         texts = [self.embed_instruction + t.replace("\n", " ") for t in texts]
         embeddings = self.client.encode(texts, **self.encode_kwargs)['dense_vecs']
 
@@ -96,7 +96,7 @@ class Bgem3Embeddings(BaseModel, Embeddings):
             documents: list[Document],
             query: str,
             callbacks: Optional[Callbacks] = None,
-    ) -> List[Document]:
+    ) -> list[Document]:
 
         sentence_pairs = [
             (query, doc.page_content)
