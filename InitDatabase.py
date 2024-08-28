@@ -7,8 +7,8 @@ from datetime import datetime
 import yaml
 from langchain.retrievers import ParentDocumentRetriever
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores.milvus import Milvus
 from langchain_core.documents import Document
+from langchain_milvus import Milvus
 from loguru import logger
 from tqdm import tqdm
 
@@ -202,7 +202,8 @@ if __name__ == '__main__':
                         "metric_type": 'L2',
                         "index_type": 'HNSW',
                         "params": {"M": 8, "efConstruction": 64},
-                    }
+                    },
+                    "visitor_visible": True,
                 }
                 for collection in os.listdir(DATA_ROOT)
                 if os.path.isdir(os.path.join(DATA_ROOT, collection))

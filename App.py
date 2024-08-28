@@ -5,6 +5,7 @@ from datetime import datetime
 import streamlit as st
 from langchain_community.chat_message_histories import ChatMessageHistory
 from loguru import logger
+from streamlit_js_eval import streamlit_js_eval
 
 from Config import Config
 from llm.ChatCore import chat_with_history
@@ -51,6 +52,8 @@ for collection in col:
 
 title = milvus_cfg.get_collection().title
 st.title(title)
+
+# st.write(f"Screen width is {streamlit_js_eval(js_expressions='screen.height', key='SCR')}")
 
 if 'app_is_zh_collection' not in st.session_state:
     st.session_state['app_is_zh_collection'] = False

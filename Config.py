@@ -3,7 +3,7 @@ import os
 import shutil
 from dataclasses import dataclass, field, asdict
 from enum import IntEnum
-from typing import Dict, Any
+from typing import Any
 
 import yaml
 from loguru import logger
@@ -25,7 +25,7 @@ class PubmedConfig:
     api_key: str
 
     @classmethod
-    def from_dict(cls, data: Dict[str, any]):
+    def from_dict(cls, data: dict[str, any]):
         return cls(**data)
 
 
@@ -40,7 +40,7 @@ class GrobidConfig:
     multi_process: int
 
     @classmethod
-    def from_dict(cls, data: Dict[str, any]):
+    def from_dict(cls, data: dict[str, any]):
         return cls(**data)
 
 
@@ -51,9 +51,10 @@ class Collection:
     title: str
     description: str
     index_param: str
+    visitor_visible: bool
 
     @classmethod
-    def from_dict(cls, data: Dict[str, any]):
+    def from_dict(cls, data: dict[str, any]):
         return cls(**data)
 
 
@@ -79,11 +80,12 @@ class MilvusConfig:
         with open(file=self.config_path, mode='r', encoding='utf-8') as file:
             json_data = json.load(file)['collections']
             for col in json_data:
-                self.collections.append(Collection.from_dict(col))
+                if col['visitor_visible']:
+                    self.collections.append(Collection.from_dict(col))
             self.default_collection = 0
 
     @classmethod
-    def from_dict(cls, data_root: str, data: Dict[str, any]):
+    def from_dict(cls, data_root: str, data: dict[str, any]):
         return cls(data_root, **data)
 
     def get_collection(self):
@@ -141,7 +143,7 @@ class EmbeddingConfig:
         os.makedirs(self.local_path, exist_ok=True)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, any]):
+    def from_dict(cls, data: dict[str, any]):
         return cls(**data)
 
 
@@ -151,7 +153,7 @@ class OpenaiConfig:
     api_key: str
 
     @classmethod
-    def from_dict(cls, data: Dict[str, any]):
+    def from_dict(cls, data: dict[str, any]):
         return cls(**data)
 
 
@@ -162,7 +164,7 @@ class QianfanConfig:
     model: str
 
     @classmethod
-    def from_dict(cls, data: Dict[str, any]):
+    def from_dict(cls, data: dict[str, any]):
         return cls(**data)
 
 
@@ -172,7 +174,7 @@ class MoonshotConfig:
     model: str
 
     @classmethod
-    def from_dict(cls, data: Dict[str, any]):
+    def from_dict(cls, data: dict[str, any]):
         return cls(**data)
 
 
@@ -182,7 +184,7 @@ class ZhipuConfig:
     model: str
 
     @classmethod
-    def from_dict(cls, data: Dict[str, any]):
+    def from_dict(cls, data: dict[str, any]):
         return cls(**data)
 
 

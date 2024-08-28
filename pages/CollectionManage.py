@@ -3,8 +3,8 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 from langchain.retrievers import ParentDocumentRetriever
-from langchain_community.vectorstores.milvus import Milvus
 from langchain_core.documents import Document
+from langchain_milvus import Milvus
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
 
@@ -141,11 +141,12 @@ def new_tab():
 
     with st.container(border=True):
         col1_1, col1_2 = st.columns([3, 1], gap='medium')
-
         collection_name = col1_1.text_input('知识库名称 :red[*]', disabled=st.session_state['new_collection_disable'])
         language = col1_2.selectbox('语言', ['en', 'zh'], disabled=st.session_state['new_collection_disable'])
 
-        title = st.text_input('页面名称', disabled=st.session_state['new_collection_disable'])
+        col2_1, col2_2 = st.columns([3, 1], gap='medium')
+        title = col2_1.text_input('页面名称', disabled=st.session_state['new_collection_disable'])
+        visible = st.toggle('用户可见', True)
         description = st.text_area('collection 描述', disabled=st.session_state['new_collection_disable'])
 
         with st.expander('向量库参数设置'):
@@ -208,7 +209,8 @@ def new_tab():
                     "language": language,
                     "title": title,
                     "description": description,
-                    "index_param": index_param
+                    "index_param": index_param,
+                    "visible": visible,
                 })
 
                 init_doc = Document(page_content=f'This is a collection about {description}',
