@@ -67,6 +67,16 @@ def del_collection(option: int) -> None:
     st.session_state['verify_text'] = ''
 
 
+def rename_collection(option: int):
+    milvus_cfg.rename_collection(option, st.session_state['col_title'])
+    update_config(config)
+
+
+def change_visible(option: int) -> None:
+    milvus_cfg.set_collection_visibility(option, st.session_state.col_visible)
+    update_config(config)
+
+
 def manage_tab():
     st.header('知识库信息')
     option = st.selectbox('选择知识库',
@@ -95,7 +105,9 @@ def manage_tab():
 
         st.dataframe(field_df, hide_index=True)
 
-        st.markdown('数据库查询界面标题')
+        st.markdown(' ')
+
+        st.markdown('**数据库查询界面标题**')
         renam_col1, renam_col2 = st.columns([3, 1], gap='large')
         renam_col1.text_input(
             '数据库查询界面标题',
@@ -104,9 +116,30 @@ def manage_tab():
             disabled=st.session_state['manage_collection_disable'],
             label_visibility='collapsed'
         )
-        if renam_col2.button('Rename', disabled=st.session_state['manage_collection_disable']):
-            milvus_cfg.rename_collection(option, st.session_state['col_title'])
-            update_config(config)
+        renam_col2.button(
+            'Rename',
+            on_click=rename_collection,
+            args=[option],
+            disabled=st.session_state['manage_collection_disable']
+        )
+
+        st.markdown(' ')
+
+        st.markdown('**变更数据库用户可见性**')
+        st.toggle(
+            '可见性',
+            milvus_cfg.collections[option].visitor_visible,
+            key='col_visible',
+            on_change=change_visible,
+            args=[option],
+            disabled=st.session_state['manage_collection_disable'],
+            label_visibility='collapsed'
+        )
+
+        if st.session_state.col_visible:
+            st.caption('当前数据库对普通用户可见')
+        else:
+            st.caption('当前数据库对普通用户不可见')
 
         st.markdown(' ')
 
@@ -146,7 +179,7 @@ def new_tab():
 
         col2_1, col2_2 = st.columns([3, 1], gap='medium')
         title = col2_1.text_input('页面名称', disabled=st.session_state['new_collection_disable'])
-        visible = st.toggle('用户可见', True)
+        visible = col2_2.toggle('用户可见', True)
         description = st.text_area('collection 描述', disabled=st.session_state['new_collection_disable'])
 
         with st.expander('向量库参数设置'):

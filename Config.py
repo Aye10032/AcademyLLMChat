@@ -77,26 +77,40 @@ class MilvusConfig:
             logger.error(f'no collection config file find at {self.config_path}')
             exit()
 
-        with open(file=self.config_path, mode='r', encoding='utf-8') as file:
+        with open(self.config_path, mode='r', encoding='utf-8') as file:
             json_data = json.load(file)['collections']
             for col in json_data:
-                if col['visitor_visible']:
-                    self.collections.append(Collection.from_dict(col))
+                collection = Collection.from_dict(col)
+                if collection.visitor_visible:
+                    self.collections.append(collection)
             self.default_collection = 0
 
     @classmethod
     def from_dict(cls, data_root: str, data: dict[str, any]):
         return cls(data_root, **data)
 
-    def get_collection(self):
+    def set_group_visibility(self, visible: bool) -> None:
+        self.collections.clear()
+
+        with open(self.config_path, mode='r', encoding='utf-8') as file:
+            json_data = json.load(file)['collections']
+
+        for col in json_data:
+            collection = Collection.from_dict(col)
+            if visible or collection.visitor_visible:
+                self.collections.append(collection)
+
+        self.default_collection = 0
+
+    def get_collection(self) -> Collection:
         collection: Collection = self.collections[self.default_collection]
         return collection
 
-    def get_collection_by_id(self, index: int):
+    def get_collection_by_id(self, index: int) -> Collection:
         collection: Collection = self.collections[index]
         return collection
 
-    def get_conn_args(self):
+    def get_conn_args(self) -> dict[str, Any]:
         if self.using_remote:
             return {
                 'uri': self.remote_database['url'],
@@ -109,7 +123,7 @@ class MilvusConfig:
                 'uri': f'http://{self.milvus_host}:{self.milvus_port}'
             }
 
-    def add_collection(self, collection: Collection):
+    def add_collection(self, collection: Collection) -> None:
         self.collections.append(collection)
         json.dump(
             {"collections": [asdict(c) for c in self.collections]},
@@ -117,16 +131,28 @@ class MilvusConfig:
         )
         logger.info('update collection index file')
 
-    def remove_collection(self, index: int):
+    def remove_collection(self, index: int) -> None:
         del self.collections[index]
-        json.dump({"collections": [asdict(c) for c in self.collections]},
-                  open(self.config_path, 'w', encoding='utf-8'))
+        json.dump(
+            {"collections": [asdict(c) for c in self.collections]},
+            open(self.config_path, 'w', encoding='utf-8')
+        )
         logger.info('update collection index file')
 
-    def rename_collection(self, index: int, new_name: str):
+    def rename_collection(self, index: int, new_name: str) -> None:
         self.collections[index].title = new_name
-        json.dump({"collections": [asdict(c) for c in self.collections]},
-                  open(self.config_path, 'w', encoding='utf-8'))
+        json.dump(
+            {"collections": [asdict(c) for c in self.collections]},
+            open(self.config_path, 'w', encoding='utf-8')
+        )
+        logger.info('update collection index file')
+
+    def set_collection_visibility(self, index: int, visible: bool) -> None:
+        self.collections[index].visitor_visible = visible
+        json.dump(
+            {"collections": [asdict(c) for c in self.collections]},
+            open(self.config_path, 'w', encoding='utf-8')
+        )
         logger.info('update collection index file')
 
 

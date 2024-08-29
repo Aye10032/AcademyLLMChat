@@ -24,6 +24,10 @@ def set_admin_enable():
     st.session_state['manage_collection_disable'] = True
     st.session_state['new_collection_disable'] = True
 
+    config = get_config()
+    config.milvus_config.set_group_visibility(True)
+    update_config(config)
+
 
 def set_owner_enable():
     # file upload
@@ -34,6 +38,11 @@ def set_owner_enable():
     # collection manage
     st.session_state['manage_collection_disable'] = False
     st.session_state['new_collection_disable'] = False
+
+    # update visible collection
+    config = get_config()
+    config.milvus_config.set_group_visibility(True)
+    update_config(config)
 
 
 def get_config() -> Config:
