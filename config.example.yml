@@ -69,5 +69,5 @@ llm:
     api_key: ''
 
   zhipu:
-    model: 'glm-4'
+    model: 'glm-4-flash'
     api_key: ''
