@@ -1,3 +1,5 @@
+import os
+
 import streamlit as st
 from loguru import logger
 from langchain_community.chat_message_histories import ChatMessageHistory
@@ -14,6 +16,8 @@ st.set_page_config(
         'About': 'https://github.com/Aye10032/AcademyLLMChat'
     }
 )
+
+os.environ["LANGCHAIN_PROJECT"] = 'WriteAssistant'
 
 with st.sidebar:
     side_bar_links()
@@ -50,4 +54,4 @@ if prompt:
 
     result = chat_container.chat_message('assistant', avatar='logo.png').write_stream(response)
     st.session_state.write_messages.append({'role': 'assistant', 'content': result})
-    logger.info(f"({st.session_state.get('LLM')}) answer: {result}")
+    logger.info(f"(gpt4o-mini) answer: {result}")
