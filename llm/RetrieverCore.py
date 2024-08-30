@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple
 
 from langchain.chains.query_constructor.schema import AttributeInfo
 from langchain.retrievers import ParentDocumentRetriever, SelfQueryRetriever, MultiVectorRetriever
@@ -18,7 +18,7 @@ from loguru import logger
 from llm.EmbeddingCore import Bgem3Embeddings
 from llm.ModelCore import load_gpt4o_mini, load_glm
 from llm.Template import GENERATE_QUESTION_EN, GENERATE_QUESTION_ZH
-from llm.storage.SqliteStore import SqliteBaseStore
+from storage.SqliteStore import SqliteBaseStore
 
 import streamlit as st
 

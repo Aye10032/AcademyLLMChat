@@ -10,12 +10,12 @@ from loguru import logger
 
 from Config import Collection, UserRole, Config
 from llm.ModelCore import load_embedding
-from llm.storage.MilvusConnection import MilvusConnection
-from llm.storage.SqliteStore import SqliteDocStore
+from storage.MilvusConnection import MilvusConnection
+from storage.SqliteStore import SqliteDocStore
 from uicomponent.StComponent import side_bar_links, role_check
 from uicomponent.StatusBus import get_config, update_config
 from utils.FileUtil import is_en
-from llm.storage.MilvusParams import IndexType, get_index_param
+from storage.MilvusParams import IndexType, get_index_param
 
 st.set_page_config(
     page_title='学术大模型知识库',
@@ -304,10 +304,17 @@ def new_tab():
             st.rerun()
 
 
-tab1, tab2 = st.tabs(['知识库管理', '新建知识库'])
+def user_tab():
+    st.title('用户管理')
+
+
+tab1, tab2, tab3 = st.tabs(['知识库管理', '新建知识库', '用户管理'])
 
 with tab1:
     manage_tab()
 
 with tab2:
     new_tab()
+
+with tab3:
+    user_tab()

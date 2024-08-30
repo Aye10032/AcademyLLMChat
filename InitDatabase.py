@@ -145,6 +145,10 @@ def load_md(base_path: str) -> None:
     logger.info(f'done')
 
 
+def create_userdb():
+    ...
+
+
 if __name__ == '__main__':
     import argparse
 
@@ -174,6 +178,13 @@ if __name__ == '__main__':
         '-D',
         action='store_true',
         help='Whether to delete the original reference database'
+    )
+    parser.add_argument(
+        '--user',
+        '-U',
+        action='store_true',
+        help='Initialize user-related databases, '
+             'including creating SQLite database files that hold user information and initializing administrator user accounts.'
     )
     args = parser.parse_args()
 
@@ -216,7 +227,7 @@ if __name__ == '__main__':
 
     config = Config()
 
-    from llm.storage.SqliteStore import SqliteDocStore, ReferenceStore
+    from storage.SqliteStore import SqliteDocStore, ReferenceStore
     from utils.MarkdownPraser import load_from_md
 
     if args.drop_old:
