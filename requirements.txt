@@ -32,5 +32,8 @@ peft==0.12.0
 # 文心一言依赖
 qianfan==0.3.8.2
 
+# 联网搜索
+duckduckgo_search~=6.2.11
+
 streamlit==1.37.1
 streamlit_js_eval
