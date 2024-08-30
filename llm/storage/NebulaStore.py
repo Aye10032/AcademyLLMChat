@@ -1,64 +1,11 @@
 import time
-from dataclasses import dataclass
-from enum import StrEnum
-from typing import TypeVar, Generic, Optional
+from dataclasses import asdict
 
 from loguru import logger
 from nebula3.Config import Config as NConfig
 from nebula3.data.ResultSet import ResultSet
 from nebula3.gclient.net import ConnectionPool
-
-T = TypeVar('T')
-
-
-class VidType(StrEnum):
-    STRING255 = 'FIXED_STRING(255)'
-    INT64 = 'INT[64]'
-
-
-class PropType(StrEnum):
-    INT64 = 'int64'
-    INT32 = 'int32'
-    INT16 = 'int16'
-    INT8 = 'int8'
-    FLOAT = 'float'
-    DOUBLE = 'double'
-    BOOL = 'bool'
-    STRING = 'string'
-    DATE = 'date'
-    TIME = 'time'
-    DATETIME = 'datetime'
-    TIMESTAMP = 'timestamp'
-    DURATION = 'duration'
-    GEO = 'geography'
-    POINT = 'geography(point)'
-    LINESTRING = 'geography(linestring)'
-    POLYGON = 'geography(polygon)'
-
-
-@dataclass
-class Prop(Generic[T]):
-    prop_name: str
-    data_type: str
-    not_null: bool = False
-    default: Optional[T] = None
-    comment: str = ''
-
-    def __str__(self):
-        prop_str = f'{self.prop_name} {self.data_type}'
-        if self.not_null:
-            prop_str += ' NOT NULL'
-
-        if self.default is not None:
-            if isinstance(self.default, str):
-                prop_str += f' DEFAULT {self.default}' if self.default.endswith("()") else f' DEFAULT "{self.default}"'
-            else:
-                prop_str += f" DEFAULT {self.default}"
-
-        if self.comment:
-            prop_str += f' COMMENT "{self.comment}"'
-
-        return prop_str
+from NebulaGraph import *
 
 
 class NebulaGraphStore:
@@ -131,7 +78,7 @@ class NebulaGraphStore:
         result = self.client.execute(stmt)
 
         logger.info('Creating graph database, please wait...')
-        time.sleep(3)
+        time.sleep(6)
         logger.info('done')
         return result
 
@@ -182,7 +129,7 @@ class NebulaGraphStore:
 
     def create_tag(
             self,
-            tag_name: str, props: list[str], *,
+            tag_name: str, props: list[Prop], *,
             ttl_duration: int = None, ttl_col: Prop = None, comment: str = '', check_exist: bool = True
     ) -> ResultSet:
         """
@@ -208,7 +155,7 @@ class NebulaGraphStore:
         [COMMENT = '<comment>']
         """
 
-        prop_str = ' ,'.join(props)
+        prop_str = ' ,'.join([prop.to_ngql() for prop in props])
         stmt_1 = f'CREATE TAG IF NOT EXISTS {tag_name}({prop_str})' if check_exist else f'CREATE TAG {tag_name}({prop_str})'
         stmt_2 = []
         if ttl_duration is not None:
@@ -261,7 +208,7 @@ class NebulaGraphStore:
 
     def create_edge(
             self,
-            edge_name: str, props: list[str], *,
+            edge_name: str, props: list[Prop], *,
             ttl_duration: int = None, ttl_col: Prop = None, comment: str = '', check_exist: bool = True
     ) -> ResultSet:
         """
@@ -284,7 +231,7 @@ class NebulaGraphStore:
         [COMMENT = '<comment>'];
         """
 
-        prop_str = ' ,'.join(props)
+        prop_str = ' ,'.join([prop.to_ngql() for prop in props])
         stmt_1 = f'CREATE EDGE IF NOT EXISTS {edge_name}({prop_str})' if check_exist else f'CREATE EDGE {edge_name}({prop_str})'
         stmt_2 = []
         if ttl_duration is not None:
@@ -313,22 +260,39 @@ class NebulaGraphStore:
         result = self.client.execute(stmt)
         return result
 
+    def insert_vertex(self, **kwargs):
+        """
+
+        :return:
+
+        INSERT VERTEX [IF NOT EXISTS] [tag_props, [tag_props] ...] VALUES <vid>: ([prop_value_list])
+        """
+        # TODO
+
 
 def main() -> None:
-    with NebulaGraphStore() as store:
-        # print(store.create_space('reference', vid_type=VidType.STRING255))
-        # result = store.drop_space('reference')
+    with NebulaGraphStore(address='172.18.19.13') as store:
+        print(store.create_space('reference', vid_type=VidType.STRING255))
+        # print(store.drop_space('reference'))
         store.use_space('reference')
 
-        # prop1 = Prop('DOI', PropType.STRING, True)
-        # prop2 = Prop('Title', PropType.STRING, True)
-        # prop3 = Prop('Author', PropType.STRING)
-        # props = [str(prop1), str(prop2), str(prop3)]
-        # print(store.create_tag('paper', props))
+        paper: Tag = (
+            NebularBuilder()
+            .set_name('paper')
+            .add_prop(Prop('doi', PropType.STRING, True))
+            .add_prop(Prop('title', PropType.STRING, True))
+            .add_prop(Prop('author', PropType.STRING, True))
+            .build_tag()
+        )
+        store.create_tag(**paper.to_dict(), check_exist=False)
 
-        # prop1 = Prop('ref_id', PropType.INT64, True)
-        # props = [str(prop1)]
-        # print(store.create_edge('cite', props))
+        cite: Edge = (
+            NebularBuilder()
+            .set_name('cite')
+            .add_prop(Prop('cite_id', PropType.INT8))
+            .build_edge()
+        )
+        store.create_edge(**cite.to_dict())
 
 
 if __name__ == '__main__':
