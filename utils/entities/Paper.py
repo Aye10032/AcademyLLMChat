@@ -1,7 +1,14 @@
 from dataclasses import dataclass, field
+from enum import IntEnum
 from typing import Dict
 
-from utils.paper.PaperEnum import PaperType
+
+class PaperType(IntEnum):
+    PURE_MARKDOWN = 0
+    GROBID_PAPER = 1
+    PMC_PAPER = 2
+    PM_INFO = 3
+    NSFC = 4
 
 
 @dataclass

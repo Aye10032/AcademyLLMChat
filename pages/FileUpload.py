@@ -17,7 +17,7 @@ from storage.MilvusConnection import MilvusConnection
 from storage.SqliteStore import ReferenceStore
 from uicomponent.StComponent import side_bar_links, role_check
 from uicomponent.StatusBus import get_config
-from utils.paper.Paper import *
+from utils.entities.Paper import *
 
 import utils.MarkdownPraser as md
 import utils.GrobidUtil as gb
