@@ -4,7 +4,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
 from llm.ModelCore import load_gpt4o_mini
-from llm.ToolCore import retrieve_from_vecstore
+from llm.ToolCore import VecstoreSearchTool
 
 
 def chat_with_history(_chat_history: ChatMessageHistory | StreamlitChatMessageHistory, question: str):
@@ -37,7 +37,8 @@ def chat_with_history(_chat_history: ChatMessageHistory | StreamlitChatMessageHi
 
 
 def write_paper(_chat_history: ChatMessageHistory | StreamlitChatMessageHistory, question: str):
-    tools = [retrieve_from_vecstore]
+    retrieve_tool = VecstoreSearchTool()
+    tools = [retrieve_tool]
 
     llm = load_gpt4o_mini()
     llm_with_tools = llm.bind_tools(tools)
@@ -49,7 +50,7 @@ def write_paper(_chat_history: ChatMessageHistory | StreamlitChatMessageHistory,
 
     messages.append(ai_msg)
     for tool_call in ai_msg.tool_calls:
-        selected_tool = {"retrieve_from_vecstore": retrieve_from_vecstore}[tool_call["name"].lower()]
+        selected_tool = {"search_from_vecstore": retrieve_tool}[tool_call["name"].lower()]
         tool_output = selected_tool.invoke(tool_call["args"])
         messages.append(ToolMessage(tool_output, tool_call_id=tool_call["id"]))
 
