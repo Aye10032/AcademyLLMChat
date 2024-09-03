@@ -37,4 +37,3 @@ qianfan==0.3.8.2
 duckduckgo_search~=6.2.11
 
 streamlit==1.37.1
-streamlit_js_eval
