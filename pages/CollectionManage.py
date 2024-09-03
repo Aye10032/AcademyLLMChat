@@ -243,7 +243,7 @@ def new_tab():
                     "title": title,
                     "description": description,
                     "index_param": index_param,
-                    "visible": visible,
+                    "visitor_visible": visible,
                 })
 
                 init_doc = Document(page_content=f'This is a collection about {description}',
