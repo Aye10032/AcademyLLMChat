@@ -57,7 +57,7 @@ def write_paper(_chat_history: ChatMessageHistory | StreamlitChatMessageHistory,
     history_chain = prompt | llm_with_tools
 
     ai_msg = history_chain.invoke({
-        'chat_history': _chat_history,
+        'chat_history': _chat_history.messages,
         'input': question,
     })
 
@@ -71,7 +71,7 @@ def write_paper(_chat_history: ChatMessageHistory | StreamlitChatMessageHistory,
         _chat_history.add_message(ToolMessage(tool_output, tool_call_id=tool_call["id"]))
 
     result = history_chain.stream({
-        'chat_history': _chat_history,
+        'chat_history': _chat_history.messages,
         'input': question,
     })
 
