@@ -242,8 +242,9 @@ class Config:
 
             self.pubmed_config: PubmedConfig = PubmedConfig.from_dict(self.yml['pubmed'])
             self.grobid_config: GrobidConfig = GrobidConfig.from_dict(self.yml['grobid'])
-            self.milvus_config: MilvusConfig = MilvusConfig.from_dict(self.data_root, self.yml['milvus'])
-            self.embedding_config: EmbeddingConfig = EmbeddingConfig.from_dict(self.yml['embedding'])
+            self.milvus_config: MilvusConfig = MilvusConfig.from_dict(self.data_root, self.yml['retrieve']['milvus'])
+            self.embedding_config: EmbeddingConfig = EmbeddingConfig.from_dict(self.yml['retrieve']['embedding'])
+            self.reranker_config: EmbeddingConfig = EmbeddingConfig.from_dict(self.yml['retrieve']['reranker'])
             self.openai_config: OpenaiConfig = OpenaiConfig.from_dict(self.yml['llm']['openai'])
             self.qianfan_config: QianfanConfig = QianfanConfig.from_dict(self.yml['llm']['qianfan'])
             self.moonshot_config: MoonshotConfig = MoonshotConfig.from_dict(self.yml['llm']['moonshot'])

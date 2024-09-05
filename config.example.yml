@@ -33,37 +33,27 @@ pubmed:
   use_proxy: True
   api_key: ''
 
-# grobid相关配置
-grobid:
-  grobid_server: 'http://localhost:8070'
-  service: 'processFulltextDocument'
-  batch_size: 100
-  sleep_time: 5
-  timeout: 5
-  coordinates:
-    - 'persName'
-    - 'ref'
-    - 'head'
-    - 's'
-    - 'p'
-    - 'title'
-  multi_process: 10
+retrieve:
+  milvus:
+    milvus_host: '127.0.0.1'
+    milvus_port: 19530
+    using_remote: False
+    remote_database:
+      url: ''
+      username: ''
+      password: ''
 
-# milvus
-milvus:
-  milvus_host: '127.0.0.1'
-  milvus_port: 19530
-  using_remote: False
-  remote_database:
-    url: ''
-    username: ''
-    password: ''
+  embedding:
+    model: 'BAAI/bge-m3'
+    save_local: True
+    fp16: True
+    normalize_embeddings: True
 
-embedding:
-  model: 'BAAI/bge-m3'
-  save_local: True
-  fp16: True
-  normalize_embeddings: True
+  reranker:
+    model: 'BAAI/bge-reranker-v2-m3'
+    save_local: True
+    fp16: True
+    normalize: True
 
 llm:
   openai:
@@ -82,3 +72,18 @@ llm:
   zhipu:
     model: 'glm-4-flash'
     api_key: ''
+
+grobid:
+  grobid_server: 'http://localhost:8070'
+  service: 'processFulltextDocument'
+  batch_size: 100
+  sleep_time: 5
+  timeout: 5
+  coordinates:
+    - 'persName'
+    - 'ref'
+    - 'head'
+    - 's'
+    - 'p'
+    - 'title'
+  multi_process: 10
