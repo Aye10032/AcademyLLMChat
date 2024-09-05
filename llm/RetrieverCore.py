@@ -15,7 +15,7 @@ from langchain_milvus import Milvus
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
 
-from llm.EmbeddingCore import Bgem3Embeddings
+from llm.EmbeddingCore import BgeReranker
 from llm.ModelCore import load_gpt4o_mini, load_glm
 from llm.Template import GENERATE_QUESTION_EN, GENERATE_QUESTION_ZH
 from storage.SqliteStore import SqliteBaseStore
@@ -50,7 +50,7 @@ def get_parent_id(docs: List[Document], id_key: str) -> Tuple[List, Dict]:
 
 
 class ScoreRetriever(MultiVectorRetriever):
-    embedding: Bgem3Embeddings
+    reranker: BgeReranker
 
     multi_query: bool = False
     llm_chain: Runnable
@@ -99,7 +99,7 @@ class ScoreRetriever(MultiVectorRetriever):
         logger.info(f'retrieve {len(docs)} documents, reranking...')
 
         try:
-            rerank_docs = self.embedding.compress_documents(docs, query)[:self.top_k]
+            rerank_docs = self.reranker.compress_documents(docs, query)[:self.top_k]
 
             for i in range(len(rerank_docs)):
                 context_id = rerank_docs[i].metadata[self.id_key]
@@ -143,7 +143,7 @@ class ReferenceRetriever(MultiVectorRetriever):
 
 
 class ExprRetriever(MultiVectorRetriever):
-    embedding: Bgem3Embeddings
+    reranker: BgeReranker
     expr_statement: str
 
     top_k: int = 5
@@ -170,7 +170,7 @@ class ExprRetriever(MultiVectorRetriever):
         logger.info(f'retrieve {len(docs)} documents, reranking...')
 
         try:
-            rerank_docs = self.embedding.compress_documents(docs, query)[:self.top_k]
+            rerank_docs = self.reranker.compress_documents(docs, query)[:self.top_k]
 
             for i in range(len(rerank_docs)):
                 context_id = rerank_docs[i].metadata[self.id_key]
@@ -182,7 +182,7 @@ class ExprRetriever(MultiVectorRetriever):
 
 
 class MultiVectorSelfQueryRetriever(SelfQueryRetriever):
-    embedding: Bgem3Embeddings
+    reranker: BgeReranker
     doc_store: BaseStore[str, Document]
     id_key: str = "doc_id"
     top_k: int = 5
@@ -205,7 +205,7 @@ class MultiVectorSelfQueryRetriever(SelfQueryRetriever):
         logger.info(f'retrieve {len(docs)} documents, reranking...')
 
         try:
-            rerank_docs = self.embedding.compress_documents(docs, query)[:self.top_k]
+            rerank_docs = self.reranker.compress_documents(docs, query)[:self.top_k]
 
             for i in range(len(rerank_docs)):
                 context_id = rerank_docs[i].metadata[self.id_key]
@@ -260,7 +260,7 @@ def insert_retriever(_vector_store: VectorStore, _doc_store: SqliteBaseStore, la
 def base_retriever(
         _vector_store: VectorStore,
         _doc_store: SqliteBaseStore,
-        _embedding: Bgem3Embeddings
+        _reranker: BgeReranker
 ) -> ScoreRetriever:
     if st.session_state.get('app_is_zh_collection'):
         retriever_llm = load_glm()
@@ -282,7 +282,7 @@ def base_retriever(
     retriever = ScoreRetriever(
         vectorstore=_vector_store,
         docstore=_doc_store,
-        embedding=_embedding,
+        reranker=_reranker,
         multi_query=True,
         llm_chain=llm_chain,
         search_type=SearchType.similarity,
@@ -296,7 +296,7 @@ def base_retriever(
 def self_query_retriever(
         _vector_store: VectorStore,
         _doc_store: SqliteBaseStore,
-        _embedding: Bgem3Embeddings
+        _reranker: BgeReranker
 ) -> MultiVectorSelfQueryRetriever:
     metadata_field_info = [
         AttributeInfo(
@@ -340,7 +340,7 @@ def self_query_retriever(
         metadata_field_info=metadata_field_info,
         structured_query_translator=MilvusTranslator(),
         verbose=True,
-        embedding=_embedding,
+        reranker=_reranker,
         top_k=5
     )
 
@@ -378,13 +378,13 @@ def get_expr(fuzzy: bool = False, **kwargs) -> str:
 def expr_retriever(
         _vector_store: Milvus,
         _doc_store: SqliteBaseStore,
-        embedding: Bgem3Embeddings,
+        _reranker: BgeReranker,
         expr_stmt: str
 ) -> ExprRetriever:
     retriever = ExprRetriever(
         vectorstore=_vector_store,
         docstore=_doc_store,
-        embedding=embedding,
+        embedding=_reranker,
         expr_statement=expr_stmt,
         search_type=SearchType.similarity,
         search_kwargs={'k': 8, 'fetch_k': 10},

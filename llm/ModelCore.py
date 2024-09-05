@@ -5,7 +5,7 @@ from langchain_community.llms.moonshot import Moonshot
 from langchain_openai import ChatOpenAI
 
 from Config import Config
-from llm.EmbeddingCore import Bgem3Embeddings
+from llm.EmbeddingCore import BgeM3Embeddings, BgeReranker
 from uicomponent.StatusBus import get_config
 
 config = get_config()
@@ -14,14 +14,13 @@ if config is None:
 
 milvus_cfg = config.milvus_config
 embd_cfg = config.embedding_config
+reranker_cfg = config.reranker_config
 
 
 @st.cache_resource(show_spinner=f'Loading {embd_cfg.model}...')
-def load_embedding() -> Bgem3Embeddings:
-    model = embd_cfg.model
-
-    embedding = Bgem3Embeddings(
-        model_name=model,
+def load_embedding() -> BgeM3Embeddings:
+    embedding = BgeM3Embeddings(
+        model_name=embd_cfg.model,
         model_kwargs={
             'device': 'cuda',
             'normalize_embeddings': embd_cfg.normalize_embeddings,
@@ -32,6 +31,24 @@ def load_embedding() -> Bgem3Embeddings:
     )
 
     return embedding
+
+
+@st.cache_resource(show_spinner=f'Loading {reranker_cfg.model}...')
+def load_reranker() -> BgeReranker:
+    reranker = BgeReranker(
+        model_name=reranker_cfg.model,
+        model_kwargs={
+            'device': 'cuda',
+            'use_fp16': reranker_cfg.fp16
+        },
+        encode_kwargs={
+            'normalize': reranker_cfg.normalize_embeddings
+        },
+        local_load=reranker_cfg.save_local,
+        local_path=reranker_cfg.local_path
+    )
+
+    return reranker
 
 
 @st.cache_resource(show_spinner='Loading GPT4o...')

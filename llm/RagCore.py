@@ -8,7 +8,7 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 
 from langchain_core.runnables import RunnableLambda, RunnableParallel, RunnablePassthrough
 from llm.AgentCore import translate_sentence
-from llm.ModelCore import load_gpt4o, load_embedding, load_gpt4
+from llm.ModelCore import load_gpt4o, load_embedding, load_gpt4, load_reranker
 from llm.RetrieverCore import *
 from llm.Template import *
 from storage.SqliteStore import SqliteDocStore
@@ -106,6 +106,7 @@ def get_answer(
         llm_name: str
 ):
     embedding = load_embedding()
+    reranker = load_reranker()
 
     vec_store = load_vectorstore(collection_name, embedding)
     doc_store = load_doc_store(config.get_sqlite_path(collection_name))
@@ -157,12 +158,12 @@ def get_answer(
 
     if self_query:
         if expr_stmt is not None:
-            retriever = expr_retriever(vec_store, doc_store, embedding, expr_stmt)
+            retriever = expr_retriever(vec_store, doc_store, reranker, expr_stmt)
         else:
-            retriever = self_query_retriever(vec_store, doc_store, embedding)
+            retriever = self_query_retriever(vec_store, doc_store, reranker)
     else:
 
-        retriever = base_retriever(vec_store, doc_store, embedding)
+        retriever = base_retriever(vec_store, doc_store, reranker)
 
     formatter = itemgetter("docs") | RunnableLambda(format_docs)
 

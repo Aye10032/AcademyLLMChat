@@ -1,17 +1,17 @@
-from typing import Any, Type, Optional
+from typing import Type, Optional
 
 from duckduckgo_search import DDGS
 from langchain_core.callbacks import CallbackManagerForToolRun
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableLambda
-from langchain_core.tools import tool, BaseTool, ToolException
+from langchain_core.tools import BaseTool, ToolException
 
 import streamlit as st
 from loguru import logger
 from pydantic.v1 import BaseModel, Field
 
 from Config import Config
-from llm.ModelCore import load_embedding
+from llm.ModelCore import load_reranker
 from llm.RagCore import load_vectorstore, load_doc_store
 from llm.RetrieverCore import base_retriever
 from uicomponent.StatusBus import get_config
@@ -41,12 +41,12 @@ class VecstoreSearchTool(BaseTool):
 
         @st.cache_data(show_spinner='Search from storage...')
         def retrieve_from_vecstore(_query: str) -> str:
-            embedding = load_embedding()
+            reranker = load_reranker()
 
-            vec_store = load_vectorstore(self.target_collection, embedding)
+            vec_store = load_vectorstore(self.target_collection, reranker)
             doc_store = load_doc_store(config.get_sqlite_path(self.target_collection))
 
-            retriever = base_retriever(vec_store, doc_store, embedding)
+            retriever = base_retriever(vec_store, doc_store, reranker)
 
             chain = retriever | RunnableLambda(format_docs)
             output = chain.invoke(_query)

@@ -12,7 +12,7 @@ from langchain_milvus import Milvus
 from loguru import logger
 from tqdm import tqdm
 
-from llm.EmbeddingCore import Bgem3Embeddings
+from llm.EmbeddingCore import BgeM3Embeddings
 from utils.Decorator import timer
 
 logger.remove()
@@ -26,7 +26,7 @@ def init_retriever() -> ParentDocumentRetriever:
 
     collection_name = milvus_cfg.get_collection().collection_name
     embed_cfg = config.embedding_config
-    embedding = Bgem3Embeddings(
+    embedding = BgeM3Embeddings(
         model_name=embed_cfg.model,
         model_kwargs={
             'device': 'cuda',
