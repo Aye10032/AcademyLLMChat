@@ -6,6 +6,8 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from llm.ModelCore import load_gpt4o_mini
 from llm.ToolCore import VecstoreSearchTool, WebSearchTool
 
+import streamlit as st
+
 
 def chat_with_history(_chat_history: ChatMessageHistory | StreamlitChatMessageHistory, question: str):
     prompt = ChatPromptTemplate.from_messages(
@@ -49,33 +51,25 @@ def write_paper(_chat_history: ChatMessageHistory | StreamlitChatMessageHistory,
 
     retrieve_tool = VecstoreSearchTool(target_collection='temp1')
     web_tool = WebSearchTool()
-    tools = [retrieve_tool, web_tool]
+    tools = [retrieve_tool]
 
     llm = load_gpt4o_mini()
     llm_with_tools = llm.bind_tools(tools)
 
     history_chain = prompt | llm_with_tools
 
-    ai_msg = history_chain.invoke({
-        'chat_history': _chat_history.messages,
-        'input': question,
-    })
+    messages = _chat_history.messages.copy()
+    messages.append(HumanMessage(question))
 
-    if ai_msg.tool_calls:
-        _chat_history.add_message(ai_msg)
-        for tool_call in ai_msg.tool_calls:
-            selected_tool = {
-                'search_from_vecstore': retrieve_tool,
-                'search_from_web': web_tool,
-            }[tool_call["name"].lower()]
-            tool_output = selected_tool.invoke(tool_call["args"])
-            _chat_history.add_message(ToolMessage(tool_output, tool_call_id=tool_call["id"]))
+    with st.spinner('正在分析您的需求...'):
+        ai_msg = llm_with_tools.invoke(messages)
 
-        result = history_chain.stream({
-            'chat_history': _chat_history.messages,
-            'input': question,
-        })
+    messages.append(ai_msg)
+    for tool_call in ai_msg.tool_calls:
+        selected_tool = {"search_from_vecstore": retrieve_tool}[tool_call["name"].lower()]
+        tool_output = selected_tool.invoke(tool_call["args"])
+        messages.append(ToolMessage(tool_output, tool_call_id=tool_call["id"]))
 
-        return result
-    else:
-        yield ai_msg
+    result = llm_with_tools.stream(messages)
+
+    return result
