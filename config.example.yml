@@ -1,10 +1,21 @@
 # 数据目录
 paper_directory:
-  data_root: 'data'
+  data_root: 'data/papers'
   pdf_path: 'document'
   md_path: 'output/markdown'
   xml_path: 'output/xml'
   sqlite_path: 'sqlite/document.db'
+
+# 登录系统相关
+user_login_config:
+  user_root: "data/user"
+  sqlite_filename: "user_info.db"
+
+  # 系统初始化的管理员账户信息
+  admin_user:
+    username: "admin"       # 管理员用户名
+    password: "admin123"    # 管理员密码
+
 
 # 配置代理
 proxy:

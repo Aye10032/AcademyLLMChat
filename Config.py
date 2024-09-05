@@ -230,6 +230,9 @@ class Config:
             self.xml_path = self.yml['paper_directory']['xml_path']
             self.sqlite_path = self.yml['paper_directory']['sqlite_path']
 
+            self.user_root = self.yml['user_login_config']['user_root']
+            self.user_profile = self.yml['user_login_config']['sqlite_filename']
+
             self.proxy_type = self.yml['proxy']['type']
             self.proxy_host = self.yml['proxy']['host']
             self.proxy_port = self.yml['proxy']['port']
