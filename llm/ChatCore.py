@@ -61,18 +61,21 @@ def write_paper(_chat_history: ChatMessageHistory | StreamlitChatMessageHistory,
         'input': question,
     })
 
-    _chat_history.add_message(ai_msg)
-    for tool_call in ai_msg.tool_calls:
-        selected_tool = {
-            'search_from_vecstore': retrieve_tool,
-            'search_from_web': web_tool,
-        }[tool_call["name"].lower()]
-        tool_output = selected_tool.invoke(tool_call["args"])
-        _chat_history.add_message(ToolMessage(tool_output, tool_call_id=tool_call["id"]))
+    if ai_msg.tool_calls:
+        _chat_history.add_message(ai_msg)
+        for tool_call in ai_msg.tool_calls:
+            selected_tool = {
+                'search_from_vecstore': retrieve_tool,
+                'search_from_web': web_tool,
+            }[tool_call["name"].lower()]
+            tool_output = selected_tool.invoke(tool_call["args"])
+            _chat_history.add_message(ToolMessage(tool_output, tool_call_id=tool_call["id"]))
 
-    result = history_chain.stream({
-        'chat_history': _chat_history.messages,
-        'input': question,
-    })
+        result = history_chain.stream({
+            'chat_history': _chat_history.messages,
+            'input': question,
+        })
 
-    return result
+        return result
+    else:
+        yield ai_msg
