@@ -11,7 +11,7 @@ from loguru import logger
 from pydantic.v1 import BaseModel, Field
 
 from Config import Config
-from llm.ModelCore import load_reranker
+from llm.ModelCore import load_reranker, load_embedding
 from llm.RagCore import load_vectorstore, load_doc_store
 from llm.RetrieverCore import base_retriever
 from uicomponent.StatusBus import get_config
@@ -41,9 +41,10 @@ class VecstoreSearchTool(BaseTool):
 
         @st.cache_data(show_spinner='Search from storage...')
         def retrieve_from_vecstore(_query: str) -> str:
+            embedding = load_embedding()
             reranker = load_reranker()
 
-            vec_store = load_vectorstore(self.target_collection, reranker)
+            vec_store = load_vectorstore(self.target_collection, embedding)
             doc_store = load_doc_store(config.get_sqlite_path(self.target_collection))
 
             retriever = base_retriever(vec_store, doc_store, reranker)

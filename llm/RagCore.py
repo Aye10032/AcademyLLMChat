@@ -8,6 +8,7 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 
 from langchain_core.runnables import RunnableLambda, RunnableParallel, RunnablePassthrough
 from llm.AgentCore import translate_sentence
+from llm.EmbeddingCore import BgeM3Embeddings
 from llm.ModelCore import load_gpt4o, load_embedding, load_gpt4, load_reranker
 from llm.RetrieverCore import *
 from llm.Template import *
@@ -74,7 +75,7 @@ def format_docs(docs: List[Document]) -> str:
 
 
 @st.cache_resource(show_spinner='Loading Vector Database...')
-def load_vectorstore(collection_name: str, _embedding_model) -> Milvus:
+def load_vectorstore(collection_name: str, _embedding_model: BgeM3Embeddings) -> Milvus:
     milvus_cfg = config.milvus_config
 
     vector_db: milvus = Milvus(
