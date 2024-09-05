@@ -47,7 +47,7 @@ retrieve:
     model: 'BAAI/bge-m3'
     save_local: True
     fp16: True
-    normalize_embeddings: True
+    normalize: True
 
   reranker:
     model: 'BAAI/bge-reranker-v2-m3'

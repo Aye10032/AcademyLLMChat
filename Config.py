@@ -161,7 +161,7 @@ class EmbeddingConfig:
     model: str
     save_local: bool
     fp16: bool
-    normalize_embeddings: bool
+    normalize: bool
     local_path: str = field(init=False)
 
     def __post_init__(self):

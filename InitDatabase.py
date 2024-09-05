@@ -30,7 +30,7 @@ def init_retriever() -> ParentDocumentRetriever:
         model_name=embed_cfg.model,
         model_kwargs={
             'device': 'cuda',
-            'normalize_embeddings': embed_cfg.normalize_embeddings,
+            'normalize_embeddings': embed_cfg.normalize,
             'use_fp16': embed_cfg.fp16
         },
         local_load=embed_cfg.save_local,
