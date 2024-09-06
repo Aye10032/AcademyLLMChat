@@ -97,32 +97,8 @@ def load_gpt4() -> ChatOpenAI:
     return llm
 
 
-@st.cache_resource(show_spinner='Loading Qianfan...')
-def load_qianfan() -> QianfanChatEndpoint:
-    llm = QianfanChatEndpoint(
-        model=config.qianfan_config.model,
-        qianfan_ak=config.qianfan_config.api_key,
-        qianfan_sk=config.qianfan_config.secret_key,
-        temperature=0.05
-    )
-
-    return llm
-
-
-@st.cache_resource(show_spinner='Loading Moonshot...')
-def load_moonshot() -> Moonshot:
-    llm = Moonshot(
-        model=config.moonshot_config.model,
-        moonshot_api_key=config.moonshot_config.api_key,
-        temperature=0,
-        max_tokens=4096
-    )
-
-    return llm
-
-
-@st.cache_resource(show_spinner='Loading GLM4...')
-def load_glm() -> ChatOpenAI:
+@st.cache_resource(show_spinner='Loading GLM4-flash...')
+def load_glm4_flash() -> ChatOpenAI:
     llm = ChatOpenAI(
         model=config.zhipu_config.model,
         openai_api_base='https://open.bigmodel.cn/api/paas/v4/',

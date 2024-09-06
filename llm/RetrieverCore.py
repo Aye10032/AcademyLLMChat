@@ -16,7 +16,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
 
 from llm.EmbeddingCore import BgeReranker
-from llm.ModelCore import load_gpt4o_mini, load_glm
+from llm.ModelCore import load_gpt4o_mini, load_glm4_flash
 from llm.Template import GENERATE_QUESTION_EN, GENERATE_QUESTION_ZH
 from storage.SqliteStore import SqliteBaseStore
 
@@ -263,7 +263,7 @@ def base_retriever(
         _reranker: BgeReranker
 ) -> ScoreRetriever:
     if st.session_state.get('app_is_zh_collection'):
-        retriever_llm = load_glm()
+        retriever_llm = load_glm4_flash()
         query_prompt = PromptTemplate(
             input_variables=["question"],
             template=GENERATE_QUESTION_ZH,

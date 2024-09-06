@@ -117,7 +117,7 @@ def get_answer(
     elif llm_name == 'gpt4':
         llm = load_gpt4()
     elif llm_name == 'GLM-4':
-        llm = load_glm()
+        llm = load_glm4_flash()
     else:
         llm = load_gpt4o_mini()
 

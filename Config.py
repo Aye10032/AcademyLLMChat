@@ -184,27 +184,6 @@ class OpenaiConfig:
 
 
 @dataclass
-class QianfanConfig:
-    api_key: str
-    secret_key: str
-    model: str
-
-    @classmethod
-    def from_dict(cls, data: dict[str, any]):
-        return cls(**data)
-
-
-@dataclass
-class MoonshotConfig:
-    api_key: str
-    model: str
-
-    @classmethod
-    def from_dict(cls, data: dict[str, any]):
-        return cls(**data)
-
-
-@dataclass
 class ZhipuConfig:
     api_key: str
     model: str
@@ -246,8 +225,6 @@ class Config:
             self.embedding_config: EmbeddingConfig = EmbeddingConfig.from_dict(self.yml['retrieve']['embedding'])
             self.reranker_config: EmbeddingConfig = EmbeddingConfig.from_dict(self.yml['retrieve']['reranker'])
             self.openai_config: OpenaiConfig = OpenaiConfig.from_dict(self.yml['llm']['openai'])
-            self.qianfan_config: QianfanConfig = QianfanConfig.from_dict(self.yml['llm']['qianfan'])
-            self.moonshot_config: MoonshotConfig = MoonshotConfig.from_dict(self.yml['llm']['moonshot'])
             self.zhipu_config: ZhipuConfig = ZhipuConfig.from_dict(self.yml['llm']['zhipu'])
 
     def set_collection(self, collection: int) -> None:

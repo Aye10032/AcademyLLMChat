@@ -60,15 +60,6 @@ llm:
     use_proxy: True
     api_key: ''
 
-  qianfan:
-    model: 'ERNIE-Bot'
-    api_key: ''
-    secret_key: ''
-
-  moonshot:
-    model: 'moonshot-v1-8k'
-    api_key: ''
-
   zhipu:
     model: 'glm-4-flash'
     api_key: ''
