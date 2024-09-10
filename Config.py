@@ -50,7 +50,7 @@ class Collection:
     language: str
     title: str
     description: str
-    index_param: str
+    index_param: dict[str, Any]
     visitor_visible: bool
 
     @classmethod
