@@ -9,6 +9,7 @@ urllib3
 httpx[socks]
 httpx-sse
 PyJWT
+werkzeug
 
 pandas~=2.2.0
 
@@ -29,9 +30,7 @@ pymilvus==2.4.5
 langchain-openai==0.1.22
 # BGE emebedding依赖
 FlagEmbedding==1.2.11
-peft==0.12.0
-# 文心一言依赖
-qianfan==0.3.8.2
+# peft==0.12.0
 
 # 联网搜索
 duckduckgo_search~=6.2.11
