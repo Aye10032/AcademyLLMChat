@@ -7,6 +7,8 @@ from langchain_core.stores import BaseStore
 from loguru import logger
 
 from utils.MarkdownPraser import Reference
+from utils.entities.UserProfile import User, UserGroup
+from werkzeug.security import generate_password_hash, check_password_hash
 
 V = TypeVar("V")
 
@@ -241,29 +243,122 @@ class ReferenceStore:
         cur.close()
 
 
+class ProfileStore:
+    def __init__(
+            self,
+            connection_string: str,
+    ) -> None:
+        self.connection_string = connection_string
+
+        self._conn = self.__connect()
+
+    def __connect(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.connection_string, check_same_thread=False)
+        return conn
+
+    def create_user(self, user: User) -> bool:
+        """
+
+        :param user:
+        :return:
+        """
+        cur = self._conn.cursor()
+
+        def check_table():
+            res = cur.execute("SELECT name FROM sqlite_master WHERE name='user'")
+            if res.fetchone() is None:
+                create_stmt = f"""
+                        create table user(
+                            name       TEXT    not null,
+                            passwd     TEXT    not null,
+                            user_group INTEGER not null
+                        );"""
+                cur.execute(create_stmt)
+                self._conn.commit()
+                logger.info(f'Create table user')
+
+        def user_exists(name: str) -> bool:
+            cur.execute("SELECT name FROM user WHERE name = ?", (name,))
+            result = cur.fetchone()
+
+            return result is not None
+
+        check_table()
+        if user_exists(user.name):
+            cur = self._conn.cursor()
+            hashed_password = generate_password_hash(user.password)
+
+            stmt = """
+            INSERT INTO user (name, passwd, user_group)
+            VALUES (?, ?, ?)
+            """
+            cur.execute(stmt, (user.name, hashed_password, user.user_group))
+            self._conn.commit()
+            cur.close()
+            return True
+        else:
+            return False
+
+    def valid_user(self, user_name: str, passwd: str) -> tuple[bool, User | None]:
+        cur = self._conn.cursor()
+        try:
+            # 查询用户信息
+            cur.execute("SELECT name, passwd, user_group FROM user WHERE name = ?", (user_name,))
+            result = cur.fetchone()
+
+            if result is None:
+                logger.warning(f"用户 '{user_name}' 不存在")
+                return False, None
+
+            name, hashed_password, user_group = result
+
+            if check_password_hash(hashed_password, passwd):
+                user = User(
+                    name=name,
+                    password='',
+                    user_group=UserGroup(user_group)
+                )
+                logger.info(f"用户 '{user_name}' 验证成功")
+                return True, user
+            else:
+                logger.warning(f"用户 '{user_name}' 密码错误")
+                return False, None
+
+        except Exception as e:
+            logger.error(f"验证用户 '{user_name}' 时发生错误: {str(e)}")
+            return False, None
+        finally:
+            cur.close()
+
+    def __del__(self):
+        if self._conn:
+            self._conn.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self._conn:
+            self._conn.close()
+
+
 SqliteDocStore = SqliteBaseStore[Document]
 
 
 def main() -> None:
-    doc_store: SqliteBaseStore = SqliteDocStore(
-        connection_string='../../data/test/sqlite/document.db'
+    profile_store = ProfileStore(
+        connection_string='D:/program/github/AcademyLLMChat/data/user/user_info.db'
     )
 
-    docs = doc_store.mget(['215e7644-558b-4c0e-82ec-c6c7b80f5f82'])
-    print(docs)
+    # user = User(
+    #     name='yeyu',
+    #     password='12345678',
+    #     user_group=UserGroup.ADMIN.value
+    # )
+    # profile_store.create_user(user)
 
-    # for ids in [
-    #     '6e8664e6-186d-4451-b75d-0e341368f047', '215e7644-558b-4c0e-82ec-c6c7b80f5f82', '18112a0c-b4ea-421f-acab-86517bb7ce6f',
-    #     '382f6616-d9fb-43e1-877f-2764275ee79e', '70eb810e-f05e-4a09-a446-4786699deecf', '60978dc6-1b91-4f54-b431-14219e5bedb3',
-    #     '9b3ae9ce-59e6-4344-abc5-90ade3ce1fa3', 'ce339e57-754e-4715-8b78-a7192a8e5bd3', '59058637-7a87-42f7-855d-bf7739e74e67',
-    #     '286d774d-9022-49dd-a768-c77d7f3ce48f', '910d43e9-4b35-484c-99f7-fcbb9fe00e85', '3a6f6d63-bc40-4428-ae2f-bb1ac917cc65',
-    #     '909c81bd-2cd4-4a28-9c62-d55b3f6c6ea2', 'f12d70a8-63e2-4d93-809c-fca736a64447', '18106ce7-d8dd-4c3a-a9ea-1231706a7d46',
-    #     'ac8c6b7b-c000-4c66-80cb-1c8aaaf41624', '4f19a0c8-96d9-457b-b916-18d834ad286d', 'c3ddd415-05b5-4264-9c62-03593a383045'
-    # ]:
-    #     docs = doc_store.mget([ids])
-    #     query = 'test'
-    #     sentence_pairs = [(query, doc.page_content) for doc in docs]
-    #     print(sentence_pairs)
+    user = profile_store.valid_user('yeyu','12345678')
+    print(user)
 
 
 if __name__ == '__main__':
