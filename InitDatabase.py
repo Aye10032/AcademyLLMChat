@@ -14,6 +14,7 @@ from tqdm import tqdm
 
 from llm.EmbeddingCore import BgeM3Embeddings
 from utils.Decorator import timer
+from utils.entities.UserProfile import User, UserGroup
 
 logger.remove()
 handler_id = logger.add(sys.stderr, level="INFO")
@@ -146,7 +147,17 @@ def load_md(base_path: str) -> None:
 
 
 def create_userdb():
-    ...
+    with ProfileStore(
+        connection_string=config.get_user_db()
+    ) as profile_store:
+        init_username = config.yml['user_login_config']['admin_user']['username']
+        init_password = config.yml['user_login_config']['admin_user']['password']
+        admin = User(
+            name=init_username,
+            password=init_password,
+            user_group=UserGroup.ADMIN.value
+        )
+        profile_store.create_user(admin)
 
 
 if __name__ == '__main__':
@@ -227,7 +238,7 @@ if __name__ == '__main__':
 
     config = Config()
 
-    from storage.SqliteStore import SqliteDocStore, ReferenceStore
+    from storage.SqliteStore import SqliteDocStore, ReferenceStore, ProfileStore
     from utils.MarkdownPraser import load_from_md
 
     if args.drop_old:
@@ -249,3 +260,7 @@ if __name__ == '__main__':
                 config.set_collection(args.collection)
                 logger.info(f'Only init collection {args.collection}')
                 load_md(config.get_md_path(config.milvus_config.get_collection().collection_name))
+
+    if args.user:
+        logger.info('Create admin profile...')
+        create_userdb()

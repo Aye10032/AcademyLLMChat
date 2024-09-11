@@ -258,13 +258,21 @@ class ProfileStore:
 
     def create_user(self, user: User) -> bool:
         """
+        Create a new user in the database.
 
-        :param user:
-        :return:
+        This function checks if the 'user' table exists in the database and creates it if it does not.
+        It then checks if a user with the given name already exists. If the user does not exist, it inserts
+        the new user into the 'user' table with a hashed password.
+
+        :param user: An instance of the User class containing the user's details.
+        :return: True if the user was successfully created, False if the user already exists.
         """
         cur = self._conn.cursor()
 
         def check_table():
+            """
+            Check if the 'user' table exists in the database. If it does not exist, create it.
+            """
             res = cur.execute("SELECT name FROM sqlite_master WHERE name='user'")
             if res.fetchone() is None:
                 create_stmt = f"""
@@ -278,10 +286,16 @@ class ProfileStore:
                 logger.info(f'Create table user')
 
         def user_exists(name: str) -> bool:
+            """
+            Check if a user with the given name already exists in the 'user' table.
+
+            :param name: The name of the user to check.
+            :return: True if the user does not exist, False if the user exists.
+            """
             cur.execute("SELECT name FROM user WHERE name = ?", (name,))
             result = cur.fetchone()
 
-            return result is not None
+            return result is None
 
         check_table()
         if user_exists(user.name):
@@ -295,8 +309,11 @@ class ProfileStore:
             cur.execute(stmt, (user.name, hashed_password, user.user_group))
             self._conn.commit()
             cur.close()
+
+            logger.info(f'Create user {user.name}')
             return True
         else:
+            logger.warning(f'User {user.name} already exist!')
             return False
 
     def valid_user(self, user_name: str, passwd: str) -> tuple[bool, User | None]:
@@ -318,14 +335,14 @@ class ProfileStore:
                     password='',
                     user_group=UserGroup(user_group)
                 )
-                logger.info(f"用户 '{user_name}' 验证成功")
+                logger.info(f"User '{user_name}' valid success.")
                 return True, user
             else:
-                logger.warning(f"用户 '{user_name}' 密码错误")
+                logger.warning(f"User '{user_name}' password error!")
                 return False, None
 
         except Exception as e:
-            logger.error(f"验证用户 '{user_name}' 时发生错误: {str(e)}")
+            logger.error(f"Error while valid user '{user_name}': {str(e)}")
             return False, None
         finally:
             cur.close()
@@ -346,19 +363,19 @@ SqliteDocStore = SqliteBaseStore[Document]
 
 
 def main() -> None:
-    profile_store = ProfileStore(
-        connection_string='D:/program/github/AcademyLLMChat/data/user/user_info.db'
+    user = User(
+        name='yeyu',
+        password='12345678',
+        user_group=UserGroup.ADMIN.value
     )
 
-    # user = User(
-    #     name='yeyu',
-    #     password='12345678',
-    #     user_group=UserGroup.ADMIN.value
-    # )
-    # profile_store.create_user(user)
+    with ProfileStore(
+            connection_string='D:/program/github/AcademyLLMChat/data/user/user_info.db'
+    ) as profile_store:
+        profile_store.create_user(user)
 
-    user = profile_store.valid_user('yeyu','12345678')
-    print(user)
+        user = profile_store.valid_user('yeyu', '12345678')
+        print(user[1].user_group > UserGroup.FILE_ADMIN)
 
 
 if __name__ == '__main__':

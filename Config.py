@@ -203,25 +203,15 @@ class Config:
         with open(file=yml_path, mode='r', encoding='utf-8') as file:
             self.yml = yaml.load(file, Loader=yaml.FullLoader)
 
-            self.data_root = self.yml['paper_directory']['data_root']
-            self.pdf_path = self.yml['paper_directory']['pdf_path']
-            self.md_path = self.yml['paper_directory']['md_path']
-            self.xml_path = self.yml['paper_directory']['xml_path']
-            self.sqlite_path = self.yml['paper_directory']['sqlite_path']
-
-            self.user_root = self.yml['user_login_config']['user_root']
-            self.user_profile = self.yml['user_login_config']['sqlite_filename']
-
-            self.proxy_type = self.yml['proxy']['type']
-            self.proxy_host = self.yml['proxy']['host']
-            self.proxy_port = self.yml['proxy']['port']
-
             self.admin_token = self.yml['auth']['admin_token']
             self.owner_token = self.yml['auth']['owner_token']
 
             self.pubmed_config: PubmedConfig = PubmedConfig.from_dict(self.yml['pubmed'])
             self.grobid_config: GrobidConfig = GrobidConfig.from_dict(self.yml['grobid'])
-            self.milvus_config: MilvusConfig = MilvusConfig.from_dict(self.data_root, self.yml['retrieve']['milvus'])
+            self.milvus_config: MilvusConfig = MilvusConfig.from_dict(
+                self.yml['paper_directory']['data_root'],
+                self.yml['retrieve']['milvus']
+            )
             self.embedding_config: EmbeddingConfig = EmbeddingConfig.from_dict(self.yml['retrieve']['embedding'])
             self.reranker_config: EmbeddingConfig = EmbeddingConfig.from_dict(self.yml['retrieve']['reranker'])
             self.openai_config: OpenaiConfig = OpenaiConfig.from_dict(self.yml['llm']['openai'])
@@ -237,34 +227,58 @@ class Config:
         logger.info(f'set default collection to {collection_name}')
 
     def get_pdf_path(self, collection_name: str) -> str | bytes:
-        pdf_path = os.path.join(get_work_path(), self.data_root, collection_name, self.pdf_path)
+        data_root = self.yml['paper_directory']['data_root']
+        pdf_path = self.yml['paper_directory']['pdf_path']
+        pdf_path = os.path.join(get_work_path(), data_root, collection_name, pdf_path)
 
         os.makedirs(pdf_path, exist_ok=True)
         return pdf_path
 
     def get_md_path(self, collection_name: str) -> str | bytes:
-        md_path = os.path.join(get_work_path(), self.data_root, collection_name, self.md_path)
+        data_root = self.yml['paper_directory']['data_root']
+        md_path = self.yml['paper_directory']['md_path']
+        md_path = os.path.join(get_work_path(), data_root, collection_name, md_path)
 
         os.makedirs(md_path, exist_ok=True)
         return md_path
 
     def get_xml_path(self, collection_name: str) -> str | bytes:
-        xml_path = os.path.join(get_work_path(), self.data_root, collection_name, self.xml_path)
+        data_root = self.yml['paper_directory']['data_root']
+        xml_path = self.yml['paper_directory']['xml_path']
+        xml_path = os.path.join(get_work_path(), data_root, collection_name, xml_path)
 
         os.makedirs(xml_path, exist_ok=True)
         return xml_path
 
     def get_sqlite_path(self, collection_name: str) -> str | bytes:
-        sqlite_path = os.path.join(get_work_path(), self.data_root, collection_name, self.sqlite_path)
+        data_root = self.yml['paper_directory']['data_root']
+        sqlite_path = self.yml['paper_directory']['sqlite_path']
+        sqlite_path = os.path.join(get_work_path(), data_root, collection_name, sqlite_path)
 
         os.makedirs(os.path.dirname(sqlite_path), exist_ok=True)
         return sqlite_path
 
     def get_reference_path(self):
-        reference_path = os.path.join(get_work_path(), self.data_root, 'reference.db')
+        data_root = self.yml['paper_directory']['data_root']
+        reference_path = os.path.join(get_work_path(), data_root, 'reference.db')
 
         os.makedirs(os.path.dirname(reference_path), exist_ok=True)
         return reference_path
 
+    def get_user_path(self):
+        user_root = self.yml['user_login_config']['user_root']
+
+        return os.path.join(get_work_path(), user_root)
+
+    def get_user_db(self):
+        user_root = self.yml['user_login_config']['user_root']
+        user_profile = self.yml['user_login_config']['sqlite_filename']
+
+        return os.path.join(get_work_path(), user_root, user_profile)
+
     def get_proxy(self) -> str:
-        return f'{self.proxy_type}://{self.proxy_host}:{self.proxy_port}'
+        proxy_type = self.yml['proxy']['type']
+        proxy_host = self.yml['proxy']['host']
+        proxy_port = self.yml['proxy']['port']
+
+        return f'{proxy_type}://{proxy_host}:{proxy_port}'
