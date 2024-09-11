@@ -71,7 +71,7 @@ def format_docs(docs: List[Document]) -> str:
         )
             for i, doc in enumerate(docs)
         ]
-    return "\n\n" + "\n\n".join(formatted)
+    return "\n\n" + "\n\n----------------------------\n\n".join(formatted)
 
 
 @st.cache_resource(show_spinner='Loading Vector Database...')
