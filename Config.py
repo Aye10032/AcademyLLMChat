@@ -9,12 +9,6 @@ import yaml
 from loguru import logger
 
 
-class UserRole(IntEnum):
-    VISITOR = 0
-    ADMIN = 1
-    OWNER = 2
-
-
 def get_work_path():
     return os.path.dirname(os.path.abspath(__file__))
 
@@ -202,9 +196,6 @@ class Config:
 
         with open(file=yml_path, mode='r', encoding='utf-8') as file:
             self.yml = yaml.load(file, Loader=yaml.FullLoader)
-
-            self.admin_token = self.yml['auth']['admin_token']
-            self.owner_token = self.yml['auth']['owner_token']
 
             self.pubmed_config: PubmedConfig = PubmedConfig.from_dict(self.yml['pubmed'])
             self.grobid_config: GrobidConfig = GrobidConfig.from_dict(self.yml['grobid'])

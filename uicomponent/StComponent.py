@@ -1,5 +1,6 @@
-from Config import UserRole
+from storage.SqliteStore import ProfileStore
 from uicomponent.StatusBus import *
+from utils.entities.UserProfile import User, UserGroup
 
 config = get_config()
 
@@ -15,27 +16,41 @@ def side_bar_links():
     st.divider()
 
 
-@st.dialog("输入身份码")
+@st.dialog("登录")
 def login():
-    st.write(f'您当前的身份为{st.session_state.role}, 需要的权限为{UserRole.OWNER}')
-    auth_code = st.text_input('身份码', type='password')
+    username = st.text_input('user name')
+    password = st.text_input('password', type='password')
 
     if st.button("Submit"):
-        if auth_code == config.admin_token:
-            st.session_state['role'] = UserRole.ADMIN
-            set_admin_enable()
-        elif auth_code == config.owner_token:
-            st.session_state['role'] = UserRole.OWNER
-            set_owner_enable()
-        st.rerun()
+        with ProfileStore(
+                connection_string=config.get_user_db()
+        ) as profile_store:
+            login_result, user = profile_store.valid_user(username, password)
+
+        if login_result:
+            st.session_state['user_role'] = user
+
+            if user.user_group == UserGroup.FILE_ADMIN:
+                set_admin_enable()
+            elif user.user_group == UserGroup.ADMIN:
+                set_owner_enable()
+
+            st.rerun()
+        else:
+            st.error('密码错误！')
 
 
 def role_check(role: int, wide=False):
-    if 'role' not in st.session_state:
-        st.session_state['role'] = UserRole.VISITOR
+    if 'user_role' not in st.session_state:
+        st.session_state['user_role'] = User(
+            name='visitor',
+            password='',
+            user_group=UserGroup.VISITOR
+        )
         set_visitor_enable()
 
-    if st.session_state.get('role') < role:
+    user: User = st.session_state.get('user_role')
+    if user.user_group < role:
         if wide:
             _, col_auth_2, _ = st.columns([1.2, 3, 1.2], gap='medium')
             auth_holder = col_auth_2.empty()
@@ -43,7 +58,7 @@ def role_check(role: int, wide=False):
             auth_holder = st.empty()
 
         with auth_holder.container(border=True):
-            st.warning('您无法使用本页面的功能，请输入身份码')
+            st.warning('您无法使用本页面的功能，请登录相应权限的账户')
             st.button('login', on_click=lambda: login())
 
 

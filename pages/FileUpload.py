@@ -9,7 +9,7 @@ from loguru import logger
 from pandas import DataFrame
 from tqdm import tqdm
 
-from Config import UserRole, Config, MilvusConfig, Collection
+from Config import Config, MilvusConfig, Collection
 from llm.ModelCore import load_embedding
 from llm.RagCore import load_vectorstore, load_doc_store
 from llm.RetrieverCore import insert_retriever
@@ -23,6 +23,7 @@ import utils.MarkdownPraser as md
 import utils.GrobidUtil as gb
 import utils.PubmedUtil as pm
 import utils.PMCUtil as pmc
+from utils.entities.UserProfile import UserGroup
 
 config: Config = get_config()
 milvus_cfg: MilvusConfig = config.milvus_config
@@ -52,7 +53,7 @@ with st.sidebar:
     若因网络原因出现下载失败，请不要刷新界面，点击重试按钮，再次尝试进行引用文献的下载。      
     """)
 
-role_check(UserRole.ADMIN, True)
+role_check(UserGroup.FILE_ADMIN, True)
 
 st.title('添加文献')
 

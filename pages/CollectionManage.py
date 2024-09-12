@@ -8,7 +8,7 @@ from langchain_milvus import Milvus
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
 
-from Config import Collection, UserRole, Config
+from Config import Collection, Config
 from llm.ModelCore import load_embedding
 from storage.MilvusConnection import MilvusConnection
 from storage.SqliteStore import SqliteDocStore
@@ -16,6 +16,7 @@ from uicomponent.StComponent import side_bar_links, role_check
 from uicomponent.StatusBus import get_config, update_config
 from utils.FileUtil import is_en
 from storage.MilvusParams import IndexType, get_index_param
+from utils.entities.UserProfile import UserGroup
 
 st.set_page_config(
     page_title='学术大模型知识库',
@@ -54,7 +55,7 @@ dtype = {
 with st.sidebar:
     side_bar_links()
 
-role_check(UserRole.OWNER)
+role_check(UserGroup.ADMIN)
 
 
 def del_collection(option: int) -> None:
