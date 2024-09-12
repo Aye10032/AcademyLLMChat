@@ -23,7 +23,6 @@ langgraph==0.2.16
 markdown
 sentence_transformers
 transformers
-pydantic~=2.6.3
 lark
 # torch==2.2.1+cu121
 
