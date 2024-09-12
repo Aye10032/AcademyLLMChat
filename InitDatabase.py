@@ -148,7 +148,7 @@ def load_md(base_path: str) -> None:
 
 def create_userdb():
     connect_str = config.get_user_db()
-    os.makedirs(os.path.dirname(connect_str))
+    os.makedirs(os.path.dirname(connect_str), exist_ok=True)
 
     with ProfileStore(
             connection_string=connect_str
