@@ -1,5 +1,5 @@
-loguru
-tqdm
+loguru~=0.7.2
+tqdm~=4.66.2
 
 lxml
 pyyaml
@@ -9,28 +9,26 @@ urllib3
 httpx[socks]
 httpx-sse
 PyJWT
-werkzeug
+werkzeug~=3.0.4
 
+numpy~=1.26.3
 pandas~=2.2.0
 
 langchain==0.2.14
 langchain-core==0.2.33
 langchain_community==0.2.12
+langchain-openai==0.1.22
 langgraph==0.2.16
 
 markdown
 sentence_transformers
-pydantic
+transformers
+pydantic~=2.6.3
 lark
 # torch==2.2.1+cu121
 
 langchain-milvus==0.1.4
 pymilvus==2.4.5
-
-langchain-openai==0.1.22
-# BGE emebedding依赖
-FlagEmbedding==1.2.11
-# peft==0.12.0
 
 # 联网搜索
 duckduckgo_search~=6.2.11

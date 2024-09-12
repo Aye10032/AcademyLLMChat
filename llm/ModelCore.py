@@ -21,10 +21,9 @@ reranker_cfg = config.reranker_config
 def load_embedding() -> BgeM3Embeddings:
     embedding = BgeM3Embeddings(
         model_name=embd_cfg.model,
-        model_kwargs={
-            'device': 'cuda',
-            'normalize_embeddings': embd_cfg.normalize,
-            'use_fp16': embd_cfg.fp16
+        use_fp16=embd_cfg.fp16,
+        encode_kwargs={
+            'normalize_embeddings': embd_cfg.normalize
         },
         local_load=embd_cfg.save_local,
         local_path=embd_cfg.local_path
@@ -37,10 +36,7 @@ def load_embedding() -> BgeM3Embeddings:
 def load_reranker() -> BgeReranker:
     reranker = BgeReranker(
         model_name=reranker_cfg.model,
-        model_kwargs={
-            'device': 'cuda',
-            'use_fp16': reranker_cfg.fp16
-        },
+        use_fp16=reranker_cfg.fp16,
         encode_kwargs={
             'normalize': reranker_cfg.normalize
         },
