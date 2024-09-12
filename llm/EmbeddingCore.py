@@ -315,7 +315,7 @@ def main() -> None:
             'normalize_embeddings': True
         },
         local_load=True,
-        local_path='../model/BAAI/bge-m3'
+        local_path='../data/model/BAAI/bge-m3'
     )
 
     sentences = ["What is BGE M3?", "Defination of BM25"]
