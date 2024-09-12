@@ -147,8 +147,11 @@ def load_md(base_path: str) -> None:
 
 
 def create_userdb():
+    connect_str = config.get_user_db()
+    os.makedirs(os.path.dirname(connect_str))
+
     with ProfileStore(
-        connection_string=config.get_user_db()
+            connection_string=connect_str
     ) as profile_store:
         init_username = config.yml['user_login_config']['admin_user']['username']
         init_password = config.yml['user_login_config']['admin_user']['password']
