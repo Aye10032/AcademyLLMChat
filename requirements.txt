@@ -22,6 +22,7 @@ langgraph==0.2.16
 
 markdown
 sentence_transformers
+langchain_text_splitters
 transformers
 lark
 # torch==2.2.1+cu121
