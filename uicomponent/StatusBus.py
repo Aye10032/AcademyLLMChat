@@ -12,6 +12,7 @@ def set_visitor_enable():
     # collection manage
     st.session_state['manage_collection_disable'] = True
     st.session_state['new_collection_disable'] = True
+    st.session_state['manage_user_disable'] = True
 
 
 def set_admin_enable():
@@ -23,6 +24,7 @@ def set_admin_enable():
     # collection manage
     st.session_state['manage_collection_disable'] = True
     st.session_state['new_collection_disable'] = True
+    st.session_state['manage_user_disable'] = True
 
     config = get_config()
     config.milvus_config.set_group_visibility(True)
@@ -38,6 +40,7 @@ def set_owner_enable():
     # collection manage
     st.session_state['manage_collection_disable'] = False
     st.session_state['new_collection_disable'] = False
+    st.session_state['manage_user_disable'] = False
 
     # update visible collection
     config = get_config()

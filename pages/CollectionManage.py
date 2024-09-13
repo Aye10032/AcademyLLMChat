@@ -11,8 +11,8 @@ from loguru import logger
 from Config import Collection, Config
 from llm.ModelCore import load_embedding
 from storage.MilvusConnection import MilvusConnection
-from storage.SqliteStore import SqliteDocStore
-from uicomponent.StComponent import side_bar_links, role_check
+from storage.SqliteStore import SqliteDocStore, ProfileStore
+from uicomponent.StComponent import side_bar_links, role_check, create_user
 from uicomponent.StatusBus import get_config, update_config
 from utils.FileUtil import is_en
 from storage.MilvusParams import IndexType, get_index_param
@@ -148,10 +148,12 @@ def manage_tab():
 
         with st.container(border=True):
             st.markdown('**删除知识库**')
-            drop_verify = st.text_input('collection name',
-                                        disabled=st.session_state['manage_collection_disable'],
-                                        label_visibility='collapsed',
-                                        key='verify_text')
+            drop_verify = st.text_input(
+                'collection name',
+                disabled=st.session_state['manage_collection_disable'],
+                label_visibility='collapsed',
+                key='verify_text'
+            )
             st.caption(f'若确定要删除知识库，请在此输入 `{collection_name}`')
 
             if drop_verify == collection_name:
@@ -302,11 +304,36 @@ def new_tab():
             logger.info('success')
             st.success('创建成功')
             st.balloons()
-            st.rerun()
 
 
 def user_tab():
-    st.title('用户管理')
+    st.header('用户一览')
+    with ProfileStore(connection_string=config.get_user_db()) as profile_store:
+        user_df = profile_store.get_users()
+
+    st.dataframe(user_df)
+    st.button(
+        '＋',
+        on_click=create_user,
+        disabled=st.session_state['manage_user_disable']
+    )
+
+    st.markdown(' ')
+
+    st.header('用户信息更新')
+
+    user_list = user_df['name'].tolist()
+    user_list.remove(config.yml['user_login_config']['admin_user']['username'])
+
+    st.selectbox(
+        'user name:',
+        options=user_list,
+        index=None,
+        key='manage_user_choice',
+        disabled=st.session_state['manage_user_disable']
+    )
+
+    st.write(st.session_state['manage_user_choice'])
 
 
 tab1, tab2, tab3 = st.tabs(['知识库管理', '新建知识库', '用户管理'])

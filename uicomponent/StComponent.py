@@ -11,7 +11,7 @@ def side_bar_links():
     st.page_link('App.py', label='知识库问答', icon='💬')
     st.page_link('pages/WriteAssistant.py', label='写作助手', icon='✍️')
     st.page_link('pages/FileUpload.py', label='上传文件', icon='📂')
-    st.page_link('pages/CollectionManage.py', label='知识库管理', icon='🖥️')
+    st.page_link('pages/CollectionManage.py', label='系统管理', icon='⚙️')
 
     st.divider()
 
@@ -73,3 +73,7 @@ def score_text(score: float) -> str:
                 f'border-radius: 10px; font-size: 10px; font-family: Arial, sans-serif;">{round(score, 4)}</span>')
 
     return html_str
+
+@st.dialog("新建用户")
+def create_user():
+    ...

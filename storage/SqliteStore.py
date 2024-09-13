@@ -1,6 +1,7 @@
 import sqlite3
 from typing import Any, Generic, Iterator, List, Optional, Sequence, Tuple, TypeVar
 
+import pandas as pd
 from langchain_core.documents import Document
 from langchain_core.load import Serializable, dumps, loads
 from langchain_core.stores import BaseStore
@@ -347,6 +348,25 @@ class ProfileStore:
         finally:
             cur.close()
 
+    def get_users(self) -> pd.DataFrame:
+        cur = self._conn.cursor()
+        try:
+            cur.execute("SELECT name, user_group FROM user")
+            results = cur.fetchall()
+            
+            if not results:
+                return pd.DataFrame(columns=['name', 'user_group'])
+            
+            df = pd.DataFrame(results, columns=['name', 'user_group'])
+            df['user_group'] = df['user_group'].apply(lambda x: UserGroup(x).name)
+            
+            return df
+        except Exception as e:
+            logger.error(f"获取用户列表时出错: {str(e)}")
+            return pd.DataFrame(columns=['name', 'user_group'])
+        finally:
+            cur.close()
+
     def __del__(self):
         if self._conn:
             self._conn.close()
@@ -364,7 +384,7 @@ SqliteDocStore = SqliteBaseStore[Document]
 
 def main() -> None:
     user = User(
-        name='yeyu',
+        name='test',
         password='12345678',
         user_group=UserGroup.ADMIN.value
     )
@@ -372,10 +392,11 @@ def main() -> None:
     with ProfileStore(
             connection_string='D:/program/github/AcademyLLMChat/data/user/user_info.db'
     ) as profile_store:
-        profile_store.create_user(user)
+        # profile_store.create_user(user)
 
-        user = profile_store.valid_user('yeyu', '12345678')
-        print(user[1].user_group > UserGroup.FILE_ADMIN)
+        # user = profile_store.valid_user('test', '12345678')
+        user_list = profile_store.get_users()
+        print(user_list)
 
 
 if __name__ == '__main__':
