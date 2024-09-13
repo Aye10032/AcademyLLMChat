@@ -4,8 +4,10 @@ import streamlit as st
 from loguru import logger
 from langchain_community.chat_message_histories import ChatMessageHistory
 
+from Config import Config
 from llm.ChatCore import write_paper
 from uicomponent.StComponent import side_bar_links
+from uicomponent.StatusBus import get_config
 
 st.set_page_config(
     page_title="学术大模型知识库",
@@ -18,9 +20,31 @@ st.set_page_config(
 )
 
 os.environ["LANGCHAIN_PROJECT"] = 'WriteAssistant'
+config: Config = get_config()
+milvus_cfg = config.milvus_config
+col = milvus_cfg.collections
+collections = []
+for collection in col:
+    collections.append(collection.collection_name)
 
 with st.sidebar:
     side_bar_links()
+
+    st.selectbox(
+        'Project',
+        options=['测试工程2024']
+    )
+    st.button(
+        '➕',
+    )
+
+    st.selectbox(
+        '对话历史',
+        options=['简述...']
+    )
+    st.button(
+        '开始新对话',
+    )
 
 st.header('AI写作助手')
 
@@ -46,6 +70,28 @@ with config_container:
         '其他材料上传',
         accept_multiple_files=True
     )
+
+    st.divider()
+
+    st.multiselect(
+        '知识库调用',
+        options=collections
+    )
+
+    st.divider()
+    st.subheader('常用功能')
+    btn_col1, btn_col2, _, _ = st.columns([1, 1, 1, 1], gap='small')
+    with btn_col1:
+        st.button(
+            '风格仿写',
+            type='primary'
+        )
+
+    with btn_col2:
+        st.button(
+            '自动纠错',
+            type='primary'
+        )
 
 if prompt:
     chat_container.chat_message('user').markdown(prompt)
