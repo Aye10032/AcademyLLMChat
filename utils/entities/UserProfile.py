@@ -1,6 +1,8 @@
 from dataclasses import dataclass, asdict
+from datetime import datetime
 from enum import IntEnum
 from typing import Any
+from zoneinfo import ZoneInfo
 
 
 class UserGroup(IntEnum):
@@ -32,7 +34,14 @@ class User:
 @dataclass
 class Project:
     name: str
-    owner: User
+    owner: str
+    create_time: float
+    update_time: float
+    archived: bool
+
+    @classmethod
+    def from_list(cls, data: list[Any]):
+        return cls(*data)
 
 
 def main() -> None:
@@ -41,6 +50,13 @@ def main() -> None:
         "password": "114514",
         "user_group": UserGroup.ADMIN
     })
+
+    now_time = datetime.now().timestamp()
+    print(now_time)
+    print(type(now_time))
+
+    tz = ZoneInfo('Asia/Shanghai')
+    print(datetime.fromtimestamp(now_time, tz).strftime("%Y-%m-%d %H:%M:%S"))
 
 
 if __name__ == '__main__':

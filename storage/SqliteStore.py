@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime
 from typing import Any, Generic, Iterator, List, Optional, Sequence, Tuple, TypeVar
 
 import pandas as pd
@@ -8,7 +9,7 @@ from langchain_core.stores import BaseStore
 from loguru import logger
 
 from utils.MarkdownPraser import Reference
-from utils.entities.UserProfile import User, UserGroup
+from utils.entities.UserProfile import User, UserGroup, Project
 from werkzeug.security import generate_password_hash, check_password_hash
 
 V = TypeVar("V")
@@ -257,6 +258,51 @@ class ProfileStore:
         conn = sqlite3.connect(self.connection_string, check_same_thread=False)
         return conn
 
+    def init_tables(self) -> None:
+        cur = self._conn.cursor()
+
+        res = cur.execute(f"SELECT name FROM sqlite_master WHERE name='user'")
+        if res.fetchone() is None:
+            create_stmt = f"""
+                    create table user(
+                        name       TEXT    not null,
+                        passwd     TEXT    not null,
+                        user_group INTEGER not null
+                    );"""
+            cur.execute(create_stmt)
+            self._conn.commit()
+            logger.info(f'Create table user')
+
+        res = cur.execute(f"SELECT name FROM sqlite_master WHERE name='project'")
+        if res.fetchone() is None:
+            create_stmt = f"""
+                    create table project(
+                        name        TEXT               not null,
+                        owner       TEXT               not null,
+                        create_time TIMESTAMP          not null,
+                        update_time TIMESTAMP          not null,
+                        archived    BLOB default FALSE not null
+                    );"""
+            cur.execute(create_stmt)
+            self._conn.commit()
+            logger.info(f'Create table project')
+
+        cur.close()
+
+    def user_exists(self, name: str) -> bool:
+        """
+        Check if a user with the given name already exists in the 'user' table.
+
+        :param name: The name of the user to check.
+        :return: True if the user does not exist, False if the user exists.
+        """
+        cur = self._conn.cursor()
+        cur.execute("SELECT name FROM user WHERE name = ?", (name,))
+        result = cur.fetchone()
+        cur.close()
+
+        return result is not None
+
     def create_user(self, user: User) -> bool:
         """
         Create a new user in the database.
@@ -270,37 +316,7 @@ class ProfileStore:
         """
         cur = self._conn.cursor()
 
-        def check_table():
-            """
-            Check if the 'user' table exists in the database. If it does not exist, create it.
-            """
-            res = cur.execute("SELECT name FROM sqlite_master WHERE name='user'")
-            if res.fetchone() is None:
-                create_stmt = f"""
-                        create table user(
-                            name       TEXT    not null,
-                            passwd     TEXT    not null,
-                            user_group INTEGER not null
-                        );"""
-                cur.execute(create_stmt)
-                self._conn.commit()
-                logger.info(f'Create table user')
-
-        def user_exists(name: str) -> bool:
-            """
-            Check if a user with the given name already exists in the 'user' table.
-
-            :param name: The name of the user to check.
-            :return: True if the user does not exist, False if the user exists.
-            """
-            cur.execute("SELECT name FROM user WHERE name = ?", (name,))
-            result = cur.fetchone()
-
-            return result is None
-
-        check_table()
-        if user_exists(user.name):
-            cur = self._conn.cursor()
+        if not self.user_exists(user.name):
             hashed_password = generate_password_hash(user.password)
 
             stmt = """
@@ -314,6 +330,8 @@ class ProfileStore:
             logger.info(f'Create user {user.name}')
             return True
         else:
+            cur.close()
+
             logger.warning(f'User {user.name} already exist!')
             return False
 
@@ -353,17 +371,73 @@ class ProfileStore:
         try:
             cur.execute("SELECT name, user_group FROM user")
             results = cur.fetchall()
-            
+
             if not results:
                 return pd.DataFrame(columns=['name', 'user_group'])
-            
+
             df = pd.DataFrame(results, columns=['name', 'user_group'])
             df['user_group'] = df['user_group'].apply(lambda x: UserGroup(x).name)
-            
+
             return df
         except Exception as e:
             logger.error(f"获取用户列表时出错: {str(e)}")
             return pd.DataFrame(columns=['name', 'user_group'])
+        finally:
+            cur.close()
+
+    def project_exists(self, project_name: str, owner: str) -> bool:
+        """
+        Check if a project with the given name and owner exists in the 'project' table.
+
+        :param project_name: The name of the project to check.
+        :param owner: The owner of the project to check.
+        :return: True if the project exists, False otherwise.
+        """
+        cur = self._conn.cursor()
+        cur.execute("SELECT name FROM project WHERE name = ? AND owner = ?", (project_name, owner,))
+        result = cur.fetchone()
+        cur.close()
+
+        return result is not None
+
+    def create_project(self, project: Project) -> bool:
+        cur = self._conn.cursor()
+
+        if not self.user_exists(project.owner):
+            logger.warning(f'User {project.owner} dose not exits!')
+            return False
+
+        if not self.project_exists(project.name, project.owner):
+            stmt = """
+                        INSERT INTO project (name, owner, create_time, update_time)
+                        VALUES (?, ?, ?, ?)
+                        """
+            cur.execute(stmt, (project.name, project.owner, project.create_time, project.update_time))
+            self._conn.commit()
+            cur.close()
+
+            logger.info(f'Create project {project.owner}/{project.name}')
+            return True
+        else:
+            cur.close()
+
+            logger.warning(f'Project {project.owner}/{project.name} already exist!')
+            return False
+
+    def get_user_projects(self, user: str) -> list[Project]:
+        cur = self._conn.cursor()
+
+        try:
+            cur.execute("SELECT * FROM project")
+            results = cur.fetchall()
+
+            return [
+                Project.from_list(result)
+                for result in results
+            ]
+        except Exception as e:
+            logger.error(f"获取用户工程列表时出错: {str(e)}")
+            return []
         finally:
             cur.close()
 
@@ -389,14 +463,38 @@ def main() -> None:
         user_group=UserGroup.ADMIN.value
     )
 
+    now_time = datetime.now().timestamp()
+    project1 = Project(
+        name='test',
+        owner='user114',
+        create_time=now_time,
+        update_time=now_time,
+        archived=False
+    )
+    project2 = Project(
+        name='test',
+        owner='test',
+        create_time=now_time,
+        update_time=now_time,
+        archived=False
+    )
+
     with ProfileStore(
             connection_string='D:/program/github/AcademyLLMChat/data/user/user_info.db'
     ) as profile_store:
+        # profile_store.init_tables()
         # profile_store.create_user(user)
 
         # user = profile_store.valid_user('test', '12345678')
-        user_list = profile_store.get_users()
-        print(user_list)
+        # user_list = profile_store.get_users()
+        # print(user_list)
+        #
+        # print(profile_store.create_project(project1))
+        # print(profile_store.create_project(project2))
+        # print(profile_store.create_project(project2))
+
+        proj_list = profile_store.get_user_projects('test')
+        print(proj_list)
 
 
 if __name__ == '__main__':

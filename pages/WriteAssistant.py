@@ -22,21 +22,30 @@ os.environ["LANGCHAIN_PROJECT"] = 'WriteAssistant'
 with st.sidebar:
     side_bar_links()
 
-st.title('AI写作助手')
+st.header('AI写作助手')
 
 if 'write_messages' not in st.session_state:
     st.session_state.write_messages = []
 
 prompt = st.chat_input('请输入问题')
 
-col_chat, col_doc = st.columns([2, 1], gap='large')
+col_chat, col_conf = st.columns([2, 1], gap='small')
 
-chat_container = col_chat.container(height=610, border=False)
+col_chat.caption('aye/测试文档工程2024')
+chat_container = col_chat.container(height=650, border=True)
 with chat_container:
     for message in st.session_state.write_messages:
         icon = 'logo.png' if message['role'] != 'user' else None
         with st.chat_message(message['role'], avatar=icon):
             st.markdown(message['content'])
+
+config_container = col_conf.container(height=690, border=True)
+with config_container:
+    st.file_uploader('主文件上传')
+    st.file_uploader(
+        '其他材料上传',
+        accept_multiple_files=True
+    )
 
 if prompt:
     chat_container.chat_message('user').markdown(prompt)
