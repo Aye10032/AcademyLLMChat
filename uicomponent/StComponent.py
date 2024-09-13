@@ -73,7 +73,3 @@ def score_text(score: float) -> str:
                 f'border-radius: 10px; font-size: 10px; font-family: Arial, sans-serif;">{round(score, 4)}</span>')
 
     return html_str
-
-@st.dialog("新建用户")
-def create_user():
-    ...

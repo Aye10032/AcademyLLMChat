@@ -12,11 +12,11 @@ from Config import Collection, Config
 from llm.ModelCore import load_embedding
 from storage.MilvusConnection import MilvusConnection
 from storage.SqliteStore import SqliteDocStore, ProfileStore
-from uicomponent.StComponent import side_bar_links, role_check, create_user
+from uicomponent.StComponent import side_bar_links, role_check
 from uicomponent.StatusBus import get_config, update_config
 from utils.FileUtil import is_en
 from storage.MilvusParams import IndexType, get_index_param
-from utils.entities.UserProfile import UserGroup
+from utils.entities.UserProfile import UserGroup, User
 
 st.set_page_config(
     page_title='学术大模型知识库',
@@ -76,6 +76,50 @@ def rename_collection(option: int):
 def change_visible(option: int) -> None:
     milvus_cfg.set_collection_visibility(option, st.session_state.col_visible)
     update_config(config)
+
+
+@st.dialog("新建用户")
+def create_user():
+    username = st.text_input('用户名')
+    if not username:
+        st.write(':red[用户名不能为空]!')
+
+    password = st.text_input('密码', type='password')
+    if not password:
+        st.write(':red[密码不能为空]!')
+
+    re_password = st.text_input('再次输入密码', type='password')
+    if re_password != password:
+        st.write(':red[密码不一致]!')
+
+    user_group = st.selectbox(
+        '权限组',
+        index=0,
+        options=UserGroup.names()
+    )
+
+    _, col = st.columns([3, 1])
+    if col.button(
+            '提交',
+            type='primary',
+            use_container_width=True,
+            disabled=not username or not password or re_password != password
+    ):
+        user = User(
+            name=username,
+            password=password,
+            user_group=UserGroup.from_name(user_group)
+        )
+
+        with ProfileStore(
+                connection_string=config.get_user_db()
+        ) as profile_store:
+            result = profile_store.create_user(user)
+
+        if result:
+            st.success(f'创建了用户{username}')
+        else:
+            st.error('该用户已存在！')
 
 
 def manage_tab():
@@ -312,9 +356,15 @@ def user_tab():
         user_df = profile_store.get_users()
 
     st.dataframe(user_df)
-    st.button(
-        '＋',
+    clo1, col2, _ = st.columns([1, 1, 10])
+    clo1.button(
+        '➕',
         on_click=create_user,
+        disabled=st.session_state['manage_user_disable']
+    )
+    col2.button(
+        '🔄',
+        on_click=lambda: ...,
         disabled=st.session_state['manage_user_disable']
     )
 

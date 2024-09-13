@@ -9,6 +9,14 @@ class UserGroup(IntEnum):
     FILE_ADMIN = 2
     ADMIN = 3
 
+    @classmethod
+    def names(cls):
+        return list(cls.__members__.keys())
+
+    @classmethod
+    def from_name(cls, name: str):
+        return cls[name]
+
 
 @dataclass
 class User:
