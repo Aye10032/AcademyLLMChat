@@ -36,13 +36,14 @@ class User:
 class Project:
     name: str
     owner: str
+    last_chat: str
     create_time: float
     update_time: float
     archived: bool
 
     @classmethod
     def from_list(cls, data: list[Any]):
-        return cls(*data)
+        return cls(*data[1:])
 
 
 def main() -> None:

@@ -1,6 +1,7 @@
 import streamlit as st
 
 from Config import Config
+from storage.SqliteStore import ProfileStore
 from utils.entities.UserProfile import User, UserGroup
 
 
@@ -80,3 +81,14 @@ def get_user() -> User:
 
     user: User = st.session_state.get('user_role')
     return user
+
+
+def update_user(user: User) -> None:
+    config = get_config()
+
+    st.session_state['user_role'] = user
+
+    with ProfileStore(
+            connection_string=config.get_user_db()
+    ) as profile_store:
+        profile_store.update_user(user)

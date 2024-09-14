@@ -4,13 +4,13 @@ from typing import Any, Generic, Iterator, List, Optional, Sequence, Tuple, Type
 
 import pandas as pd
 from langchain_core.documents import Document
-from langchain_core.load import Serializable, dumps, loads
+from langchain_core.load import dumps, loads
 from langchain_core.stores import BaseStore
 from loguru import logger
+from werkzeug.security import generate_password_hash, check_password_hash
 
 from utils.MarkdownPraser import Reference
 from utils.entities.UserProfile import User, UserGroup, Project
-from werkzeug.security import generate_password_hash, check_password_hash
 
 V = TypeVar("V")
 
@@ -282,6 +282,7 @@ class ProfileStore:
                         id          INTEGER PRIMARY KEY AUTOINCREMENT,
                         name        TEXT               not null,
                         owner       TEXT               not null,
+                        last_chat   TEXT               not null,
                         create_time TIMESTAMP          not null,
                         update_time TIMESTAMP          not null,
                         archived    BLOB default FALSE not null
@@ -389,6 +390,25 @@ class ProfileStore:
         finally:
             cur.close()
 
+    def update_user(self, user: User) -> bool:
+        cur = self._conn.cursor()
+
+        if not self.user_exists(user.name):
+            logger.warning(f'User {user.name} does not exist!')
+            return False
+
+        stmt = """
+        UPDATE user 
+        SET user_group = ?, last_project = ? 
+        WHERE name = ?
+        """
+        cur.execute(stmt, (user.user_group, user.last_project, user.name))
+        self._conn.commit()
+        cur.close()
+
+        logger.info(f'Updated user {user.name}')
+        return True
+
     def project_exists(self, project_name: str, owner: str) -> bool:
         """
         Check if a project with the given name and owner exists in the 'project' table.
@@ -413,10 +433,16 @@ class ProfileStore:
 
         if not self.project_exists(project.name, project.owner):
             stmt = """
-                        INSERT INTO project (name, owner, create_time, update_time)
-                        VALUES (?, ?, ?, ?)
+                        INSERT INTO project (name, owner, last_chat,create_time, update_time)
+                        VALUES (?, ?, ?, ?, ?)
                         """
-            cur.execute(stmt, (project.name, project.owner, project.create_time, project.update_time))
+            cur.execute(stmt, (
+                project.name,
+                project.owner,
+                project.last_chat,
+                project.create_time,
+                project.update_time
+            ))
             self._conn.commit()
             cur.close()
 
@@ -432,8 +458,8 @@ class ProfileStore:
         cur = self._conn.cursor()
 
         try:
-            cur.execute("SELECT * FROM project")
-            _, results = cur.fetchall()
+            cur.execute("SELECT * FROM project where owner=?", (user,))
+            results = cur.fetchall()
 
             return [
                 Project.from_list(result)
