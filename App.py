@@ -44,10 +44,7 @@ llm_options = ['gpt4o', 'gpt4o-mini', 'gpt4', 'GLM-4']
 
 config: Config = get_config()
 milvus_cfg = config.milvus_config
-col = milvus_cfg.collections
-collections = []
-for collection in col:
-    collections.append(collection.collection_name)
+collections = [collection.collection_name for collection in milvus_cfg.collections]
 
 title = milvus_cfg.get_collection().title
 st.title(title)

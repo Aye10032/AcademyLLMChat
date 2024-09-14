@@ -31,9 +31,7 @@ st.set_page_config(
 
 config: Config = get_config()
 milvus_cfg = config.milvus_config
-collections = []
-for collection in milvus_cfg.collections:
-    collections.append(collection.collection_name)
+collections = [collection.collection_name for collection in milvus_cfg.collections]
 
 dtype = {
     0: 'NONE',
@@ -108,7 +106,7 @@ def create_user():
             use_container_width=True,
             disabled=not username or not password or re_password != password
     ):
-        user = User(
+        new_user = User(
             name=username,
             password=password,
             user_group=UserGroup.from_name(user_group),
@@ -118,7 +116,7 @@ def create_user():
         with ProfileStore(
                 connection_string=config.get_user_db()
         ) as profile_store:
-            result = profile_store.create_user(user)
+            result = profile_store.create_user(new_user)
 
         if result:
             user_dir = os.path.join(config.get_user_path(), username)

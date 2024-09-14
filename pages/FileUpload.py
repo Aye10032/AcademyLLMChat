@@ -27,9 +27,7 @@ from utils.entities.UserProfile import UserGroup, User
 
 config: Config = get_config()
 milvus_cfg: MilvusConfig = config.milvus_config
-collections = []
-for collection in milvus_cfg.collections:
-    collections.append(collection.collection_name)
+collections = [collection.collection_name for collection in milvus_cfg.collections]
 
 st.set_page_config(
     page_title="学术大模型知识库",
