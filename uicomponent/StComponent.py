@@ -40,27 +40,16 @@ def login():
             st.error('密码错误！')
 
 
-def role_check(role: int, wide=False):
-    if 'user_role' not in st.session_state:
-        st.session_state['user_role'] = User(
-            name=f'visitor',
-            password='',
-            user_group=UserGroup.VISITOR,
-            last_project=''
-        )
-        set_visitor_enable()
+def login_message(wide=False):
+    if wide:
+        _, col_auth_2, _ = st.columns([1.5, 3, 1.5], gap='medium')
+        auth_holder = col_auth_2.empty()
+    else:
+        auth_holder = st.empty()
 
-    user: User = st.session_state.get('user_role')
-    if user.user_group < role:
-        if wide:
-            _, col_auth_2, _ = st.columns([1.2, 3, 1.2], gap='medium')
-            auth_holder = col_auth_2.empty()
-        else:
-            auth_holder = st.empty()
-
-        with auth_holder.container(border=True):
-            st.warning('您无法使用本页面的功能，请登录相应权限的账户')
-            st.button('login', on_click=lambda: login())
+    with auth_holder.container(border=True):
+        st.warning('您无法使用本页面的功能，请登录相应权限的账户')
+        st.button('login', on_click=lambda: login())
 
 
 def score_text(score: float) -> str:

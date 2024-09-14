@@ -13,8 +13,8 @@ from Config import Collection, Config
 from llm.ModelCore import load_embedding
 from storage.MilvusConnection import MilvusConnection
 from storage.SqliteStore import SqliteDocStore, ProfileStore
-from uicomponent.StComponent import side_bar_links, role_check
-from uicomponent.StatusBus import get_config, update_config
+from uicomponent.StComponent import side_bar_links, login_message
+from uicomponent.StatusBus import get_config, update_config, get_user
 from utils.FileUtil import is_en
 from storage.MilvusParams import IndexType, get_index_param
 from utils.entities.UserProfile import UserGroup, User
@@ -56,7 +56,9 @@ dtype = {
 with st.sidebar:
     side_bar_links()
 
-role_check(UserGroup.ADMIN)
+user: User = get_user()
+if user.user_group < UserGroup.ADMIN:
+    login_message()
 
 
 def del_collection(option: int) -> None:

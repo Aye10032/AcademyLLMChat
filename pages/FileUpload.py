@@ -15,15 +15,15 @@ from llm.RagCore import load_vectorstore, load_doc_store
 from llm.RetrieverCore import insert_retriever
 from storage.MilvusConnection import MilvusConnection
 from storage.SqliteStore import ReferenceStore
-from uicomponent.StComponent import side_bar_links, role_check
-from uicomponent.StatusBus import get_config
+from uicomponent.StComponent import side_bar_links, login_message
+from uicomponent.StatusBus import get_config, get_user
 from utils.entities.Paper import *
 
 import utils.MarkdownPraser as md
 import utils.GrobidUtil as gb
 import utils.PubmedUtil as pm
 import utils.PMCUtil as pmc
-from utils.entities.UserProfile import UserGroup
+from utils.entities.UserProfile import UserGroup, User
 
 config: Config = get_config()
 milvus_cfg: MilvusConfig = config.milvus_config
@@ -53,7 +53,9 @@ with st.sidebar:
     若因网络原因出现下载失败，请不要刷新界面，点击重试按钮，再次尝试进行引用文献的下载。      
     """)
 
-role_check(UserGroup.FILE_ADMIN, True)
+user: User = get_user()
+if user.user_group < UserGroup.ADMIN:
+    login_message(True)
 
 st.title('添加文献')
 

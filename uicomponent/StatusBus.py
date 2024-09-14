@@ -1,6 +1,7 @@
 import streamlit as st
 
 from Config import Config
+from utils.entities.UserProfile import User, UserGroup
 
 
 def set_visitor_enable():
@@ -64,3 +65,18 @@ def update_config(config: Config) -> None:
         st.session_state['app_is_zh_collection'] = True
     else:
         st.session_state['app_is_zh_collection'] = False
+
+
+def get_user() -> User:
+    if 'user_role' not in st.session_state:
+        st.session_state['user_role'] = User(
+            name=f'visitor',
+            password='',
+            user_group=UserGroup.VISITOR,
+            last_project=''
+        )
+
+        set_visitor_enable()
+
+    user: User = st.session_state.get('user_role')
+    return user

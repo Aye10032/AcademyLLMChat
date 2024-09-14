@@ -265,6 +265,7 @@ class ProfileStore:
         if res.fetchone() is None:
             create_stmt = f"""
                     create table user(
+                        id           INTEGER PRIMARY KEY AUTOINCREMENT,
                         name         TEXT    not null,
                         passwd       TEXT    not null,
                         user_group   INTEGER not null,
@@ -278,6 +279,7 @@ class ProfileStore:
         if res.fetchone() is None:
             create_stmt = f"""
                     create table project(
+                        id          INTEGER PRIMARY KEY AUTOINCREMENT,
                         name        TEXT               not null,
                         owner       TEXT               not null,
                         create_time TIMESTAMP          not null,
@@ -347,7 +349,7 @@ class ProfileStore:
                 logger.warning(f"用户 '{user_name}' 不存在")
                 return False, None
 
-            name, hashed_password, user_group, last_project = result
+            _, name, hashed_password, user_group, last_project = result
 
             if check_password_hash(hashed_password, passwd):
                 user = User(
@@ -431,7 +433,7 @@ class ProfileStore:
 
         try:
             cur.execute("SELECT * FROM project")
-            results = cur.fetchall()
+            _, results = cur.fetchall()
 
             return [
                 Project.from_list(result)
