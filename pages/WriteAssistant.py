@@ -9,7 +9,7 @@ from langchain_community.chat_message_histories import ChatMessageHistory, SQLCh
 from Config import Config
 from llm.ChatCore import write_paper
 from storage.SqliteStore import ProfileStore
-from uicomponent.StComponent import side_bar_links, login_message
+from uicomponent.StComponent import side_bar_links, login_message, create_project
 from uicomponent.StatusBus import get_config, get_user, update_user
 from utils.entities.TimeZones import time_zone_list
 from utils.entities.UserProfile import Project, User, UserGroup
@@ -32,50 +32,9 @@ collections = [collection.collection_name for collection in milvus_cfg.collectio
 user: User = get_user()
 
 
-@st.dialog('Create project')
-def create_project():
-    project_name = st.text_input('Project name')
-    time_zone = st.selectbox(
-        'Time zone',
-        index=285,
-        options=time_zone_list
-    )
-
-    st.button(
-        'Create',
-        key='create_project',
-        type='primary',
-        disabled=not project_name
-    )
-    if st.session_state.get('create_project'):
-        now_time = datetime.now().timestamp()
-        tz = ZoneInfo(time_zone)
-
-        project = Project(
-            name=project_name,
-            owner=user.name,
-            last_chat=datetime.fromtimestamp(now_time, tz).strftime("%Y-%m-%d %H:%M:%S"),
-            create_time=now_time,
-            update_time=now_time,
-            archived=False
-        )
-        with ProfileStore(
-                connection_string=config.get_user_db()
-        ) as profile_store:
-            result = profile_store.create_project(project)
-
-        if result:
-            # TODO
-            # 创建相关数据库等
-
-            # 更新用户最新工程
-            user.last_project = project.name
-            update_user(user)
-            st.session_state['now_project'] = project.name
-
-            st.rerun()
-        else:
-            st.warning(f'Project {project.owner}/{project.name} already exist!')
+def change_project():
+    user.last_project = st.session_state.get('now_project')
+    update_user(user)
 
 
 def __main_page():
@@ -162,7 +121,8 @@ def __different_ui():
             st.button(
                 'Create',
                 type='primary',
-                on_click=lambda: create_project()
+                on_click=lambda: create_project,
+                args=[user]
             )
     else:
         with ProfileStore(
@@ -179,10 +139,13 @@ def __different_ui():
             st.selectbox(
                 'Project',
                 key='now_project',
+                on_change=change_project,
                 options=project_list
             )
             st.button(
                 '➕',
+                on_click=create_project,
+                args=[user]
             )
 
             st.selectbox(
