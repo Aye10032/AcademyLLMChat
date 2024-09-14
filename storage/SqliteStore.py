@@ -321,10 +321,10 @@ class ProfileStore:
             hashed_password = generate_password_hash(user.password)
 
             stmt = """
-            INSERT INTO user (name, passwd, user_group)
-            VALUES (?, ?, ?)
+            INSERT INTO user (name, passwd, user_group, last_project)
+            VALUES (?, ?, ?, ?)
             """
-            cur.execute(stmt, (user.name, hashed_password, user.user_group))
+            cur.execute(stmt, (user.name, hashed_password, user.user_group, user.last_project))
             self._conn.commit()
             cur.close()
 
@@ -340,20 +340,21 @@ class ProfileStore:
         cur = self._conn.cursor()
         try:
             # 查询用户信息
-            cur.execute("SELECT name, passwd, user_group FROM user WHERE name = ?", (user_name,))
+            cur.execute("SELECT * FROM user WHERE name = ?", (user_name,))
             result = cur.fetchone()
 
             if result is None:
                 logger.warning(f"用户 '{user_name}' 不存在")
                 return False, None
 
-            name, hashed_password, user_group = result
+            name, hashed_password, user_group, last_project = result
 
             if check_password_hash(hashed_password, passwd):
                 user = User(
                     name=name,
                     password='',
-                    user_group=UserGroup(user_group)
+                    user_group=UserGroup(user_group),
+                    last_project=last_project
                 )
                 logger.info(f"User '{user_name}' valid success.")
                 return True, user
@@ -370,19 +371,19 @@ class ProfileStore:
     def get_users(self) -> pd.DataFrame:
         cur = self._conn.cursor()
         try:
-            cur.execute("SELECT name, user_group FROM user")
+            cur.execute("SELECT name, user_group, last_project FROM user")
             results = cur.fetchall()
 
             if not results:
-                return pd.DataFrame(columns=['name', 'user_group'])
+                return pd.DataFrame(columns=['name', 'user group', 'last_project'])
 
-            df = pd.DataFrame(results, columns=['name', 'user_group'])
-            df['user_group'] = df['user_group'].apply(lambda x: UserGroup(x).name)
+            df = pd.DataFrame(results, columns=['name', 'user group', 'last project'])
+            df['user group'] = df['user group'].apply(lambda x: UserGroup(x).name)
 
             return df
         except Exception as e:
             logger.error(f"获取用户列表时出错: {str(e)}")
-            return pd.DataFrame(columns=['name', 'user_group'])
+            return pd.DataFrame(columns=['name', 'user group', 'last project'])
         finally:
             cur.close()
 
@@ -461,7 +462,8 @@ def main() -> None:
     user = User(
         name='test',
         password='12345678',
-        user_group=UserGroup.ADMIN.value
+        user_group=UserGroup.ADMIN.value,
+        last_project='test_project'
     )
 
     now_time = datetime.now().timestamp()

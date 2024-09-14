@@ -43,9 +43,10 @@ def login():
 def role_check(role: int, wide=False):
     if 'user_role' not in st.session_state:
         st.session_state['user_role'] = User(
-            name='visitor',
+            name=f'visitor',
             password='',
-            user_group=UserGroup.VISITOR
+            user_group=UserGroup.VISITOR,
+            last_project=''
         )
         set_visitor_enable()
 
