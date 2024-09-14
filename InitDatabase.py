@@ -153,12 +153,15 @@ def create_userdb():
     with ProfileStore(
             connection_string=connect_str
     ) as profile_store:
+        profile_store.init_tables()
+
         init_username = config.yml['user_login_config']['admin_user']['username']
         init_password = config.yml['user_login_config']['admin_user']['password']
         admin = User(
             name=init_username,
             password=init_password,
-            user_group=UserGroup.ADMIN.value
+            user_group=UserGroup.ADMIN.value,
+            last_project='',
         )
         profile_store.create_user(admin)
 

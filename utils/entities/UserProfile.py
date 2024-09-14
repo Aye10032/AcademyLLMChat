@@ -25,6 +25,7 @@ class User:
     name: str
     password: str
     user_group: int
+    last_project: str
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]):

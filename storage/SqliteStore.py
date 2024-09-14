@@ -265,9 +265,10 @@ class ProfileStore:
         if res.fetchone() is None:
             create_stmt = f"""
                     create table user(
-                        name       TEXT    not null,
-                        passwd     TEXT    not null,
-                        user_group INTEGER not null
+                        name         TEXT    not null,
+                        passwd       TEXT    not null,
+                        user_group   INTEGER not null,
+                        last_project TEXT
                     );"""
             cur.execute(create_stmt)
             self._conn.commit()

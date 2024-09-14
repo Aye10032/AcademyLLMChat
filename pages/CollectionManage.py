@@ -1,3 +1,4 @@
+import os.path
 from datetime import datetime
 
 import pandas as pd
@@ -108,7 +109,8 @@ def create_user():
         user = User(
             name=username,
             password=password,
-            user_group=UserGroup.from_name(user_group)
+            user_group=UserGroup.from_name(user_group),
+            last_project='',
         )
 
         with ProfileStore(
@@ -117,6 +119,9 @@ def create_user():
             result = profile_store.create_user(user)
 
         if result:
+            user_dir = os.path.join(config.get_user_path(), username)
+            os.makedirs(user_dir, exist_ok=True)
+
             st.success(f'创建了用户{username}')
         else:
             st.error('该用户已存在！')
