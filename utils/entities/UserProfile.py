@@ -46,6 +46,16 @@ class Project:
         return cls(*data[1:])
 
 
+@dataclass
+class ChatHistory:
+    session_id: str
+    description: str
+    owner: str
+    project: str
+    create_time: float
+    update_time: float
+
+
 def main() -> None:
     user = User.from_dict({
         "name": "aye",

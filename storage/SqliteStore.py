@@ -10,7 +10,7 @@ from loguru import logger
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from utils.MarkdownPraser import Reference
-from utils.entities.UserProfile import User, UserGroup, Project
+from utils.entities.UserProfile import User, UserGroup, Project, ChatHistory
 
 V = TypeVar("V")
 
@@ -264,13 +264,14 @@ class ProfileStore:
         res = cur.execute(f"SELECT name FROM sqlite_master WHERE name='user'")
         if res.fetchone() is None:
             create_stmt = f"""
-                    create table user(
-                        id           INTEGER PRIMARY KEY AUTOINCREMENT,
-                        name         TEXT    not null,
-                        passwd       TEXT    not null,
-                        user_group   INTEGER not null,
-                        last_project TEXT
-                    );"""
+                create table user(
+                    id          INTEGER  not null
+                        primary key autoincrement,
+                    name         TEXT    not null,
+                    passwd       TEXT    not null,
+                    user_group   INTEGER not null,
+                    last_project TEXT
+                );"""
             cur.execute(create_stmt)
             self._conn.commit()
             logger.info(f'Create table user')
@@ -278,18 +279,37 @@ class ProfileStore:
         res = cur.execute(f"SELECT name FROM sqlite_master WHERE name='project'")
         if res.fetchone() is None:
             create_stmt = f"""
-                    create table project(
-                        id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                        name        TEXT               not null,
-                        owner       TEXT               not null,
-                        last_chat   TEXT               not null,
-                        create_time TIMESTAMP          not null,
-                        update_time TIMESTAMP          not null,
-                        archived    BLOB default FALSE not null
-                    );"""
+                create table project(
+                    id          INTEGER            not null
+                        primary key autoincrement,
+                    name        TEXT               not null,
+                    owner       TEXT               not null,
+                    last_chat   TEXT               not null,
+                    create_time TIMESTAMP          not null,
+                    update_time TIMESTAMP          not null,
+                    archived    BLOB default FALSE not null
+                );"""
             cur.execute(create_stmt)
             self._conn.commit()
             logger.info(f'Create table project')
+
+        res = cur.execute(f"SELECT name FROM sqlite_master WHERE name='chat_history'")
+        if res.fetchone() is None:
+            create_stmt = """
+                create table chat_history
+                (
+                    id          INTEGER   not null
+                        primary key autoincrement,
+                    session_id  TEXT      not null,
+                    description TEXT      not null,
+                    owner       TEXT      not null,
+                    project     TEXT      not null,
+                    create_time TIMESTAMP not null,
+                    update_time TIMESTAMP not null
+                );"""
+            cur.execute(create_stmt)
+            self._conn.commit()
+            logger.info(f'Create table chat_history')
 
         cur.close()
 
@@ -398,10 +418,10 @@ class ProfileStore:
             return False
 
         stmt = """
-        UPDATE user 
-        SET user_group = ?, last_project = ? 
-        WHERE name = ?
-        """
+            UPDATE user 
+            SET user_group = ?, last_project = ? 
+            WHERE name = ?
+            """
         cur.execute(stmt, (user.user_group, user.last_project, user.name))
         self._conn.commit()
         cur.close()
@@ -409,7 +429,7 @@ class ProfileStore:
         logger.info(f'Updated user {user.name}')
         return True
 
-    def project_exists(self, project_name: str, owner: str) -> bool:
+    def project_exists(self, owner: str, project_name: str) -> bool:
         """
         Check if a project with the given name and owner exists in the 'project' table.
 
@@ -431,11 +451,11 @@ class ProfileStore:
             logger.warning(f'User {project.owner} dose not exits!')
             return False
 
-        if not self.project_exists(project.name, project.owner):
+        if not self.project_exists(project.owner, project.name):
             stmt = """
-                        INSERT INTO project (name, owner, last_chat,create_time, update_time)
-                        VALUES (?, ?, ?, ?, ?)
-                        """
+                INSERT INTO project (name, owner, last_chat,create_time, update_time)
+                VALUES (?, ?, ?, ?, ?)
+                """
             cur.execute(stmt, (
                 project.name,
                 project.owner,
@@ -471,6 +491,80 @@ class ProfileStore:
         finally:
             cur.close()
 
+    def update_project(self, project: Project) -> bool:
+        cur = self._conn.cursor()
+
+        try:
+            stmt = """
+                UPDATE project 
+                SET last_chat = ?, update_time = ? 
+                WHERE name = ? AND owner = ?
+                """
+
+            cur.execute(stmt, (
+                project.last_chat,
+                project.update_time,
+                project.name,
+                project.owner,
+            ))
+            self._conn.commit()
+
+            logger.info(f'Update project {project.owner}/{project.name}')
+            return True
+        except Exception as e:
+            logger.error(f"Error while update project table: {e}")
+            return False
+        finally:
+            cur.close()
+
+    def chat_exists(
+            self,
+            session_id: str,
+            project: str,
+            owner: str
+    ) -> bool:
+        cur = self._conn.cursor()
+        cur.execute(
+            "SELECT * FROM chat_history WHERE session_id = ? AND project = ? AND owner = ?",
+            (session_id, project, owner,)
+        )
+        result = cur.fetchone()
+        cur.close()
+
+        return result is not None
+
+    def create_chat_history(self, chat_history: ChatHistory):
+        if not self.user_exists(chat_history.owner):
+            logger.warning(f'User {chat_history.owner} does not exits!')
+            return False
+
+        if not self.project_exists(chat_history.owner, chat_history.project):
+            logger.warning(f'Project {chat_history.owner}/{chat_history.project} does not exits!')
+            return False
+
+        if self.chat_exists(chat_history.session_id, chat_history.project, chat_history.owner):
+            logger.error(f'Error while creating new chat for {chat_history.owner}/{chat_history.project}!')
+            return False
+
+        cur = self._conn.cursor()
+        stmt = """
+            INSERT INTO chat_history (session_id, description, owner, project, create_time, update_time)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """
+        cur.execute(stmt, (
+            chat_history.session_id,
+            chat_history.description,
+            chat_history.owner,
+            chat_history.project,
+            chat_history.create_time,
+            chat_history.update_time,
+        ))
+        self._conn.commit()
+        cur.close()
+
+        logger.info(f'Create new chat for {chat_history.owner}/{chat_history.project}')
+        return True
+
     def __del__(self):
         if self._conn:
             self._conn.close()
@@ -498,13 +592,7 @@ def main() -> None:
     project1 = Project(
         name='test',
         owner='user114',
-        create_time=now_time,
-        update_time=now_time,
-        archived=False
-    )
-    project2 = Project(
-        name='test',
-        owner='test',
+        last_chat='14521',
         create_time=now_time,
         update_time=now_time,
         archived=False
@@ -525,7 +613,7 @@ def main() -> None:
         # print(profile_store.create_project(project2))
 
         proj_list = profile_store.get_user_projects('test')
-        print(proj_list)
+        print(profile_store.project_exists('测试工程01', 'yeyu'))
 
 
 if __name__ == '__main__':

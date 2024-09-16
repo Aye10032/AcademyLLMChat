@@ -1,5 +1,5 @@
-from langchain_community.chat_message_histories import ChatMessageHistory, StreamlitChatMessageHistory
-from langchain_core.messages import HumanMessage, ToolMessage, AIMessage, SystemMessage
+from langchain_core.chat_history import BaseChatMessageHistory
+from langchain_core.messages import HumanMessage, ToolMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
@@ -9,7 +9,7 @@ from llm.ToolCore import VecstoreSearchTool, WebSearchTool
 import streamlit as st
 
 
-def chat_with_history(_chat_history: ChatMessageHistory | StreamlitChatMessageHistory, question: str):
+def chat_with_history(_chat_history: BaseChatMessageHistory, question: str):
     prompt = ChatPromptTemplate.from_messages(
         [
             (
@@ -38,7 +38,10 @@ def chat_with_history(_chat_history: ChatMessageHistory | StreamlitChatMessageHi
     return result
 
 
-def write_paper(_chat_history: ChatMessageHistory | StreamlitChatMessageHistory, question: str):
+def write_paper(
+        _chat_history: BaseChatMessageHistory,
+        question: str
+):
     prompt = ChatPromptTemplate.from_messages(
         [
             SystemMessage(

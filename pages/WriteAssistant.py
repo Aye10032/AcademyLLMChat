@@ -1,8 +1,9 @@
 import os
 from datetime import datetime
-from zoneinfo import ZoneInfo
+from uuid import uuid4
 
 import streamlit as st
+from langchain_core.messages import HumanMessage, AIMessage
 from loguru import logger
 from langchain_community.chat_message_histories import ChatMessageHistory, SQLChatMessageHistory
 
@@ -11,8 +12,7 @@ from llm.ChatCore import write_paper
 from storage.SqliteStore import ProfileStore
 from uicomponent.StComponent import side_bar_links, login_message, create_project
 from uicomponent.StatusBus import get_config, get_user, update_user
-from utils.entities.TimeZones import time_zone_list
-from utils.entities.UserProfile import Project, User, UserGroup
+from utils.entities.UserProfile import Project, User, UserGroup, ChatHistory
 
 st.set_page_config(
     page_title="学术大模型知识库",
@@ -37,10 +37,39 @@ def change_project():
     update_user(user)
 
 
+def create_chat():
+    now_time = datetime.now().timestamp()
+
+    chat = ChatHistory(
+        session_id=str(uuid4()),
+        description='新对话',
+        owner=user.name,
+        project=st.session_state.get('now_project'),
+        create_time=now_time,
+        update_time=now_time
+    )
+    project = Project(
+        name=st.session_state.get('now_project'),
+        owner=user.name,
+        last_chat=chat.session_id,
+        update_time=now_time,
+        create_time=0.,
+        archived=False
+    )
+
+    with ProfileStore(
+            connection_string=config.get_user_db()
+    ) as profile_store:
+        profile_store.create_chat_history(chat)
+        profile_store.update_project(project)
+
+    st.session_state['now_chat'] = chat.session_id
+
+
 def __main_page():
     chat_message_history = SQLChatMessageHistory(
-        session_id="test_session_id",
-        connection="sqlite:///sqlite.db"
+        session_id=st.session_state.get('now_chat'),
+        connection=f"sqlite:///{config.get_user_path()}/{user.name}/chat_history.db"
     )
 
     prompt = st.chat_input('请输入问题')
@@ -88,20 +117,13 @@ def __main_page():
 
     if prompt:
         chat_container.chat_message('user').markdown(prompt)
-        logger.info(f'chat: {prompt}')
-        st.session_state.write_messages.append({'role': 'user', 'content': prompt})
+        chat_message_history.add_user_message(HumanMessage(content=prompt))
+        logger.info(f'({user.name}) chat: {prompt}')
 
-        chat_history = ChatMessageHistory()
-        for message in st.session_state.write_messages:
-            if message['role'] == 'assistant':
-                chat_history.add_ai_message(message['content'])
-            else:
-                chat_history.add_user_message(message['content'])
-
-        response = write_paper(chat_history, prompt)
+        response = write_paper(chat_message_history, prompt)
 
         result = chat_container.chat_message('assistant', avatar='logo.png').write_stream(response)
-        st.session_state.write_messages.append({'role': 'assistant', 'content': result})
+        chat_message_history.add_ai_message(AIMessage(content=result))
         logger.info(f"(gpt4o-mini) answer: {result}")
 
 
@@ -121,7 +143,7 @@ def __different_ui():
             st.button(
                 'Create',
                 type='primary',
-                on_click=lambda: create_project,
+                on_click=create_project,
                 args=[user]
             )
     else:
@@ -154,6 +176,7 @@ def __different_ui():
             )
             st.button(
                 '开始新对话',
+                on_click=create_chat
             )
 
         __main_page()

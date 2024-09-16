@@ -1,10 +1,12 @@
+import os
 from datetime import datetime
+from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from storage.SqliteStore import ProfileStore
 from uicomponent.StatusBus import *
 from utils.entities.TimeZones import time_zone_list
-from utils.entities.UserProfile import User, UserGroup, Project
+from utils.entities.UserProfile import User, UserGroup, Project, ChatHistory
 
 config = get_config()
 
@@ -86,12 +88,11 @@ def create_project(user: User):
     )
     if st.session_state.get('create_project'):
         now_time = datetime.now().timestamp()
-        tz = ZoneInfo(time_zone)
 
         project = Project(
             name=project_name,
             owner=user.name,
-            last_chat=datetime.fromtimestamp(now_time, tz).strftime("%Y-%m-%d %H:%M:%S"),
+            last_chat=str(uuid4()),
             create_time=now_time,
             update_time=now_time,
             archived=False
@@ -104,12 +105,30 @@ def create_project(user: User):
         if result:
             # TODO
             # 创建相关数据库等
+            os.makedirs(
+                os.path.join(config.get_user_path(), user.name, project_name),
+                exist_ok=True
+            )
 
             # 更新用户最新工程
             user.last_project = project.name
             update_user(user)
             st.session_state['now_project'] = project.name
 
+            chat_history = ChatHistory(
+                session_id=project.last_chat,
+                description='new chat',
+                owner=project.owner,
+                project=project.name,
+                create_time=now_time,
+                update_time=now_time
+            )
+            with ProfileStore(
+                    connection_string=config.get_user_db()
+            ) as profile_store:
+                profile_store.create_chat_history(chat_history)
+
+            st.session_state['now_chat'] = chat_history.session_id
             st.rerun()
         else:
             st.warning(f'Project {project.owner}/{project.name} already exist!')
