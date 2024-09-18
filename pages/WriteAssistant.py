@@ -8,7 +8,7 @@ from loguru import logger
 from langchain_community.chat_message_histories import ChatMessageHistory, SQLChatMessageHistory
 
 from Config import Config
-from llm.ChatCore import write_paper
+from llm.ChatCore import write_paper, conclude_chat
 from storage.SqliteStore import ProfileStore
 from uicomponent.StComponent import side_bar_links, login_message, create_project
 from uicomponent.StatusBus import get_config, get_user, update_user
@@ -63,7 +63,7 @@ def change_project():
 #         profile_store.update_project(user)
 
 
-def create_chat():
+def __on_create_chat_click():
     now_time = datetime.now().timestamp()
 
     chat = ChatHistory(
@@ -87,6 +87,34 @@ def create_chat():
         profile_store.update_project(project)
 
     st.session_state['now_chat'] = chat.session_id
+
+
+def __on_summary_click():
+    chat_message_history = SQLChatMessageHistory(
+        session_id=st.session_state.get('now_chat'),
+        connection=f"sqlite:///{config.get_user_path()}/{user.name}/chat_history.db"
+    )
+    chat_description = conclude_chat(chat_message_history)
+
+    now_time = datetime.now().timestamp()
+    chat = ChatHistory(
+        session_id=st.session_state.get('now_chat'),
+        description=chat_description.content,
+        owner=user.name,
+        project=user.last_project,
+        update_time=now_time,
+    )
+    project = Project(
+        name=st.session_state.get('now_project'),
+        owner=user.name,
+        last_chat=st.session_state.get('now_chat'),
+        update_time=now_time
+    )
+    with ProfileStore(
+            connection_string=config.get_user_db()
+    ) as profile_store:
+        profile_store.update_project(project)
+        profile_store.update_chat_history(chat)
 
 
 def __main_page():
@@ -195,6 +223,7 @@ def __different_ui():
             )
             st.button(
                 '➕',
+                key='btn_new_proj',
                 on_click=create_project,
                 args=[user]
             )
@@ -204,9 +233,15 @@ def __different_ui():
                 options=range(len(chat_list)),
                 format_func=lambda x: chat_list[x].description
             )
-            st.button(
-                '开始新对话',
-                on_click=create_chat
+            col_new_chat, col_summary, _ = st.columns([0.5, 1, 1])
+            col_new_chat.button(
+                '➕',
+                key='btn_new_chat',
+                on_click=__on_create_chat_click
+            )
+            col_summary.button(
+                'Summary',
+                on_click=__on_summary_click
             )
 
         __main_page()

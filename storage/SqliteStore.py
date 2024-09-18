@@ -608,6 +608,49 @@ class ProfileStore:
         finally:
             cur.close()
 
+    def get_chat_history(self, session_id: str) -> Optional[ChatHistory]:
+        cur = self._conn.cursor()
+
+        try:
+            cur.execute("SELECT * FROM chat_history where session_id=?", (session_id,))
+            result = cur.fetchone()
+
+            if result:
+                return ChatHistory.from_list(result)
+            else:
+                logger.warning(f'Chat history {session_id} does not exist!')
+        except Exception as e:
+            logger.error(f"Error occurred while retrieving chat history {session_id}: {str(e)}")
+            return None
+        finally:
+            cur.close()
+
+
+    def update_chat_history(self,chat_history:ChatHistory)->bool:
+        cur = self._conn.cursor()
+
+        try:
+            stmt = """
+                       UPDATE chat_history 
+                       SET description = ?, update_time = ? 
+                       WHERE session_id = ?
+                       """
+
+            cur.execute(stmt, (
+                chat_history.description,
+                chat_history.update_time,
+                chat_history.session_id,
+            ))
+            self._conn.commit()
+
+            logger.info(f'Update chat {chat_history.session_id}')
+            return True
+        except Exception as e:
+            logger.error(f"Error while update chat {chat_history.session_id}: {e}")
+            return False
+        finally:
+            cur.close()
+
     def __del__(self):
         if self._conn:
             self._conn.close()
