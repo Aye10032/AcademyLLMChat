@@ -89,10 +89,8 @@ class BgeM3Embeddings(BaseModel, Embeddings):
 
     def dense_embedding(self, hidden_state: Tensor, mask: Tensor) -> Tensor:
         if self.pooling_method == 'cls':
-            logger.debug('cls')
             return hidden_state[:, 0]
         elif self.pooling_method == 'mean':
-            logger.debug('mean')
             s = torch.sum(hidden_state * mask.unsqueeze(-1).float(), dim=1)
             d = mask.sum(dim=1, keepdim=True).float()
             return s / d
