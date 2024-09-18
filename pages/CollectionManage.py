@@ -297,23 +297,6 @@ def new_tab():
                     "visitor_visible": visible,
                 })
 
-                init_doc = Document(page_content=f'This is a collection about {description}',
-                                    metadata={
-                                        'title': 'About this collection',
-                                        'section': 'Abstract',
-                                        'author': 'administrator',
-                                        'year': datetime.now().year,
-                                        'type': -1,
-                                        'keywords': 'collection',
-                                        'doi': ''
-                                    })
-
-                sqlite_path = config.get_sqlite_path(new_collection.collection_name)
-                doc_store = SqliteDocStore(
-                    connection_string=sqlite_path,
-                    drop_old=True
-                )
-
                 vector_db = Milvus(
                     embedding,
                     collection_name=collection_name,
@@ -323,28 +306,20 @@ def new_tab():
                     auto_id=True
                 )
 
-                if language == 'en':
-                    child_splitter = RecursiveCharacterTextSplitter(
-                        chunk_size=100,
-                        chunk_overlap=0,
-                        separators=['.', '\n\n', '\n'],
-                        keep_separator=False
-                    )
-                else:
-                    child_splitter = RecursiveCharacterTextSplitter(
-                        chunk_size=100,
-                        chunk_overlap=0,
-                        separators=['。', '？', '\n\n', '\n'],
-                        keep_separator=False
-                    )
-
-                retriever = ParentDocumentRetriever(
-                    vectorstore=vector_db,
-                    docstore=doc_store,
-                    child_splitter=child_splitter
+                init_doc = Document(
+                    page_content=f'This is a collection about {description}',
+                    metadata={
+                        'title': 'About this collection',
+                        'section': 'Abstract',
+                        'author': 'administrator',
+                        'year': datetime.now().year,
+                        'type': -1,
+                        'keywords': 'collection',
+                        'doi': ''
+                    }
                 )
-
-                retriever.add_documents([init_doc])
+                init_ids = vector_db.add_documents([init_doc])
+                vector_db.delete(init_ids)
 
                 milvus_cfg.add_collection(new_collection)
                 config.set_collection(0)

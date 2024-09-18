@@ -55,9 +55,21 @@ def init_retriever() -> ParentDocumentRetriever:
         connection_args=milvus_cfg.get_conn_args(),
         index_params=milvus_cfg.get_collection().index_param,
         drop_old=True,
-        auto_id=True
+        auto_id=True,
+        enable_dynamic_field=True,
     )
-
+    init_doc = Document(page_content=f'This is a collection about {collection_name}',
+                        metadata={
+                            'title': 'About this collection',
+                            'section': 'Abstract',
+                            'author': 'administrator',
+                            'year': datetime.now().year,
+                            'type': -1,
+                            'keywords': 'collection',
+                            'doi': ''
+                        })
+    init_ids = vector_db.add_documents([init_doc])
+    vector_db.delete(init_ids)
     logger.info('done')
 
     parent_splitter = RecursiveCharacterTextSplitter(
@@ -106,17 +118,6 @@ def load_md(base_path: str) -> None:
 
     retriever = init_retriever()
     now_collection = config.milvus_config.get_collection().collection_name
-    init_doc = Document(page_content=f'This is a collection about {now_collection}',
-                        metadata={
-                            'title': 'About this collection',
-                            'section': 'Abstract',
-                            'author': 'administrator',
-                            'year': datetime.now().year,
-                            'type': -1,
-                            'keywords': 'collection',
-                            'doi': ''
-                        })
-    retriever.add_documents([init_doc])
     logger.info('start loading file...')
 
     # 遍历基础路径下的所有文件和子目录
