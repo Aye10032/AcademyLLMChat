@@ -1,12 +1,5 @@
-import os
-from datetime import datetime
-from uuid import uuid4
-from zoneinfo import ZoneInfo
-
-from storage.SqliteStore import ProfileStore
 from uicomponent.StatusBus import *
-from utils.entities.TimeZones import time_zone_list
-from utils.entities.UserProfile import User, UserGroup, Project, ChatHistory
+from utils.entities.UserProfile import UserGroup
 
 config = get_config()
 
@@ -69,68 +62,3 @@ def score_text(score: float) -> str:
                 f'border-radius: 10px; font-size: 10px; font-family: Arial, sans-serif;">{round(score, 4)}</span>')
 
     return html_str
-
-
-@st.dialog('Create project')
-def create_project(user: User):
-    project_name = st.text_input('Project name')
-    time_zone = st.selectbox(
-        'Time zone',
-        index=285,
-        options=time_zone_list
-    )
-
-    st.button(
-        'Create',
-        key='create_project',
-        type='primary',
-        disabled=not project_name
-    )
-    if st.session_state.get('create_project'):
-        now_time = datetime.now().timestamp()
-
-        project = Project(
-            name=project_name,
-            owner=user.name,
-            last_chat=str(uuid4()),
-            update_time=now_time,
-            create_time=now_time,
-            time_zone=time_zone,
-        )
-        with ProfileStore(
-                connection_string=config.get_user_db()
-        ) as profile_store:
-            project_success = profile_store.create_project(project)
-
-            if project_success:
-                # TODO
-                # 创建相关数据库等
-                os.makedirs(
-                    os.path.join(config.get_user_path(), user.name, project_name),
-                    exist_ok=True
-                )
-
-                # 更新用户最新工程
-                user.last_project = project.name
-                update_user(user)
-                st.session_state['now_project'] = project.name
-
-                chat_history = ChatHistory(
-                    session_id=project.last_chat,
-                    description='new chat',
-                    owner=project.owner,
-                    project=project.name,
-                    update_time=now_time,
-                    create_time=now_time,
-                )
-
-                chat_success = profile_store.create_chat_history(chat_history)
-
-                if chat_success:
-                    st.session_state['now_chat'] = chat_history.session_id
-                    st.rerun()
-                else:
-                    st.warning(f'Automatic creation of dialogues for project {project.owner}/{project.name} has failed, '
-                               f'please create them manually later!')
-            else:
-                st.warning(f'Project {project.owner}/{project.name} already exist!')

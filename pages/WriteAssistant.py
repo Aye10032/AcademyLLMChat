@@ -1,17 +1,22 @@
 import os
 from datetime import datetime
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 import streamlit as st
+from langchain_core.documents import Document
 from langchain_core.messages import HumanMessage, AIMessage
+from langchain_milvus import Milvus
 from loguru import logger
-from langchain_community.chat_message_histories import ChatMessageHistory, SQLChatMessageHistory
+from langchain_community.chat_message_histories import SQLChatMessageHistory
 
 from Config import Config
 from llm.ChatCore import write_paper, conclude_chat
+from llm.ModelCore import load_embedding
 from storage.SqliteStore import ProfileStore
-from uicomponent.StComponent import side_bar_links, login_message, create_project
+from uicomponent.StComponent import side_bar_links, login_message
 from uicomponent.StatusBus import get_config, get_user, update_user
+from utils.entities.TimeZones import time_zone_list
 from utils.entities.UserProfile import Project, User, UserGroup, ChatHistory
 
 st.set_page_config(
@@ -30,6 +35,108 @@ milvus_cfg = config.milvus_config
 collections = [collection.collection_name for collection in milvus_cfg.collections]
 
 user: User = get_user()
+
+
+@st.dialog('Create project')
+def create_project():
+    project_name = st.text_input('Project name')
+    time_zone = st.selectbox(
+        'Time zone',
+        index=285,
+        options=time_zone_list
+    )
+
+    st.button(
+        'Create',
+        key='create_project',
+        type='primary',
+        disabled=not project_name
+    )
+    if st.session_state.get('create_project'):
+        now_time = datetime.now().timestamp()
+
+        project = Project(
+            name=project_name,
+            owner=user.name,
+            last_chat=str(uuid4()),
+            update_time=now_time,
+            create_time=now_time,
+            time_zone=time_zone,
+        )
+        with ProfileStore(
+                connection_string=config.get_user_db()
+        ) as profile_store:
+            project_success = profile_store.create_project(project)
+
+            if project_success:
+                # 创建向量数据库
+                embedding = load_embedding()
+                index_param = {
+                    "metric_type": "L2",
+                    "index_type": "HNSW",
+                    "params": {"M": 8, "efConstruction": 64}
+                }
+                vector_db = Milvus(
+                    embedding,
+                    collection_name=f"{project.owner}_"
+                                    f"{datetime.fromtimestamp(now_time, tz=ZoneInfo(time_zone)).strftime('%Y_%m_%d_%H_%M_%S')}",
+                    connection_args=config.milvus_config.get_conn_args(),
+                    index_params=index_param,
+                    drop_old=True,
+                    auto_id=True,
+                    enable_dynamic_field=True
+                )
+                init_doc = Document(
+                    page_content=f'This is a collection about test',
+                    metadata={
+                        'title': 'About this collection',
+                        'section': 'Abstract',
+                        'author': 'administrator',
+                        'year': datetime.now().year,
+                        'type': -1,
+                        'keywords': 'collection',
+                        'is_main': True,
+                        'doi': ''
+                    }
+                )
+
+                result = vector_db.add_documents([init_doc])
+                vector_db.delete(ids=result)
+
+                # 创建本地文件夹
+                os.makedirs(
+                    os.path.join(config.get_user_path(), user.name, project_name, 'origin_file'),
+                    exist_ok=True
+                )
+                os.makedirs(
+                    os.path.join(config.get_user_path(), user.name, project_name, 'markdown'),
+                    exist_ok=True
+                )
+
+                # 更新用户最新工程
+                user.last_project = project.name
+                update_user(user)
+                st.session_state['now_project'] = project.name
+
+                chat_history = ChatHistory(
+                    session_id=project.last_chat,
+                    description='new chat',
+                    owner=project.owner,
+                    project=project.name,
+                    update_time=now_time,
+                    create_time=now_time,
+                )
+
+                chat_success = profile_store.create_chat_history(chat_history)
+
+                if chat_success:
+                    st.session_state['now_chat'] = chat_history.session_id
+                    st.rerun()
+                else:
+                    st.warning(f'Automatic creation of dialogues for project {project.owner}/{project.name} has failed, '
+                               f'please create them manually later!')
+            else:
+                st.warning(f'Project {project.owner}/{project.name} already exist!')
 
 
 def change_project():
@@ -119,16 +226,15 @@ def __main_page():
     col_chat, col_conf = st.columns([2, 1], gap='small')
 
     col_chat.caption(f'{user.name}/{user.last_project}')
-    chat_container = col_chat.container(height=650, border=True)
+    chat_container = col_chat.container(height=690, border=False)
     with chat_container:
         for message in chat_message_history.messages:
-            icon = 'logo.png' if message.type != 'human' else None
-            with st.chat_message(message.type, avatar=icon):
+            with st.chat_message(message.type):
                 st.markdown(message.content)
 
-    config_container = col_conf.container(height=690, border=True)
+    config_container = col_conf.container(height=730, border=True)
     with config_container:
-        with st.expander('#### 文件上传'):
+        with st.expander('##### 文件上传'):
             st.file_uploader('主文件上传')
             st.file_uploader(
                 '其他材料上传',
@@ -185,8 +291,7 @@ def __different_ui():
             st.button(
                 'Create',
                 type='primary',
-                on_click=create_project,
-                args=[user]
+                on_click=create_project
             )
     else:
         with ProfileStore(
@@ -215,8 +320,7 @@ def __different_ui():
             st.button(
                 '➕',
                 key='btn_new_proj',
-                on_click=create_project,
-                args=[user]
+                on_click=create_project
             )
 
             st.selectbox(
