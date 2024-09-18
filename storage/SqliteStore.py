@@ -551,7 +551,7 @@ class ProfileStore:
 
         return result is not None
 
-    def get_chat_list(self, owner: str, project_name: str) -> list[ChatHistory]:
+    def get_chat_list(self, owner: str, project_name: str) -> dict[str, str]:
         cur = self._conn.cursor()
 
         try:
@@ -561,13 +561,13 @@ class ProfileStore:
             )
             results = cur.fetchall()
 
-            return [
-                ChatHistory.from_list(result)
+            return {
+                result[1]: result[2]
                 for result in results
-            ]
+            }
         except Exception as e:
             logger.error(f"Error occurred while retrieving chat list for {owner}/{project_name}: {str(e)}")
-            return []
+            return {}
         finally:
             cur.close()
 
@@ -625,8 +625,7 @@ class ProfileStore:
         finally:
             cur.close()
 
-
-    def update_chat_history(self,chat_history:ChatHistory)->bool:
+    def update_chat_history(self, chat_history: ChatHistory) -> bool:
         cur = self._conn.cursor()
 
         try:

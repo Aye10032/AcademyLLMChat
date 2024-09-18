@@ -37,30 +37,21 @@ def change_project():
     update_user(user)
 
 
-# def change_chat():
-#     now_time = datetime.now().timestamp()
-#
-#     # TODO 更新对话概括
-#
-#     # 更新数据库
-#     chat = ChatHistory(
-#         session_id=st.session_state.get('now_chat'),
-#         description=...,
-#         owner=user.name,
-#         project=user.last_project,
-#         update_time=now_time,
-#         create_time=0.
-#     )
-#     project = Project(
-#         name=st.session_state.get('now_project'),
-#         owner=user.name,
-#
-#     )
-#
-#     with ProfileStore(
-#             connection_string=config.get_user_db()
-#     ) as profile_store:
-#         profile_store.update_project(user)
+def change_chat():
+    now_time = datetime.now().timestamp()
+
+    # 更新数据库
+    project = Project(
+        name=st.session_state.get('now_project'),
+        owner=user.name,
+        last_chat=st.session_state['now_chat'],
+        update_time=now_time,
+    )
+
+    with ProfileStore(
+            connection_string=config.get_user_db()
+    ) as profile_store:
+        profile_store.update_project(project)
 
 
 def __on_create_chat_click():
@@ -217,9 +208,9 @@ def __different_ui():
 
             st.selectbox(
                 'Project',
+                options=project_list,
                 key='now_project',
                 on_change=change_project,
-                options=project_list
             )
             st.button(
                 '➕',
@@ -230,8 +221,10 @@ def __different_ui():
 
             st.selectbox(
                 '对话历史',
-                options=range(len(chat_list)),
-                format_func=lambda x: chat_list[x].description
+                options=chat_list.keys(),
+                key='now_chat',
+                format_func=lambda x: chat_list[x],
+                on_change=change_chat,
             )
             col_new_chat, col_summary, _ = st.columns([0.5, 1, 1])
             col_new_chat.button(
