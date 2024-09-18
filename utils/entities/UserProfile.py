@@ -1,8 +1,6 @@
-from dataclasses import dataclass, asdict
-from datetime import datetime
+from dataclasses import dataclass
 from enum import IntEnum
-from typing import Any
-from zoneinfo import ZoneInfo
+from typing import Any, Optional
 
 
 class UserGroup(IntEnum):
@@ -25,7 +23,7 @@ class User:
     name: str
     password: str
     user_group: int
-    last_project: str
+    last_project: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]):
@@ -37,9 +35,9 @@ class Project:
     name: str
     owner: str
     last_chat: str
-    create_time: float
     update_time: float
-    archived: bool
+    create_time: float = 0.
+    time_zone: str = 'Asia/Shanghai'
 
     @classmethod
     def from_list(cls, data: list[Any]):
@@ -52,24 +50,9 @@ class ChatHistory:
     description: str
     owner: str
     project: str
-    create_time: float
     update_time: float
+    create_time: float = 0.
 
-
-def main() -> None:
-    user = User.from_dict({
-        "name": "aye",
-        "password": "114514",
-        "user_group": UserGroup.ADMIN
-    })
-
-    now_time = datetime.now().timestamp()
-    print(now_time)
-    print(type(now_time))
-
-    tz = ZoneInfo('Asia/Shanghai')
-    print(datetime.fromtimestamp(now_time, tz).strftime("%Y-%m-%d %H:%M:%S"))
-
-
-if __name__ == '__main__':
-    main()
+    @classmethod
+    def from_list(cls, data: list[Any]):
+        return cls(*data[1:])

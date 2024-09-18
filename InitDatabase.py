@@ -161,7 +161,6 @@ def create_userdb():
             name=init_username,
             password=init_password,
             user_group=UserGroup.ADMIN.value,
-            last_project='',
         )
         profile_store.create_user(admin)
 

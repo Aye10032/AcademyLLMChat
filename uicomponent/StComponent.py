@@ -93,42 +93,44 @@ def create_project(user: User):
             name=project_name,
             owner=user.name,
             last_chat=str(uuid4()),
-            create_time=now_time,
             update_time=now_time,
-            archived=False
+            create_time=now_time,
+            time_zone=time_zone,
         )
         with ProfileStore(
                 connection_string=config.get_user_db()
         ) as profile_store:
-            result = profile_store.create_project(project)
+            project_success = profile_store.create_project(project)
 
-        if result:
-            # TODO
-            # 创建相关数据库等
-            os.makedirs(
-                os.path.join(config.get_user_path(), user.name, project_name),
-                exist_ok=True
-            )
+            if project_success:
+                # TODO
+                # 创建相关数据库等
+                os.makedirs(
+                    os.path.join(config.get_user_path(), user.name, project_name),
+                    exist_ok=True
+                )
 
-            # 更新用户最新工程
-            user.last_project = project.name
-            update_user(user)
-            st.session_state['now_project'] = project.name
+                # 更新用户最新工程
+                user.last_project = project.name
+                update_user(user)
+                st.session_state['now_project'] = project.name
 
-            chat_history = ChatHistory(
-                session_id=project.last_chat,
-                description='new chat',
-                owner=project.owner,
-                project=project.name,
-                create_time=now_time,
-                update_time=now_time
-            )
-            with ProfileStore(
-                    connection_string=config.get_user_db()
-            ) as profile_store:
-                profile_store.create_chat_history(chat_history)
+                chat_history = ChatHistory(
+                    session_id=project.last_chat,
+                    description='new chat',
+                    owner=project.owner,
+                    project=project.name,
+                    update_time=now_time,
+                    create_time=now_time,
+                )
 
-            st.session_state['now_chat'] = chat_history.session_id
-            st.rerun()
-        else:
-            st.warning(f'Project {project.owner}/{project.name} already exist!')
+                chat_success = profile_store.create_chat_history(chat_history)
+
+                if chat_success:
+                    st.session_state['now_chat'] = chat_history.session_id
+                    st.rerun()
+                else:
+                    st.warning(f'Automatic creation of dialogues for project {project.owner}/{project.name} has failed, '
+                               f'please create them manually later!')
+            else:
+                st.warning(f'Project {project.owner}/{project.name} already exist!')

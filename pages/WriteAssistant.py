@@ -37,6 +37,32 @@ def change_project():
     update_user(user)
 
 
+# def change_chat():
+#     now_time = datetime.now().timestamp()
+#
+#     # TODO 更新对话概括
+#
+#     # 更新数据库
+#     chat = ChatHistory(
+#         session_id=st.session_state.get('now_chat'),
+#         description=...,
+#         owner=user.name,
+#         project=user.last_project,
+#         update_time=now_time,
+#         create_time=0.
+#     )
+#     project = Project(
+#         name=st.session_state.get('now_project'),
+#         owner=user.name,
+#
+#     )
+#
+#     with ProfileStore(
+#             connection_string=config.get_user_db()
+#     ) as profile_store:
+#         profile_store.update_project(user)
+
+
 def create_chat():
     now_time = datetime.now().timestamp()
 
@@ -45,7 +71,6 @@ def create_chat():
         description='新对话',
         owner=user.name,
         project=st.session_state.get('now_project'),
-        create_time=now_time,
         update_time=now_time
     )
     project = Project(
@@ -53,8 +78,6 @@ def create_chat():
         owner=user.name,
         last_chat=chat.session_id,
         update_time=now_time,
-        create_time=0.,
-        archived=False
     )
 
     with ProfileStore(
@@ -80,7 +103,7 @@ def __main_page():
     chat_container = col_chat.container(height=650, border=True)
     with chat_container:
         for message in chat_message_history.messages:
-            icon = 'logo.png' if message.type != 'user' else None
+            icon = 'logo.png' if message.type != 'human' else None
             with st.chat_message(message.type, avatar=icon):
                 st.markdown(message.content)
 
@@ -152,8 +175,14 @@ def __different_ui():
         ) as profile_store:
             project_list = [
                 _project.name
-                for _project in profile_store.get_user_projects(user.name)
+                for _project in profile_store.get_project_list(user.name)
             ]
+            chat_list = profile_store.get_chat_list(user.name, user.last_project)
+
+            _last_project = profile_store.get_project(user.name, user.last_project)
+            st.session_state['now_project'] = user.last_project
+            st.session_state['now_chat'] = _last_project.last_chat
+            logger.info(f"Load chat({st.session_state['now_chat']}) from {user.name}/{st.session_state['now_project']}")
 
         with st.sidebar:
             side_bar_links()
@@ -172,7 +201,8 @@ def __different_ui():
 
             st.selectbox(
                 '对话历史',
-                options=['简述...']
+                options=range(len(chat_list)),
+                format_func=lambda x: chat_list[x].description
             )
             st.button(
                 '开始新对话',

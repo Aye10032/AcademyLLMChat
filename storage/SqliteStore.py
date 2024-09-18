@@ -285,9 +285,9 @@ class ProfileStore:
                     name        TEXT               not null,
                     owner       TEXT               not null,
                     last_chat   TEXT               not null,
-                    create_time TIMESTAMP          not null,
                     update_time TIMESTAMP          not null,
-                    archived    BLOB default FALSE not null
+                    create_time TIMESTAMP          not null,
+                    time_zone   TEXT               not null 
                 );"""
             cur.execute(create_stmt)
             self._conn.commit()
@@ -304,8 +304,8 @@ class ProfileStore:
                     description TEXT      not null,
                     owner       TEXT      not null,
                     project     TEXT      not null,
-                    create_time TIMESTAMP not null,
-                    update_time TIMESTAMP not null
+                    update_time TIMESTAMP not null,
+                    create_time TIMESTAMP not null
                 );"""
             cur.execute(create_stmt)
             self._conn.commit()
@@ -321,7 +321,7 @@ class ProfileStore:
         :return: True if the user does not exist, False if the user exists.
         """
         cur = self._conn.cursor()
-        cur.execute("SELECT name FROM user WHERE name = ?", (name,))
+        cur.execute("SELECT id FROM user WHERE name = ?", (name,))
         result = cur.fetchone()
         cur.close()
 
@@ -367,7 +367,7 @@ class ProfileStore:
             result = cur.fetchone()
 
             if result is None:
-                logger.warning(f"用户 '{user_name}' 不存在")
+                logger.warning(f"User '{user_name}' does not exist!")
                 return False, None
 
             _, name, hashed_password, user_group, last_project = result
@@ -405,7 +405,7 @@ class ProfileStore:
 
             return df
         except Exception as e:
-            logger.error(f"获取用户列表时出错: {str(e)}")
+            logger.error(f"Error occurred while retrieving the user list: {str(e)}")
             return pd.DataFrame(columns=['name', 'user group', 'last project'])
         finally:
             cur.close()
@@ -438,7 +438,7 @@ class ProfileStore:
         :return: True if the project exists, False otherwise.
         """
         cur = self._conn.cursor()
-        cur.execute("SELECT name FROM project WHERE name = ? AND owner = ?", (project_name, owner,))
+        cur.execute("SELECT id FROM project WHERE name = ? AND owner = ?", (project_name, owner,))
         result = cur.fetchone()
         cur.close()
 
@@ -453,15 +453,16 @@ class ProfileStore:
 
         if not self.project_exists(project.owner, project.name):
             stmt = """
-                INSERT INTO project (name, owner, last_chat,create_time, update_time)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO project (name, owner, last_chat, update_time, create_time, time_zone)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """
             cur.execute(stmt, (
                 project.name,
                 project.owner,
                 project.last_chat,
+                project.update_time,
                 project.create_time,
-                project.update_time
+                project.time_zone
             ))
             self._conn.commit()
             cur.close()
@@ -474,7 +475,7 @@ class ProfileStore:
             logger.warning(f'Project {project.owner}/{project.name} already exist!')
             return False
 
-    def get_user_projects(self, user: str) -> list[Project]:
+    def get_project_list(self, user: str) -> list[Project]:
         cur = self._conn.cursor()
 
         try:
@@ -486,8 +487,25 @@ class ProfileStore:
                 for result in results
             ]
         except Exception as e:
-            logger.error(f"获取用户工程列表时出错: {str(e)}")
+            logger.error(f"Error occurred while retrieving the user project list: {str(e)}")
             return []
+        finally:
+            cur.close()
+
+    def get_project(self, owner: str, project_name: str) -> Optional[Project]:
+        cur = self._conn.cursor()
+
+        try:
+            cur.execute("SELECT * FROM project where owner=? AND name=?", (owner, project_name,))
+            result = cur.fetchone()
+
+            if result:
+                return Project.from_list(result)
+            else:
+                logger.warning(f'Project {owner}/{project_name} does not exist!')
+        except Exception as e:
+            logger.error(f"Error occurred while retrieving project {owner}/{project_name}: {str(e)}")
+            return None
         finally:
             cur.close()
 
@@ -512,26 +530,46 @@ class ProfileStore:
             logger.info(f'Update project {project.owner}/{project.name}')
             return True
         except Exception as e:
-            logger.error(f"Error while update project table: {e}")
+            logger.error(f"Error while update project {project.owner}/{project.name}: {e}")
             return False
         finally:
             cur.close()
 
     def chat_exists(
             self,
-            session_id: str,
+            owner: str,
             project: str,
-            owner: str
+            session_id: str,
     ) -> bool:
         cur = self._conn.cursor()
         cur.execute(
-            "SELECT * FROM chat_history WHERE session_id = ? AND project = ? AND owner = ?",
+            "SELECT id FROM chat_history WHERE session_id = ? AND project = ? AND owner = ?",
             (session_id, project, owner,)
         )
         result = cur.fetchone()
         cur.close()
 
         return result is not None
+
+    def get_chat_list(self, owner: str, project_name: str) -> list[ChatHistory]:
+        cur = self._conn.cursor()
+
+        try:
+            cur.execute(
+                "SELECT * FROM chat_history where owner=? AND project=?",
+                (owner, project_name,)
+            )
+            results = cur.fetchall()
+
+            return [
+                ChatHistory.from_list(result)
+                for result in results
+            ]
+        except Exception as e:
+            logger.error(f"Error occurred while retrieving chat list for {owner}/{project_name}: {str(e)}")
+            return []
+        finally:
+            cur.close()
 
     def create_chat_history(self, chat_history: ChatHistory):
         if not self.user_exists(chat_history.owner):
@@ -542,28 +580,33 @@ class ProfileStore:
             logger.warning(f'Project {chat_history.owner}/{chat_history.project} does not exits!')
             return False
 
-        if self.chat_exists(chat_history.session_id, chat_history.project, chat_history.owner):
-            logger.error(f'Error while creating new chat for {chat_history.owner}/{chat_history.project}!')
+        if self.chat_exists(chat_history.owner, chat_history.project, chat_history.session_id):
+            logger.warning(f'Chat {chat_history.session_id} already exist!')
             return False
 
         cur = self._conn.cursor()
-        stmt = """
-            INSERT INTO chat_history (session_id, description, owner, project, create_time, update_time)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """
-        cur.execute(stmt, (
-            chat_history.session_id,
-            chat_history.description,
-            chat_history.owner,
-            chat_history.project,
-            chat_history.create_time,
-            chat_history.update_time,
-        ))
-        self._conn.commit()
-        cur.close()
+        try:
+            stmt = """
+                INSERT INTO chat_history (session_id, description, owner, project, update_time, create_time)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """
+            cur.execute(stmt, (
+                chat_history.session_id,
+                chat_history.description,
+                chat_history.owner,
+                chat_history.project,
+                chat_history.update_time,
+                chat_history.create_time,
+            ))
+            self._conn.commit()
 
-        logger.info(f'Create new chat for {chat_history.owner}/{chat_history.project}')
-        return True
+            logger.info(f'Create new chat for {chat_history.owner}/{chat_history.project}')
+            return True
+        except Exception as e:
+            logger.error(f'Error while creating new chat for {chat_history.owner}/{chat_history.project}: {str(e)}')
+            return False
+        finally:
+            cur.close()
 
     def __del__(self):
         if self._conn:
@@ -595,7 +638,6 @@ def main() -> None:
         last_chat='14521',
         create_time=now_time,
         update_time=now_time,
-        archived=False
     )
 
     with ProfileStore(
@@ -605,15 +647,12 @@ def main() -> None:
         # profile_store.create_user(user)
 
         # user = profile_store.valid_user('test', '12345678')
-        # user_list = profile_store.get_users()
-        # print(user_list)
+        user_list = profile_store.get_users()
+        print(user_list)
         #
         # print(profile_store.create_project(project1))
         # print(profile_store.create_project(project2))
         # print(profile_store.create_project(project2))
-
-        proj_list = profile_store.get_user_projects('test')
-        print(profile_store.project_exists('测试工程01', 'yeyu'))
 
 
 if __name__ == '__main__':

@@ -110,7 +110,6 @@ def create_user():
             name=username,
             password=password,
             user_group=UserGroup.from_name(user_group),
-            last_project='',
         )
 
         with ProfileStore(
