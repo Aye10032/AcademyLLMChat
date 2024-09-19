@@ -6,17 +6,16 @@ import torch.cuda
 from langchain_core.callbacks import Callbacks
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
-from langchain_core.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from langchain_core.runnables import run_in_executor
 from loguru import logger
 from torch import Tensor
 from tqdm import tqdm
 
-
 class BgeM3Embeddings(BaseModel, Embeddings):
-    model_name: str = 'BAAI/bge-m3'
-    tokenizer: Any
-    model: Any
+    model_name: str
+    tokenizer: Any = None
+    model: Any = None
 
     """
     Keyword arguments to pass to the model.
@@ -27,7 +26,7 @@ class BgeM3Embeddings(BaseModel, Embeddings):
     """
     pooling_method: str = 'cls'
     use_fp16: bool = True
-    device: str = None
+    device: Optional[str] = None
 
     """
     Keyword arguments to pass when calling the `encode` method of the model.
@@ -86,6 +85,8 @@ class BgeM3Embeddings(BaseModel, Embeddings):
 
         self.model = self.model.to(torch.device(self.device))
         self.model.eval()
+
+    model_config = ConfigDict(extra="forbid", protected_namespaces=())
 
     def dense_embedding(self, hidden_state: Tensor, mask: Tensor) -> Tensor:
         if self.pooling_method == 'cls':
@@ -151,8 +152,8 @@ class BgeM3Embeddings(BaseModel, Embeddings):
 
 class BgeReranker(BaseModel):
     model_name: str = 'BAAI/bge-reranker-v2-m3'
-    tokenizer: Any
-    model: Any
+    tokenizer: Any = None
+    model: Any = None
 
     """
     Keyword arguments to pass to the model.
@@ -161,7 +162,7 @@ class BgeReranker(BaseModel):
     device: Union[str, int] = None
     """
     use_fp16: bool = False,
-    device: Union[str] = None
+    device: Optional[str] = None
 
     """
     Keyword arguments to pass when calling the `compress_documents` method of the model.
@@ -220,6 +221,8 @@ class BgeReranker(BaseModel):
 
         self.model = self.model.to(torch.device(self.device))
         self.model.eval()
+
+    model_config = ConfigDict(extra="forbid", protected_namespaces=())
 
     @torch.no_grad()
     def compute_score(

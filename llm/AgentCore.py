@@ -1,6 +1,6 @@
 from langchain_core.prompts import PromptTemplate
-from langchain_core.pydantic_v1 import BaseModel, Field
 import streamlit as st
+from pydantic import BaseModel, Field
 
 from llm.ModelCore import load_gpt4o_mini
 from langchain_core.output_parsers import PydanticOutputParser

@@ -4,13 +4,13 @@ from typing import Optional
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
-import streamlit as st
+from loguru import logger
 from langchain_core.documents import Document
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_milvus import Milvus
-from loguru import logger
 from langchain_community.chat_message_histories import SQLChatMessageHistory
 from streamlit.runtime.uploaded_file_manager import UploadedFile
+import streamlit as st
 
 from Config import Config
 from llm.ChatCore import write_paper, conclude_chat

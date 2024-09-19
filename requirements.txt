@@ -14,11 +14,11 @@ werkzeug~=3.0.4
 numpy~=1.26.3
 pandas~=2.2.0
 
-langchain==0.2.14
-langchain-core==0.2.33
-langchain_community==0.2.12
-langchain-openai==0.1.22
-langgraph==0.2.16
+langchain==0.3.0
+langchain-core==0.3.1
+langchain_community==0.3.0
+langchain-openai==0.2.0
+langgraph==0.2.22
 
 markdown
 sentence_transformers
@@ -27,7 +27,7 @@ transformers
 lark
 # torch==2.2.1+cu121
 
-langchain-milvus==0.1.4
+langchain-milvus==0.1.5
 pymilvus==2.4.5
 
 # 联网搜索

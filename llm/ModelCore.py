@@ -1,7 +1,5 @@
 import httpx
 import streamlit as st
-from langchain_community.chat_models.baidu_qianfan_endpoint import QianfanChatEndpoint
-from langchain_community.llms.moonshot import Moonshot
 from langchain_openai import ChatOpenAI
 
 from Config import Config

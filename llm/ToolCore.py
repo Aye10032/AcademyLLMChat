@@ -8,7 +8,7 @@ from langchain_core.tools import BaseTool, ToolException
 
 import streamlit as st
 from loguru import logger
-from pydantic.v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 
 from Config import Config
 from llm.ModelCore import load_reranker, load_embedding
