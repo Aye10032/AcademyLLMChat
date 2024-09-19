@@ -24,11 +24,11 @@ class VecstoreSearchInput(BaseModel):
 
 
 class VecstoreSearchTool(BaseTool):
-    name = 'search_from_vecstore'
-    description = '根据查询文本从向量数据库中搜索相关的知识。AI在写作过程中，如遇到不明确的知识点或术语，可以调用此工具从数据库中进行查询以获取相关信息。'
+    name: str = 'search_from_vecstore'
+    description: str = '根据查询文本从向量数据库中搜索相关的知识。AI在写作过程中，如遇到不明确的知识点或术语，可以调用此工具从数据库中进行查询以获取相关信息。'
     args_schema: Type[BaseModel] = VecstoreSearchInput
-    return_direct = False
-    handle_tool_error = True
+    return_direct: bool = False
+    handle_tool_error: bool = True
 
     target_collection: str = 'test'
 
@@ -62,11 +62,11 @@ class WebSearchInput(BaseModel):
 
 
 class WebSearchTool(BaseTool):
-    name = 'search_from_web'
-    description = '通过搜索引擎进行联网搜索。AI可以通过调用此工具，联网查询一些自己不清楚的或者比较新的信息。'
+    name: str = 'search_from_web'
+    description: str = '通过搜索引擎进行联网搜索。AI可以通过调用此工具，联网查询一些自己不清楚的或者比较新的信息。'
     args_schema: Type[BaseModel] = WebSearchInput
-    return_direct = False
-    handle_tool_error = True
+    return_direct: bool = False
+    handle_tool_error: bool = True
 
     region: str = 'wt-wt'
     max_search_result: int = 6
