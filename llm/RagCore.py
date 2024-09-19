@@ -89,7 +89,7 @@ def load_vectorstore(collection_name: str, _embedding_model: BgeM3Embeddings) ->
     return vector_db
 
 
-def load_doc_store(db_path: str) -> SqliteDocStore:
+def load_doc_store(db_path: str | bytes) -> SqliteDocStore:
     doc_store = SqliteDocStore(
         connection_string=db_path
     )
