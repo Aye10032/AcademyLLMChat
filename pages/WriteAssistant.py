@@ -310,7 +310,7 @@ def __main_page():
         chat_message_history.add_user_message(HumanMessage(content=prompt))
         logger.info(f'({user.name}) chat: {prompt}')
 
-        write_graph = write_with_db()
+        write_graph = write_with_db("temp1")
         response = write_graph.stream({"messages":chat_message_history.messages})
 
         result = chat_container.chat_message('assistant').write_stream(response)
