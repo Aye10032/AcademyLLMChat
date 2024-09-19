@@ -39,8 +39,7 @@ def chat_with_history(_chat_history: BaseChatMessageHistory, question: str):
 
 
 def write_paper(
-        _chat_history: BaseChatMessageHistory,
-        question: str
+        _chat_history: BaseChatMessageHistory
 ):
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -61,7 +60,6 @@ def write_paper(
     history_chain = prompt | llm_with_tools
 
     messages = _chat_history.messages.copy()
-    messages.append(HumanMessage(question))
 
     with st.spinner('正在分析您的需求...'):
         ai_msg = history_chain.invoke({'chat_history': messages})

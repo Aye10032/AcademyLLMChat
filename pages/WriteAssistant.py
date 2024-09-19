@@ -12,7 +12,6 @@ from loguru import logger
 from langchain_community.chat_message_histories import SQLChatMessageHistory
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
-import utils.MarkdownPraser as md
 from Config import Config
 from llm.ChatCore import write_paper, conclude_chat
 from llm.GraphCore import write_with_db
@@ -310,8 +309,9 @@ def __main_page():
         chat_message_history.add_user_message(HumanMessage(content=prompt))
         logger.info(f'({user.name}) chat: {prompt}')
 
-        write_graph = write_with_db("temp1")
-        response = write_graph.stream({"messages":chat_message_history.messages})
+        # write_graph = write_with_db("temp1")
+        # response = write_graph.stream({"messages":chat_message_history.messages}, stream_mode='values')
+        response = write_paper(chat_message_history)
 
         result = chat_container.chat_message('assistant').write_stream(response)
         chat_message_history.add_ai_message(AIMessage(content=result))
