@@ -241,7 +241,7 @@ def insert_retriever(_vector_store: VectorStore, _doc_store: SqliteBaseStore, la
         child_splitter = RecursiveCharacterTextSplitter(
             chunk_size=100,
             chunk_overlap=0,
-            separators=['。', '？', '\n\n', '\n'],
+            separators=['.', '。', '？', '\n\n', '\n'],
             keep_separator=False
         )
     else:
