@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from typing import Optional
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
@@ -9,10 +10,15 @@ from langchain_core.messages import HumanMessage, AIMessage
 from langchain_milvus import Milvus
 from loguru import logger
 from langchain_community.chat_message_histories import SQLChatMessageHistory
+from streamlit.runtime.uploaded_file_manager import UploadedFile
 
+import utils.MarkdownPraser as md
 from Config import Config
 from llm.ChatCore import write_paper, conclude_chat
+from llm.GraphCore import write_with_db
 from llm.ModelCore import load_embedding
+from llm.RagCore import load_vectorstore, load_doc_store
+from llm.RetrieverCore import insert_retriever
 from storage.SqliteStore import ProfileStore
 from uicomponent.StComponent import side_bar_links, login_message
 from uicomponent.StatusBus import get_config, get_user, update_user
@@ -38,7 +44,7 @@ user: User = get_user()
 
 
 @st.dialog('Create project')
-def create_project():
+def __create_project():
     project_name = st.text_input('Project name')
     time_zone = st.selectbox(
         'Time zone',
@@ -76,10 +82,13 @@ def create_project():
                     "index_type": "HNSW",
                     "params": {"M": 8, "efConstruction": 64}
                 }
+                collection_name = (
+                    f"{project.owner}_"
+                    f"{datetime.fromtimestamp(now_time, tz=ZoneInfo(time_zone)).strftime('%Y_%m_%d_%H_%M_%S')}"
+                )
                 vector_db = Milvus(
                     embedding,
-                    collection_name=f"{project.owner}_"
-                                    f"{datetime.fromtimestamp(now_time, tz=ZoneInfo(time_zone)).strftime('%Y_%m_%d_%H_%M_%S')}",
+                    collection_name=collection_name,
                     connection_args=config.milvus_config.get_conn_args(),
                     index_params=index_param,
                     drop_old=True,
@@ -139,12 +148,12 @@ def create_project():
                 st.warning(f'Project {project.owner}/{project.name} already exist!')
 
 
-def change_project():
+def __change_project():
     user.last_project = st.session_state.get('now_project')
     update_user(user)
 
 
-def change_chat():
+def __change_chat():
     now_time = datetime.now().timestamp()
 
     # 更新数据库
@@ -215,6 +224,30 @@ def __on_summary_click():
         profile_store.update_chat_history(chat)
 
 
+def __on_file_upload(
+        main_file: Optional[UploadedFile],
+        other_files: Optional[UploadedFile | list[UploadedFile]]
+):
+    embedding = load_embedding()
+    vector_db = load_vectorstore(st.session_state.get('now_main_collection'), embedding)
+    doc_db = load_doc_store(
+        os.path.join(
+            config.get_user_path(),
+            user.name,
+            st.session_state.get('now_project'),
+            'document.db'
+        )
+    )
+    retriever = insert_retriever(vector_db, doc_db, 'zh')
+
+    if main_file:
+        match main_file.type:
+            case 'md':
+                NotImplementedError()
+            case _:
+                ...
+
+
 def __main_page():
     chat_message_history = SQLChatMessageHistory(
         session_id=st.session_state.get('now_chat'),
@@ -235,10 +268,19 @@ def __main_page():
     config_container = col_conf.container(height=730, border=True)
     with config_container:
         with st.expander('##### 文件上传'):
-            st.file_uploader('主文件上传')
-            st.file_uploader(
+            main_file = st.file_uploader(
+                '主文件上传',
+                type=['md']
+            )
+            other_files = st.file_uploader(
                 '其他材料上传',
-                accept_multiple_files=True
+                type=['md'],
+                accept_multiple_files=True,
+            )
+            st.button(
+                '上传',
+                on_click=__on_file_upload,
+                args=[main_file, other_files]
             )
 
         st.divider()
@@ -249,7 +291,7 @@ def __main_page():
         )
 
         st.divider()
-        st.subheader('常用功能')
+        st.markdown('##### 常用功能')
         btn_col1, btn_col2, _, _ = st.columns([1, 1, 1, 1], gap='small')
         with btn_col1:
             st.button(
@@ -268,9 +310,10 @@ def __main_page():
         chat_message_history.add_user_message(HumanMessage(content=prompt))
         logger.info(f'({user.name}) chat: {prompt}')
 
-        response = write_paper(chat_message_history, prompt)
+        write_graph = write_with_db()
+        response = write_graph.stream({"messages":chat_message_history.messages})
 
-        result = chat_container.chat_message('assistant', avatar='logo.png').write_stream(response)
+        result = chat_container.chat_message('assistant').write_stream(response)
         chat_message_history.add_ai_message(AIMessage(content=result))
         logger.info(f"(gpt4o-mini) answer: {result}")
 
@@ -291,7 +334,7 @@ def __different_ui():
             st.button(
                 'Create',
                 type='primary',
-                on_click=create_project
+                on_click=__create_project
             )
     else:
         with ProfileStore(
@@ -305,6 +348,10 @@ def __different_ui():
 
             _last_project = profile_store.get_project(user.name, user.last_project)
             st.session_state['now_project'] = user.last_project
+            st.session_state['now_main_collection'] = (
+                f"{_last_project.owner}_"
+                f"{datetime.fromtimestamp(_last_project.create_time, tz=ZoneInfo(_last_project.time_zone)).strftime('%Y_%m_%d_%H_%M_%S')}"
+            )
             st.session_state['now_chat'] = _last_project.last_chat
             logger.info(f"Load chat({st.session_state['now_chat']}) from {user.name}/{st.session_state['now_project']}")
 
@@ -315,12 +362,13 @@ def __different_ui():
                 'Project',
                 options=project_list,
                 key='now_project',
-                on_change=change_project,
+                on_change=__change_project,
             )
             st.button(
                 '➕',
                 key='btn_new_proj',
-                on_click=create_project
+                on_click=__create_project,
+                help='新建工程'
             )
 
             st.selectbox(
@@ -328,13 +376,14 @@ def __different_ui():
                 options=chat_list.keys(),
                 key='now_chat',
                 format_func=lambda x: chat_list[x],
-                on_change=change_chat,
+                on_change=__change_chat,
             )
             col_new_chat, col_summary, _ = st.columns([0.5, 1, 1])
             col_new_chat.button(
                 '➕',
                 key='btn_new_chat',
-                on_click=__on_create_chat_click
+                on_click=__on_create_chat_click,
+                help='新建对话'
             )
             col_summary.button(
                 'Summary',
