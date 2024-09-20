@@ -43,12 +43,14 @@ retrieve:
     save_local: True
     fp16: True
     normalize: True
+    device: 'cuda'
 
   reranker:
     model: 'BAAI/bge-reranker-v2-m3'
     save_local: True
     fp16: True
     normalize: True
+    device: 'cuda'
 
 llm:
   openai:

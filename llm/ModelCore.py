@@ -20,6 +20,7 @@ def load_embedding() -> BgeM3Embeddings:
     embedding = BgeM3Embeddings(
         model_name=embd_cfg.model,
         use_fp16=embd_cfg.fp16,
+        device=embd_cfg.device,
         encode_kwargs={
             'normalize_embeddings': embd_cfg.normalize
         },
@@ -35,6 +36,7 @@ def load_reranker() -> BgeReranker:
     reranker = BgeReranker(
         model_name=reranker_cfg.model,
         use_fp16=reranker_cfg.fp16,
+        device=embd_cfg.device,
         encode_kwargs={
             'normalize': reranker_cfg.normalize
         },

@@ -12,6 +12,7 @@ from loguru import logger
 from torch import Tensor
 from tqdm import tqdm
 
+
 class BgeM3Embeddings(BaseModel, Embeddings):
     model_name: str
     tokenizer: Any = None
@@ -26,7 +27,7 @@ class BgeM3Embeddings(BaseModel, Embeddings):
     """
     pooling_method: str = 'cls'
     use_fp16: bool = True
-    device: Optional[str] = None
+    device: Optional[str, torch.cuda.device] = None
 
     """
     Keyword arguments to pass when calling the `encode` method of the model.
@@ -74,8 +75,8 @@ class BgeM3Embeddings(BaseModel, Embeddings):
             self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
             self.model = AutoModel.from_pretrained(self.model_name)
 
-        if self.device is None:
-            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        if not self.device:
+            self.device = torch.device('cuda', 0) if torch.cuda.is_available() else torch.device('cpu')
 
         if not torch.cuda.is_available():
             self.use_fp16 = False
@@ -162,7 +163,7 @@ class BgeReranker(BaseModel):
     device: Union[str, int] = None
     """
     use_fp16: bool = False,
-    device: Optional[str] = None
+    device: Optional[str, torch.cuda.device] = None
 
     """
     Keyword arguments to pass when calling the `compress_documents` method of the model.
@@ -210,8 +211,8 @@ class BgeReranker(BaseModel):
             self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
             self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name)
 
-        if self.device is None:
-            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        if not self.device:
+            self.device = torch.device('cuda', 0) if torch.cuda.is_available() else torch.device('cpu')
 
         if not torch.cuda.is_available():
             self.use_fp16 = False

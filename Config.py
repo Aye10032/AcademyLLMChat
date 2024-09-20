@@ -156,6 +156,7 @@ class EmbeddingConfig:
     save_local: bool
     fp16: bool
     normalize: bool
+    device: str
     local_path: str = field(init=False)
 
     def __post_init__(self):
