@@ -27,7 +27,7 @@ class BgeM3Embeddings(BaseModel, Embeddings):
     """
     pooling_method: str = 'cls'
     use_fp16: bool = True
-    device: Optional[str, torch.cuda.device] = None
+    device: Optional[Union[str, torch.cuda.device]] = None
 
     """
     Keyword arguments to pass when calling the `encode` method of the model.
@@ -163,7 +163,7 @@ class BgeReranker(BaseModel):
     device: Union[str, int] = None
     """
     use_fp16: bool = False,
-    device: Optional[str, torch.cuda.device] = None
+    device: Optional[Union[str, torch.cuda.device]] = None
 
     """
     Keyword arguments to pass when calling the `compress_documents` method of the model.
