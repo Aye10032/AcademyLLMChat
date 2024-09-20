@@ -20,8 +20,6 @@ langchain_community==0.3.0
 langchain-openai==0.2.0
 langgraph==0.2.22
 
-markdown
-sentence_transformers
 langchain_text_splitters
 transformers
 lark
