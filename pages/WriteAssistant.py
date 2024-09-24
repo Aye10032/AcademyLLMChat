@@ -14,7 +14,6 @@ import streamlit as st
 
 from Config import Config
 from llm.ChatCore import write_paper, conclude_chat
-from llm.GraphCore import write_with_db
 from llm.ModelCore import load_embedding
 from llm.RagCore import load_vectorstore, load_doc_store
 from llm.RetrieverCore import insert_retriever
@@ -279,14 +278,16 @@ def __main_page():
             st.button(
                 '上传',
                 on_click=__on_file_upload,
-                args=[main_file, other_files]
+                args=[main_file, other_files],
+                disabled=True
             )
 
         st.divider()
 
         st.multiselect(
             '知识库调用',
-            options=collections
+            options=collections,
+            disabled=True
         )
 
         st.divider()
@@ -295,13 +296,15 @@ def __main_page():
         with btn_col1:
             st.button(
                 '风格仿写',
-                type='primary'
+                type='primary',
+                disabled=True
             )
 
         with btn_col2:
             st.button(
                 '自动纠错',
-                type='primary'
+                type='primary',
+                disabled=True
             )
 
     if prompt:
