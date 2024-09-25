@@ -177,6 +177,9 @@ class BgeReranker(BaseModel):
     local_load: bool = False
     local_path: str = ''
 
+    drop_low_score: bool = True
+    low_score: float = 0.1
+
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
 
@@ -288,13 +291,12 @@ class BgeReranker(BaseModel):
             rerank_scores.extend(batch_scores)
 
         rerank_results = list(zip(rerank_scores, documents))
-        rerank_results = sorted(rerank_results, reverse=True)
+        rerank_results = sorted(rerank_results, key=lambda x: x[0], reverse=True)
 
-        final_results = []
-        for r in rerank_results:
-            doc: Document = r[1]
-            doc.metadata['score'] = r[0]
-            final_results.append(doc)
+        final_results = [
+            doc for r in rerank_results
+            if (doc := r[1]).metadata.update({'score': r[0]}) or (not self.drop_low_score or r[0] > self.low_score)
+        ]
         return final_results
 
     async def acompress_documents(
