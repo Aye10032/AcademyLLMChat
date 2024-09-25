@@ -10,6 +10,7 @@ httpx[socks]
 httpx-sse
 PyJWT
 werkzeug~=3.0.4
+markdownify
 
 numpy~=1.26.3
 pandas~=2.2.0
