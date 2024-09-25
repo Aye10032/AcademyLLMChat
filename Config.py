@@ -14,31 +14,6 @@ def get_work_path():
 
 
 @dataclass
-class PubmedConfig:
-    use_proxy: bool
-    api_key: str
-
-    @classmethod
-    def from_dict(cls, data: dict[str, any]):
-        return cls(**data)
-
-
-@dataclass
-class GrobidConfig:
-    grobid_server: str
-    service: str
-    batch_size: int
-    sleep_time: int
-    timeout: int
-    coordinates: list[str]
-    multi_process: int
-
-    @classmethod
-    def from_dict(cls, data: dict[str, any]):
-        return cls(**data)
-
-
-@dataclass
 class Collection:
     collection_name: str
     language: str
@@ -188,6 +163,41 @@ class ZhipuConfig:
         return cls(**data)
 
 
+@dataclass
+class PubmedConfig:
+    use_proxy: bool
+    api_key: str
+
+    @classmethod
+    def from_dict(cls, data: dict[str, any]):
+        return cls(**data)
+
+
+@dataclass
+class SerperConfig:
+    use_proxy: bool
+    api_key: str
+
+    @classmethod
+    def from_dict(cls, data: dict[str, any]):
+        return cls(**data)
+
+
+@dataclass
+class GrobidConfig:
+    grobid_server: str
+    service: str
+    batch_size: int
+    sleep_time: int
+    timeout: int
+    coordinates: list[str]
+    multi_process: int
+
+    @classmethod
+    def from_dict(cls, data: dict[str, any]):
+        return cls(**data)
+
+
 class Config:
     def __init__(self):
         yml_path = os.path.join(get_work_path(), 'config.yml')
@@ -198,8 +208,6 @@ class Config:
         with open(file=yml_path, mode='r', encoding='utf-8') as file:
             self.yml = yaml.load(file, Loader=yaml.FullLoader)
 
-            self.pubmed_config: PubmedConfig = PubmedConfig.from_dict(self.yml['pubmed'])
-            self.grobid_config: GrobidConfig = GrobidConfig.from_dict(self.yml['grobid'])
             self.milvus_config: MilvusConfig = MilvusConfig.from_dict(
                 self.yml['paper_directory']['data_root'],
                 self.yml['retrieve']['milvus']
@@ -208,6 +216,9 @@ class Config:
             self.reranker_config: EmbeddingConfig = EmbeddingConfig.from_dict(self.yml['retrieve']['reranker'])
             self.openai_config: OpenaiConfig = OpenaiConfig.from_dict(self.yml['llm']['openai'])
             self.zhipu_config: ZhipuConfig = ZhipuConfig.from_dict(self.yml['llm']['zhipu'])
+            self.pubmed_config: PubmedConfig = PubmedConfig.from_dict(self.yml['tools']['pubmed'])
+            self.serper_config: SerperConfig = SerperConfig.from_dict(self.yml['tools']['serper'])
+            self.grobid_config: GrobidConfig = GrobidConfig.from_dict(self.yml['tools']['grobid'])
 
     def set_collection(self, collection: int) -> None:
         if collection >= len(self.milvus_config.collections):
