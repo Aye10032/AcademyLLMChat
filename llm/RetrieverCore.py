@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 
 from langchain.chains.query_constructor.schema import AttributeInfo
 from langchain.retrievers import ParentDocumentRetriever, SelfQueryRetriever, MultiVectorRetriever
@@ -53,7 +53,7 @@ class ScoreRetriever(MultiVectorRetriever):
     reranker: BgeReranker
 
     multi_query: bool = False
-    llm_chain: Runnable
+    llm_chain: Optional[Runnable] = None
 
     top_k: int = 5
 
